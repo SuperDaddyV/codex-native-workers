@@ -7,6 +7,8 @@ ROOT = Path(__file__).resolve().parents[1]
 README = ROOT / "README.md"
 README_ZH = ROOT / "README.zh-CN.md"
 PREVIEW = ROOT / "NATIVE_WORKERS_PREVIEW.md"
+INSTALLATION = ROOT / "INSTALLATION.md"
+INSTALLATION_ZH = ROOT / "INSTALLATION.zh-CN.md"
 ASSIST = ROOT / "CODEX_SOL_LUNA_INSTALL_ASSIST.md"
 ASSIST_ZH = ROOT / "CODEX_SOL_LUNA_INSTALL_ASSIST.zh-CN.md"
 SETUP = ROOT / "CODEX_SOL_LUNA_SETUP.md"
@@ -16,6 +18,7 @@ ISSUE_FORMS = {
         "summary", "expected", "os", "codex_client_version", "python_version",
         "install_type", "version", "receipt", "luna_run", "minimal_logs",
         "reproduction", "context", "privacy_confirmation",
+        "release_channel", "configuration_status", "sol_run", "legacy_receipt",
     },
     "compatibility-report.yml": {
         "os", "codex_client_version", "python_version", "install_type",
@@ -23,16 +26,21 @@ ISSUE_FORMS = {
         "sol_only_receipt", "delegated_receipt", "luna_delegation",
         "parallel_delegation", "usage_duration", "problems_found",
         "overall_result", "privacy_confirmation",
+        "release_channel", "configuration_status", "sol_delegation", "sol_role",
+        "coordinator_workers_receipt",
     },
     "feature-feedback.yml": {
         "type", "improvement", "reason", "suggested_behavior", "context",
         "privacy_confirmation",
+        "release_channel", "version", "evidence_status",
     },
 }
 PUBLIC_DOCS = (
     README,
     README_ZH,
     PREVIEW,
+    INSTALLATION,
+    INSTALLATION_ZH,
     ASSIST,
     ASSIST_ZH,
     SETUP,
@@ -78,6 +86,7 @@ V413_EXACT_CI_RUN = "33253340074"
 V413_MASTER_EVIDENCE_COMMIT = "bafc41b50269a0b65aba64594e850f6171a714ac"
 V413_MASTER_CI_RUN = "33253429974"
 V414_RUNTIME_SOURCE_COMMIT = "6a537b445ad6f17a9600c05e655f51a2844bfcc8"
+RC1_RUNTIME_SOURCE_COMMIT = "527b174df13643a38bfe29652208eaa00f63fbf7"
 V414_EXACT_CI_RUN = "33264634602"
 V414_SETUP_CONTRACT_COMMIT = PINNED_SETUP_COMMIT
 V412_BASELINE_RUNTIME_SOURCE_COMMIT = (
@@ -129,6 +138,7 @@ class DocumentationTests(unittest.TestCase):
                 README,
                 (
                     "What it is",
+                    "Choose your version",
                     "v4.2.0-rc1 preview",
                     "How Coordinator and workers collaborate",
                     "Core value",
@@ -146,6 +156,7 @@ class DocumentationTests(unittest.TestCase):
                 README_ZH,
                 (
                     "这是什么",
+                    "选择版本",
                     "v4.2.0-rc1 预览版",
                     "Coordinator 与 worker 如何协作",
                     "核心价值",
@@ -247,30 +258,30 @@ class DocumentationTests(unittest.TestCase):
         )
 
         for content in (english, chinese):
-            self.assertIn("Preview target", content)
+            self.assertIn("img.shields.io/badge/preview-v4.2.0--rc1", content)
             self.assertIn(release_url, content)
             self.assertGreaterEqual(content.count("NATIVE_WORKERS_PREVIEW.md"), 3)
             self.assertIn("40-hex commit", content)
-            self.assertIn("detached checkout", content)
+            self.assertIn("detached checkout", " ".join(content.split()))
             self.assertIn("sol-luna-upgrade", content)
             self.assertNotIn("<PREVIEW", content)
             self.assertNotIn("<RC1", content)
 
         for phrase in (
             "non-draft GitHub Prerelease",
-            "published Release",
+            "Published preview",
             "read the remote tag again",
             "moving branch",
             "Strong recursive isolation therefore remains unsupported",
-            "does not claim that the preview Release is already published",
+            "not a measured installation success rate",
         ):
             self.assertIn(phrase, english)
         for phrase in (
             "已发布、非 draft 的 GitHub Prerelease",
             "再次读取远端 tag",
             "可变分支",
-            "宿主强制阻止 worker 递归委派",
-            "不声称预览版 Release 已经发布",
+            "强递归隔离仍不受支持",
+            "已发布预览版",
         ):
             self.assertIn(phrase, chinese)
 
@@ -287,7 +298,24 @@ class DocumentationTests(unittest.TestCase):
             ),
         ):
             section = content[content.index(start) : content.index(end)]
-            self.assertNotRegex(section, r"\b[0-9a-f]{40}\b")
+            self.assertEqual(
+                set(re.findall(r"\b[0-9a-f]{40}\b", section)),
+                {RC1_RUNTIME_SOURCE_COMMIT},
+            )
+            prompts = re.findall(r"```text\n(.*?)\n```", section, re.S)
+            self.assertEqual(len(prompts), 1)
+            self.assertIn(
+                "https://raw.githubusercontent.com/SuperDaddyV/"
+                f"codex-sol-luna-worker/{RC1_RUNTIME_SOURCE_COMMIT}/"
+                "NATIVE_WORKERS_PREVIEW.md",
+                prompts[0],
+            )
+            self.assertIn("dry-run", prompts[0])
+            self.assertIn("apply", prompts[0])
+            self.assertIn("python", prompts[0])
+            self.assertIn("tomllib", prompts[0])
+            self.assertNotIn("already published", section)
+            self.assertNotIn("不声称预览版 Release 已经发布", section)
             self.assertNotRegex(section, r"\b20\d{2}-\d{2}-\d{2}\b")
             self.assertNotRegex(section, r"<[^>]*(?:SHA|COMMIT|DATE)[^>]*>")
 
@@ -329,10 +357,11 @@ class DocumentationTests(unittest.TestCase):
         for phrase in (
             "Three-worker overlap has been observed",
             "configured maximum of six is unverified",
-            "recorded before an rc1 installation",
+            "with pre-rc1 installed roles",
             "FAIL** for Sol tool visibility",
-            "UNKNOWN** for the Luna tool report",
-            "NOT RUN** for nested invocation",
+            "post-install Luna child",
+            "Nested invocation was **NOT RUN**",
+            "invocation enforcement remains **UNKNOWN**",
             "without a Hook Router or custom orchestration engine",
             "never a billing or quota-savings claim",
         ):
@@ -340,9 +369,10 @@ class DocumentationTests(unittest.TestCase):
         for phrase in (
             "已观察到三个 worker 重叠执行",
             "配置上限六个尚未验证",
-            "记录于 rc1 安装前",
+            "rc1 之前安装的角色",
             "Sol tool visibility 为 **FAIL**",
-            "Luna tool report 为 **UNKNOWN**",
+            "安装后的 Luna child",
+            "调用防护为 **UNKNOWN**",
             "nested invocation 为 **NOT RUN**",
             "不需要 Hook Router 或自建编排引擎",
             "绝不据此声称实际账单或额度节省",
@@ -374,6 +404,39 @@ class DocumentationTests(unittest.TestCase):
         self.assertIn("Git for the required immutable exact-commit checkout", english)
         self.assertIn("仅安装 Codex Desktop 还不够", chinese)
         self.assertIn("用于不可变精确 commit checkout 的 Git", chinese)
+
+    def test_installation_help_covers_actual_launcher_roots_and_recovery(self):
+        python_check = (
+            'python -c "import sys, tomllib; '
+            'assert sys.version_info >= (3, 11); print(sys.version)"'
+        )
+        for path in (README, README_ZH):
+            prompts = re.findall(r"```text\n(.*?)\n```", text(path), re.S)
+            stable = [p for p in prompts if "CODEX_SOL_LUNA_INSTALL_ASSIST.md" in p]
+            self.assertEqual(len(stable), 1)
+            self.assertIn(python_check, stable[0])
+
+        for guide, homepage in ((INSTALLATION, README), (INSTALLATION_ZH, README_ZH)):
+            content = text(guide)
+            self.assertIn(f"]({guide.name})", text(homepage))
+            self.assertIn(python_check, content)
+            self.assertIn(RC1_RUNTIME_SOURCE_COMMIT, content)
+            self.assertIn("CODEX_HOME", content)
+            self.assertIn("<SKILLS_ROOT>", content)
+            self.assertIn("AGENTS.override.md", content)
+            self.assertIn("OWNERSHIP_CONFLICT", content)
+            self.assertIn("IDEMPOTENT_PASS", content)
+            self.assertIn("Today Selection not initialized", content)
+            self.assertIn("Not checked", content)
+            self.assertIn("--source-commit", content)
+            self.assertIn("native-workers-rc1-validation.json", content)
+            self.assertNotIn("raw.githubusercontent.com/SuperDaddyV/"
+                             "codex-sol-luna-worker/master/", content)
+            self.assertEqual(content.count("```") % 2, 0)
+
+        self.assertIn("not native installation proof on all platforms or a measured user",
+                      " ".join(text(INSTALLATION).split()))
+        self.assertIn("不是用户安装成功率统计", text(INSTALLATION_ZH))
 
     def test_readme_uses_single_v414_immutable_installation_entry(self):
         english = text(README)
@@ -640,7 +703,7 @@ class DocumentationTests(unittest.TestCase):
         ):
             self.assertIn(value, content + text(ROOT / "RUNTIME_TESTS.md"))
 
-    def test_stable_feedback_forms_and_guidance(self):
+    def test_stable_and_preview_feedback_forms_and_guidance(self):
         self.assertEqual(
             text(ISSUE_TEMPLATE_DIR / "config.yml").strip(),
             "blank_issues_enabled: false",
@@ -663,7 +726,10 @@ class DocumentationTests(unittest.TestCase):
                 self.assertEqual(len(labels), len(set(labels)))
                 self.assertNotIn("labels:", content)
                 self.assertNotIn("contact_links:", content)
-                self.assertIn("current Stable release", content)
+                self.assertIn("Stable (v4.1.4)", content)
+                self.assertIn("Prerelease / preview (v4.2.0-rc1)", content)
+                self.assertIn('"NOT RUN"', content)
+                self.assertIn('"BLOCKED"', content)
                 self.assertNotIn("public beta", content.lower())
                 self.assertNotIn("public-beta", content.lower())
                 self.assertNotIn("v4.1.0-rc4", content)
@@ -681,6 +747,8 @@ class DocumentationTests(unittest.TestCase):
         self.assertIn("`Sol/Luna: Sol-only · no independent bounded work`", bug)
         self.assertIn("`Sol/Luna: delegated · luna_max ×2 · parallel`", bug)
         self.assertIn("`No Receipt`", bug)
+        self.assertIn("Coordinator/Workers: delegated · sol_high ×1", bug)
+        self.assertIn("Stable / legacy format", bug)
         self.assertIn('- "Yes"\n        - "No"\n        - "Not sure"', bug)
 
         compatibility = text(ISSUE_TEMPLATE_DIR / "compatibility-report.yml")
@@ -698,7 +766,10 @@ class DocumentationTests(unittest.TestCase):
             "More than 1 week",
         ):
             self.assertIn(option, compatibility)
-        self.assertIn("placeholder: v4.1.3 / v4.1.2 / Unknown", compatibility)
+        self.assertIn("placeholder: v4.1.4 / v4.1.3 / Unknown", compatibility)
+        self.assertIn("placeholder: sol_max / Unknown", compatibility)
+        self.assertIn("Coordinator/Workers: delegated", compatibility)
+        self.assertIn("sequential execution is not parallel", compatibility)
         self.assertIn("placeholder: v4.1.4", compatibility)
         self.assertNotIn("placeholder: v4.1.1", compatibility)
 
@@ -1136,6 +1207,8 @@ class DocumentationTests(unittest.TestCase):
             README,
             README_ZH,
             PREVIEW,
+            INSTALLATION,
+            INSTALLATION_ZH,
             ASSIST,
             SETUP,
             ROOT / "SECURITY.md",

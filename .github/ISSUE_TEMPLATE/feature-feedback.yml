@@ -1,15 +1,50 @@
 name: Feature request / feedback
-description: Suggest a focused improvement for the current Stable release
+description: Suggest a focused improvement for Stable v4.1.4 or the v4.2.0-rc1 preview
 title: "[Feature request / feedback]: "
 body:
   - type: markdown
     attributes:
       value: |
-        Feature feedback is welcome for the current Stable release.
+        Feature feedback is welcome for the current Stable release or the v4.2.0-rc1 preview. Say which target the suggestion concerns when it is version-specific.
 
-        **Non-guarantee notice.** Feature feedback does not guarantee implementation, roadmap inclusion, compatibility, support, or a delivery timeline. Suggestions remain subject to project scope, evidence, review, and Sol-owned acceptance.
+        **Non-guarantee notice.** Feature feedback does not guarantee implementation, roadmap inclusion, compatibility, support, or a delivery timeline. Suggestions remain subject to project scope, evidence, review, and maintainer acceptance.
 
         **Privacy warning — read before submitting.** Before submitting, remove or redact secrets and private information, including API keys, access tokens, cookies, passwords, private repository credentials, personal email addresses, unnecessary absolute home-directory information, and proprietary source/code unless you intentionally choose to share it. Include only the minimum relevant logs, with secrets and private information removed or redacted. Do not upload the entire CODEX_HOME (the whole `CODEX_HOME`) unless specifically requested during later troubleshooting; never upload an archive of it or its private files.
+
+  - type: dropdown
+    id: release_channel
+    attributes:
+      label: Release channel
+      description: Which published target does this feedback concern?
+      options:
+        - "Stable (v4.1.4)"
+        - "Prerelease / preview (v4.2.0-rc1)"
+        - Both targets
+        - Other published version
+        - General / Unknown
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version under discussion
+      description: Optional. Enter the exact version, tag, or commit when this feedback is version-specific.
+      placeholder: v4.1.4 (or v4.2.0-rc1)
+
+  - type: dropdown
+    id: evidence_status
+    attributes:
+      label: Observation status
+      description: Is this feedback based on actual native execution or only on configuration/status? Use NOT RUN or BLOCKED when applicable.
+      options:
+        - Native execution observed
+        - Configuration/status only
+        - "NOT RUN"
+        - "BLOCKED"
+        - General suggestion / Unknown
+    validations:
+      required: true
 
   - type: dropdown
     id: type

@@ -1,11 +1,11 @@
 name: Compatibility report
-description: Report compatibility with the current Stable release, including a successful run
+description: Report compatibility with Stable v4.1.4 or the v4.2.0-rc1 preview
 title: "[Compatibility]: "
 body:
   - type: markdown
     attributes:
       value: |
-        Success reports are welcome. They help us understand OS compatibility, fresh installs, upgrades, Luna delegation, and Delegation Receipt behavior. Reports are public GitHub Issues only.
+        Success reports are welcome. They help us understand OS compatibility, fresh installs, upgrades, Sol and Luna delegation, and current Coordinator/Workers Receipt or legacy Delegation Receipt behavior across the Stable release and the v4.2.0-rc1 preview. Reports are public GitHub Issues only.
 
         **Privacy warning — read before submitting.** Before submitting, remove or redact secrets and private information, including API keys, access tokens, cookies, passwords, private repository credentials, personal email addresses, unnecessary absolute home-directory information, and proprietary source/code unless you intentionally choose to share it. Include only the minimum relevant logs, with secrets and private information removed or redacted. Do not upload the entire CODEX_HOME (the whole `CODEX_HOME`) unless specifically requested during later troubleshooting; never upload an archive of it or its private files.
 
@@ -37,6 +37,19 @@ body:
       required: true
 
   - type: dropdown
+    id: release_channel
+    attributes:
+      label: Release channel
+      description: Which published target did you test?
+      options:
+        - "Stable (v4.1.4)"
+        - "Prerelease / preview (v4.2.0-rc1)"
+        - Other published version
+        - Unknown
+    validations:
+      required: true
+
+  - type: dropdown
     id: install_type
     attributes:
       label: Install type
@@ -44,6 +57,8 @@ body:
       options:
         - Fresh install
         - Upgrade
+        - Already installed / normal usage
+        - Unknown
     validations:
       required: true
 
@@ -52,14 +67,14 @@ body:
     attributes:
       label: From version
       description: Optional. For an upgrade, enter the version you upgraded from.
-      placeholder: v4.1.3 / v4.1.2 / Unknown
+      placeholder: v4.1.4 / v4.1.3 / Unknown
 
   - type: input
     id: installed_version
     attributes:
-      label: Installed version
-      description: Enter the version actually installed or tested.
-      placeholder: v4.1.4
+      label: Installed / tested version
+      description: Enter the version actually installed or tested, including the exact tag or commit when available.
+      placeholder: v4.1.4 (or v4.2.0-rc1)
     validations:
       required: true
 
@@ -67,43 +82,89 @@ body:
     id: installation_result
     attributes:
       label: Installation result
-      description: What was the installation result?
+      description: What was the installation result? Use NOT RUN or BLOCKED when this check did not reach a result.
       options:
         - "PASS"
         - "PASS with minor issue"
         - "FAIL"
+        - "NOT RUN"
+        - "BLOCKED"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: configuration_status
+    attributes:
+      label: Configuration/status evidence
+      description: What did installed configuration or a status check show? This is configuration evidence and does not prove that a native worker actually ran.
+      options:
+        - "Ready / configured"
+        - "Not ready / mismatch"
+        - "NOT RUN"
+        - "BLOCKED"
+        - Unknown
     validations:
       required: true
 
   - type: input
     id: daily_role
     attributes:
-      label: Daily role
-      description: Optional. Enter the observed daily Luna role, or Unknown.
+      label: Observed Luna role
+      description: Optional. Enter the observed Luna role, or Unknown. A configured role is not proof of native delegation.
       placeholder: luna_max / Unknown
+
+  - type: input
+    id: sol_role
+    attributes:
+      label: Observed Sol role
+      description: Optional. Enter the observed Sol role, or Unknown. A configured role is not proof of native delegation.
+      placeholder: sol_max / Unknown
+
+  - type: textarea
+    id: coordinator_workers_receipt
+    attributes:
+      label: Coordinator/Workers Receipt (current format)
+      description: Optional. Paste the observed current-format Receipt. If it was not emitted, write `No current receipt — NOT RUN` or `No current receipt — BLOCKED`. Receipt text is observational, not runtime attestation.
+      placeholder: "Coordinator/Workers: delegated · luna_high ×2 · parallel"
 
   - type: textarea
     id: sol_only_receipt
     attributes:
-      label: Sol-only Receipt observed?
-      description: Optional. Paste the observed Sol-only Receipt line, or leave blank if none was observed.
+      label: Legacy Sol-only Receipt (Stable / legacy format)
+      description: Optional. Paste an older `Sol/Luna:` Sol-only Receipt, or leave blank if none was observed. Do not treat it as current Coordinator/Workers runtime evidence.
       placeholder: "Sol/Luna: Sol-only · reasoning/architecture task"
 
   - type: textarea
     id: delegated_receipt
     attributes:
-      label: Delegated Receipt observed?
-      description: Optional. Paste the observed delegated Receipt line, or leave blank if none was observed.
+      label: Legacy delegated Sol/Luna Receipt (Stable / legacy format)
+      description: Optional. Paste an older `Sol/Luna:` delegated Receipt, or leave blank if none was observed. Do not treat it as current Coordinator/Workers runtime evidence.
       placeholder: "Sol/Luna: delegated · luna_max ×3 · parallel"
+
+  - type: dropdown
+    id: sol_delegation
+    attributes:
+      label: Observed native Sol delegation
+      description: Was native Sol delegation observed in the tested task? Configuration alone does not count.
+      options:
+        - "Yes"
+        - "No"
+        - "NOT RUN"
+        - "BLOCKED"
+        - "Not tested"
+    validations:
+      required: true
 
   - type: dropdown
     id: luna_delegation
     attributes:
-      label: Luna delegation observed
-      description: Was a Luna delegation observed in the tested task?
+      label: Observed native Luna delegation
+      description: Was native Luna delegation observed in the tested task? Configuration alone does not count.
       options:
         - "Yes"
         - "No"
+        - "NOT RUN"
+        - "BLOCKED"
         - "Not tested"
     validations:
       required: true
@@ -112,10 +173,12 @@ body:
     id: parallel_delegation
     attributes:
       label: Parallel delegation observed
-      description: Was overlapping parallel Luna delegation observed?
+      description: Did two or more native workers overlap? Include the actual Sol/Luna roles in the result; sequential execution is not parallel.
       options:
         - "Yes"
         - "No"
+        - "NOT RUN"
+        - "BLOCKED"
         - "Not tested"
     validations:
       required: true
@@ -144,8 +207,8 @@ body:
     id: overall_result
     attributes:
       label: Overall result
-      description: Summarize what worked, what did not, and whether you would run this Stable release again in this environment.
-      placeholder: Works normally on my environment
+      description: Summarize what worked, what did not, and whether you would run this target again in this environment. Keep configuration evidence, actual native execution, NOT RUN, and BLOCKED checks distinct.
+      placeholder: Works normally on my environment; native checks not run
     validations:
       required: true
 

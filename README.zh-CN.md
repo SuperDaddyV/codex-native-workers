@@ -5,6 +5,7 @@
 [English](README.md)
 
 [![Stable: v4.1.4](https://img.shields.io/badge/stable-v4.1.4-blue)](https://github.com/SuperDaddyV/codex-sol-luna-worker/releases/tag/v4.1.4)
+[![Preview: v4.2.0-rc1](https://img.shields.io/badge/preview-v4.2.0--rc1-orange)](https://github.com/SuperDaddyV/codex-sol-luna-worker/releases/tag/v4.2.0-rc1)
 [![Validation](https://github.com/SuperDaddyV/codex-sol-luna-worker/actions/workflows/validate.yml/badge.svg?branch=master)](https://github.com/SuperDaddyV/codex-sol-luna-worker/actions/workflows/validate.yml)
 [![License](https://img.shields.io/github/license/SuperDaddyV/codex-sol-luna-worker)](LICENSE)
 
@@ -13,7 +14,7 @@
 
 ## 这是什么
 
-Codex Native Workers 把用户选择的 **Coordinator** 与两类直属原生 worker 分开：
+Codex Native Workers 的 v4.2 预览版把用户选择的 **Coordinator** 与两类直属原生 worker 分开：
 
 - **Coordinator 掌握整个任务。** 它负责需求、范围、架构、歧义处理、路由、整合、最终验收和最终答复。Astra 只是 Coordinator 的一个示例；本项目不会选择或安装 Coordinator 模型。
 - **Sol 执行复杂的边界任务。** 适合诊断、综合、跨模块推理，以及其他范围清楚但难度较高的执行工作。
@@ -21,27 +22,46 @@ Codex Native Workers 把用户选择的 **Coordinator** 与两类直属原生 wo
 
 新的只是展示名称。仓库 slug `codex-sol-luna-worker`、安装路径、托管标记和三个 `sol-luna-*` Skill 名称保持向后兼容。
 
+这是面向本地 Codex 客户端的配置与路由包，不提供模型权限、额度或独立代理引擎。安装作用于当前用户；具体项目的 instructions 和客户端实际能力仍然生效。
+
+## 选择版本
+
+| 你的需求 | 版本 | 实际获得的功能 |
+| --- | --- | --- |
+| 使用上面介绍的 Coordinator + Sol + Luna 方案 | **v4.2.0-rc1 Preview** | 自选 Coordinator、5 个 Sol 和 5 个 Luna 档位、3 个 Skills；需接受已披露的预览限制。 |
+| 保持现有稳定方案 | **v4.1.4 Stable（默认）** | 旧版 Sol 主控 + 5 个 Luna worker 档位；**不包含 Sol 子代理档位，也不是新版三个 Skills 的流程**。 |
+
+下面两个安装提示词只选一个。新用户不要都运行一遍；已安装 Stable 的用户可只运行 Preview 提示词完成升级。已经安装 rc1 的用户不需要因本次文档更新重新安装，也不要自动降级。GitHub 的 **Latest** 标记和 `/releases/latest` 仍指向 Stable，不是最新预览版。前置条件、验收和恢复见[安装帮助与故障排查](INSTALLATION.zh-CN.md)。
+
 ## v4.2.0-rc1 预览版
 
-**Preview target：**[`v4.2.0-rc1`](https://github.com/SuperDaddyV/codex-sol-luna-worker/releases/tag/v4.2.0-rc1)。它是 Prerelease 目标，不会取代 `v4.1.4` 的当前 Stable 版本和默认 Stable 安装地位。
+**已发布预览版：**[`v4.2.0-rc1`](https://github.com/SuperDaddyV/codex-sol-luna-worker/releases/tag/v4.2.0-rc1)。源码：`527b174df13643a38bfe29652208eaa00f63fbf7`。Stable 仍为 `v4.1.4`。
 
-使用下面的提示词前，先阅读 [v4.2.0-rc1 预览版安装合同](NATIVE_WORKERS_PREVIEW.md)：
+新建一个能够执行本机 shell 命令的 Codex 任务，完整复制下面提示词；首次安装和从旧版升级都可使用。[已发布安装合同](https://github.com/SuperDaddyV/codex-sol-luna-worker/blob/527b174df13643a38bfe29652208eaa00f63fbf7/NATIVE_WORKERS_PREVIEW.md)已固定到发布源码。
 
 ```text
-仅当已发布、非 draft 的 GitHub Prerelease 存在时，安装 Codex Native
-Workers v4.2.0-rc1 预览版。
+请安装或升级到 Codex Native Workers v4.2.0-rc1 Preview；我接受其已披露的
+预览限制。读取并遵循以下不可变安装合同：
+https://raw.githubusercontent.com/SuperDaddyV/codex-sol-luna-worker/527b174df13643a38bfe29652208eaa00f63fbf7/NATIVE_WORKERS_PREVIEW.md
 
-读取该已发布 Release。把 tag v4.2.0-rc1 解析到一个精确的 40-hex commit，
-获取干净的 detached checkout，然后再次读取远端 tag；如有移动立即停止。
-从该精确 commit 读取 NATIVE_WORKERS_PREVIEW.md，检查并遵循其中的合同。
-不得从 master、target_commitish、可变分支或未经验证的 tag 安装。任何写入前，
-披露此目标是 Prerelease / Public Beta，并说明宿主强制阻止 worker 递归委派
-的能力尚不受支持。
+核验已发布、非 draft 的 GitHub Prerelease，将 tag 解析到精确的 40-hex commit
+527b174df13643a38bfe29652208eaa00f63fbf7。使用干净的 detached checkout，
+再次读取远端 tag；如有移动立即停止。不得从 master、target_commitish、可变分支
+或未经验证的 tag 安装。
+修改托管文件前，一次性检查 codex、Git、实际 python 命令能运行 Python 3.11+
+并导入 tomllib、HTTPS、原生 custom agents、模型权限和两个实际安装目录。
+展示预览提示，保留我的 Coordinator 设置和无关内容；带精确源码与两个明确目录
+执行 dry-run，再通过事务安装器 apply。遇到 ownership 或完整性冲突就停止，
+不要覆盖冲突；仅对尚未授权的系统级修复请求必要批准。
+不要降级；已匹配目标的安装不重复写入。交付时说明安装版本和源码、备份位置、
+遗留阻断和具体下一步，必要时提示重新加载客户端，再按已安装的委派 Skill
+选择一次，完成有实际用途的 Sol/Luna 有界验证。分别报告配置与真实运行结果，
+不要只给计划，也不要把配置就绪当成完整安装验收成功。
 ```
 
-这份 README 不声称预览版 Release 已经发布。发布后，现有安装可通过明确的升级请求使用已安装的 `sol-luna-upgrade` Skill；升级仍须经过 Release discovery、不可变 tag 校验、dry-run 和事务 apply。
+[发布验收记录](https://github.com/SuperDaddyV/codex-sol-luna-worker/releases/download/v4.2.0-rc1/native-workers-rc1-validation.json)包含三平台源码 CI，以及一个 Windows 本地安装和原生工作场景。这不是安装成功率统计，也不等于所有平台的原生运行均已验证。GitHub 的 **Source code** 压缩包是源码，不是一键安装程序，不要手工复制托管文件。[合同概览](NATIVE_WORKERS_PREVIEW.md)便于阅读；提示词执行的是固定到发布源码的合同。
 
-预览版在每个 worker role 中保留 `[agents] enabled = false`，并明确禁止 worker 继续委派。这些是配置与策略请求，不是宿主强制执行的证明。与预览版有关的当前宿主证据记录于 rc1 安装前的 Desktop `0.155.0-alpha.9.2`：Sol tool visibility 为 **FAIL**，Luna tool report 为 **UNKNOWN**，nested invocation 为 **NOT RUN**。因此，强递归隔离仍不受支持。
+预览版在每个 worker role 中保留 `[agents] enabled = false`，并明确禁止 worker 继续委派。这些是配置与策略请求，不是宿主强制执行的证明。Desktop `0.155.0-alpha.9.2` 的发布记录保留 Sol tool visibility 为 **FAIL**；安装后的 Luna child 报告未暴露 collaboration 定义，但仍有任务消息工具。nested invocation 为 **NOT RUN**，调用防护为 **UNKNOWN**。因此，强递归隔离仍不受支持。
 
 ## Coordinator 与 worker 如何协作
 
@@ -63,7 +83,7 @@ flowchart TD
 ```
 
 - **路由：** 先按任务需要选择 family，再检查可用性。Sol 默认使用 `general`，工作明确匹配时可用 `backend`、`frontend` 或 `reasoning` view；Luna 每天只有一个 Daily role。
-- **并行：** 通常使用 0–3 个 worker。只有任务全部就绪、彼此独立、写入范围不重叠且宿主实际容量支持时，才扩展到 4–6 个。当前已观察到三个 worker 重叠执行；配置上限六个尚未验证。
+- **并行：** 通常使用 0–3 个 worker。只有任务全部就绪、彼此独立、写入范围不重叠且宿主实际容量支持时，才扩展到 4–6 个。已观察到三个 worker 重叠执行，使用的是宿主中 rc1 之前安装的角色；配置上限六个尚未验证。
 - **串行：** 有依赖的工作或重叠修改按顺序执行。
 - **Coordinator-only：** 小任务、歧义、架构、无法安全拆分的工作和最终验收由 Coordinator 保留。
 
@@ -94,11 +114,13 @@ Receipt 只汇总已观察到的任务事实，不是 runtime attestation，也�
 - Codex Desktop，或其他支持 custom agent 与 subagent 的当前 Codex 客户端。
 - 当前任务环境可执行 `codex` 命令；如果 `codex --version` 不能运行，仅安装 Codex Desktop 还不够。
 - 账号可使用用户选择的 Coordinator 模型；使用预览版时，还须可使用所需 effort 的 GPT-5.6 Sol 与 GPT-5.6 Luna。
-- Python 3.11 或更高版本并包含 `tomllib`，以及用于不可变精确 commit checkout 的 Git。
-- 能以只读 HTTPS 访问本公开 GitHub 仓库。
+- Python 3.11 或更高版本并包含 `tomllib`，以及用于不可变精确 commit checkout 的 Git。已安装的 policy 与 Skill 选择器命令固定调用 **`python`**；只有 `python3` 或 `py` 可用还不够，需确认 Codex 执行环境中的 `python` 可用。
+- 能以只读 HTTPS 访问 GitHub，以及首次每日选择所需的 ModelDial 公共参考数据。模型调用权限来自 Codex 账号，不来自雷达网站。
 - Windows、Ubuntu/Linux 或 macOS。WSL 应视为独立 Linux 环境。
 
 ## Stable 安装（默认）
+
+这个入口安装的是旧版 Sol 主控／Luna 执行架构，不是 v4.2 双家族 worker 方案。需要 Sol 做子代理，请使用上面的 Preview 提示词。
 
 使用能力合适的 Coordinator 新建一个 Codex 任务，然后只粘贴下面这一个提示词：
 
@@ -108,6 +130,8 @@ Receipt 只汇总已观察到的任务事实，不是 runtime attestation，也�
 https://raw.githubusercontent.com/SuperDaddyV/codex-sol-luna-worker/7494d47574ac751e76a231033a0ed91686899a07/CODEX_SOL_LUNA_INSTALL_ASSIST.md
 
 安装固定的 v4.1.4 Stable 目标。一次性诊断全部彼此独立的前置条件。
+写入托管文件前，还须在实际 Codex 任务环境中通过以下检查，因为已安装选择器固定调用 python：
+python -c "import sys, tomllib; assert sys.version_info >= (3, 11); print(sys.version)"
 只自动执行合同允许的安全修复。安装软件包、提升管理员权限或持久修改环境前，
 先给出一份来自官方来源的准确修复方案并等待我的明确确认。获得确认后自动复检并续跑。
 不得修改认证、代理、证书信任、sandbox、组织策略或无关用户配置。
@@ -149,15 +173,17 @@ Ready: YES 后严格执行合同固定的 setup contract 和现有安装器。
 检查 Sol/Luna 状态
 ```
 
-对于 `v4.2.0-rc1`，diagnostic schema 4 把安装/配置与原生 runtime 证据分开。`Status Healthy`、`Agents 10/10 Ready`、`Skills 3/3 Ready` 和 `leaf_config Ready`只说明配置状态。实际 native delegation、tool isolation、invocation guard 行为和观察到的最大并发量需要单独进行 runtime 检查。配置上限六个不等于实测容量。
+对于 `v4.2.0-rc1`，diagnostic schema 4 把安装/配置与原生 runtime 证据分开。`Status Healthy`、`Agents 10/10 Ready`、`Skills 3/3 Ready` 和 `leaf_config Ready` 只说明配置状态。实际 native delegation、tool isolation、invocation guard 行为和观察到的最大并发量需要单独进行 runtime 检查。配置上限六个不等于实测容量。
 
 v4.1.4 Stable 的 status 结构可能显示 `Agents 5/5 Ready`。其历史 compatibility smoke 只覆盖 Luna-only 行为，不是双 family v4.2 预览版的验收。
+
+刚安装后的 `Today Selection not initialized` 可能是正常状态；status 只读，不会初始化。首次执行值得委派的任务时，由已安装的 `sol-luna-delegate` 选择一次并复用结果。若选择或角色加载失败，应说明原因并保留在 Coordinator，不要猜档位。详见[安装检查点与常见故障](INSTALLATION.zh-CN.md)。
 
 安装后或 Codex 更新后，需要更深入检查时，按 [Runtime 检查](RUNTIME_TESTS.md) 执行。status、source test 或 receipt 本身都不等于完整 runtime acceptance。
 
 ## 升级、回滚与卸载
 
-- **升级：** 预览版发布后，现有安装可以说「升级 Sol/Luna 到最新版本」。已安装的 `sol-luna-upgrade` Skill 会发现包括 Prerelease 在内的已发布版本，并只应用经过验证的不可变目标。
+- **升级：** 现有安装可以说「升级 Sol/Luna 到最新版本」，这**包含 Prerelease**。要固定 rc1，请使用上面的版本专用提示词；只接受稳定版时请明确说 Stable-only。已安装的 `sol-luna-upgrade` Skill 只应用经过验证的不可变目标。
 - **回滚：** 使用 installer 返回的精确 transaction backup；成功回滚会恢复经过校验的变更前状态。
 - **卸载：** 使用 installer 的 manifest-owned uninstall 流程，不要手工编辑托管 TOML、Skill 或 agent 文件。
 
@@ -165,6 +191,7 @@ v4.1.4 Stable 的 status 结构可能显示 `Agents 5/5 Ready`。其历史 compa
 
 ## 技术文档
 
+- [安装帮助与故障排查](INSTALLATION.zh-CN.md)
 - [v4.2.0-rc1 预览版安装](NATIVE_WORKERS_PREVIEW.md)
 - [Stable 安装、升级、回滚与卸载](https://github.com/SuperDaddyV/codex-sol-luna-worker/blob/bf01c438eae66f5ef9a27d401c6ee845f89d5d59/CODEX_SOL_LUNA_SETUP.md)
 - [架构说明](ARCHITECTURE.md)

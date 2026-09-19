@@ -1,13 +1,13 @@
 name: Bug report
-description: Report a reproducible problem in the current Stable release
+description: Report a reproducible problem in Stable v4.1.4 or the v4.2.0-rc1 preview
 title: "[Bug]: "
 body:
   - type: markdown
     attributes:
       value: |
-        Thank you for helping improve the current Stable release.
+        Thank you for helping improve the current Stable release or the v4.2.0-rc1 preview.
 
-        Use this form for install, upgrade, selector, Luna delegation, Receipt classification, rollback, uninstall, or another deterministic runtime problem.
+        Use this form for install, upgrade, selector, Coordinator/Workers delegation, Receipt classification, rollback, uninstall, or another deterministic runtime problem. The preview has two worker families, Sol and Luna; report configuration/status evidence separately from actual native execution.
 
         **Privacy warning — read before submitting.** Before submitting, remove or redact secrets and private information, including API keys, access tokens, cookies, passwords, private repository credentials, personal email addresses, unnecessary absolute home-directory information, and proprietary source/code unless you intentionally choose to share it. Include only the minimum relevant logs, with secrets and private information removed or redacted. Do not upload the entire CODEX_HOME (the whole `CODEX_HOME`) unless specifically requested during later troubleshooting; never upload an archive of it or its private files.
 
@@ -56,6 +56,19 @@ body:
       required: true
 
   - type: dropdown
+    id: release_channel
+    attributes:
+      label: Release channel
+      description: Which published target did you test?
+      options:
+        - "Stable (v4.1.4)"
+        - "Prerelease / preview (v4.2.0-rc1)"
+        - Other published version
+        - Unknown
+    validations:
+      required: true
+
+  - type: dropdown
     id: install_type
     attributes:
       label: Install type
@@ -71,34 +84,76 @@ body:
   - type: input
     id: version
     attributes:
-      label: Project version
-      description: Enter the actual release, tag, or commit under test. The placeholder is only an example.
-      placeholder: v4.1.4
+      label: Project version / tag / commit
+      description: Enter the actual release, tag, or exact commit under test. The placeholder is only an example.
+      placeholder: v4.1.4 (or v4.2.0-rc1)
     validations:
       required: true
 
   - type: textarea
     id: receipt
     attributes:
-      label: Sol/Luna Receipt
+      label: Coordinator/Workers Receipt (current format)
       description: |
-        Paste the final Receipt line. Examples:
+        Paste the final current-format Receipt line, if one was emitted. Examples:
+        - `Coordinator/Workers: delegated · sol_high ×1`
+        - `Coordinator/Workers: delegated · luna_high ×2 · parallel`
+        - `Coordinator/Workers: Coordinator-only · no independent work`
+        If no current Receipt was emitted, enter `No Receipt`, `No Receipt — NOT RUN`, or `No Receipt — BLOCKED`. Stable v4.1.4 users can put their legacy Receipt in the next field.
+        Receipt text is not runtime attestation.
+    validations:
+      required: true
+
+  - type: textarea
+    id: legacy_receipt
+    attributes:
+      label: Legacy Sol/Luna Receipt (Stable / legacy format)
+      description: |
+        Optional. Paste an older `Sol/Luna:` Receipt separately. Examples:
         - `Sol/Luna: Sol-only · no independent bounded work`
         - `Sol/Luna: delegated · luna_max ×2 · parallel`
-        If no Receipt was emitted, enter `No Receipt`.
-        Receipt text is not runtime attestation.
+        Do not use a legacy Receipt as evidence of current Coordinator/Workers runtime behavior.
+      placeholder: "Sol/Luna: delegated · luna_max ×2 · parallel"
+
+  - type: dropdown
+    id: configuration_status
+    attributes:
+      label: Configuration/status evidence
+      description: What did installed configuration or a status check show? This is configuration evidence and does not prove that a native worker actually ran.
+      options:
+        - "Ready / configured"
+        - "Not ready / mismatch"
+        - "NOT RUN"
+        - "BLOCKED"
+        - Unknown
+    validations:
+      required: true
+
+  - type: dropdown
+    id: sol_run
+    attributes:
+      label: Observed native Sol delegation
+      description: Did a native Sol child actually run in the affected task? Configuration alone does not count.
+      options:
+        - "Yes"
+        - "No"
+        - "Not sure"
+        - "NOT RUN"
+        - "BLOCKED"
     validations:
       required: true
 
   - type: dropdown
     id: luna_run
     attributes:
-      label: Did Luna run?
-      description: Did a native Luna child actually run in the affected task?
+      label: Observed native Luna delegation
+      description: Did a native Luna child actually run in the affected task? Configuration alone does not count.
       options:
         - "Yes"
         - "No"
         - "Not sure"
+        - "NOT RUN"
+        - "BLOCKED"
     validations:
       required: true
 

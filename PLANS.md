@@ -1,5 +1,26 @@
 # v4.2 Local Coordinator / Sol / Luna Integration
 
+## Public documentation follow-up — 2026-09-19
+
+The user requested updated GitHub content that explains the project accurately
+and helps users install it successfully. Scope: bilingual README and installation
+help, version/channel clarity, feedback forms, documentation checks and GitHub
+publication of those documentation changes. The published rc1 tag/Release and
+runtime source 527b174df13643a38bfe29652208eaa00f63fbf7 remain immutable. Preserve
+the v4.1.4 Stable anchors and default Stable status. This follow-up does not
+change runtime payloads or reinstall the user's already accepted rc1 installation.
+Do not claim an installation success-rate improvement without measured data.
+
+Local follow-up validation: 431 standard-library tests passed (104.638 seconds),
+including 24 documentation checks. The exact published rc1 source passed an
+isolated Windows CLI installation with two explicit custom roots containing
+spaces, dry-run no-write, repeat-apply idempotence and read-only Healthy status
+(10 agents, 3 Skills, Daily state still uninitialized). No real-home reinstall or
+new native runtime check was performed. All three pinned raw installation
+contracts matched their Git source, and GitHub's Markdown API rendered both
+READMEs and both help guides with tables, fenced prompts and intact Unicode.
+Publication and exact-commit CI are subsequent checks, not implied by this record.
+
 ## Authorized Native Workers preview delivery — 2026-09-19
 
 The user approved completing the proposed scope change end to end without another
