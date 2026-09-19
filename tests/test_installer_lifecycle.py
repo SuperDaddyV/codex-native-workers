@@ -45,6 +45,24 @@ def write_text(path: Path, text: str) -> None:
     path.write_text(text, encoding="utf-8")
 
 
+def mutate_owned_policy(path: Path) -> tuple[bytes, bytes]:
+    original = path.read_bytes()
+    begin = AGENTS_BEGIN.encode("utf-8")
+    end = AGENTS_END.encode("utf-8")
+    payload_start = original.index(begin) + len(begin)
+    payload_end = original.index(end, payload_start)
+    mutation_offset = original.index(b" ", payload_start, payload_end)
+    mutated = (
+        original[:mutation_offset]
+        + b"\t"
+        + original[mutation_offset + 1 :]
+    )
+    if mutated == original:
+        raise AssertionError("owned policy mutation was a no-op")
+    path.write_bytes(mutated)
+    return original, mutated
+
+
 def tree_hash(root: Path) -> str:
     digest = hashlib.sha256()
     if not root.exists():
@@ -1612,13 +1630,8 @@ class InstallerLifecycleTests(unittest.TestCase):
             call_install(target)
             simulate_rc1_managed_policy(target)
             agents_path = target / "AGENTS.md"
-            agents_path.write_text(
-                agents_path.read_text(encoding="utf-8").replace(
-                    "- The root `Coordinator` is model-agnostic",
-                    "- User changed the owned policy; the root `Coordinator` is model-agnostic",
-                ),
-                encoding="utf-8",
-            )
+            policy_before, policy_after = mutate_owned_policy(agents_path)
+            self.assertNotEqual(policy_after, policy_before)
             before = tree_hash(target)
 
             with self.assertRaises(InstallerError) as raised:
@@ -1728,13 +1741,8 @@ class InstallerLifecycleTests(unittest.TestCase):
             call_install(target)
             simulate_rc3_managed_policy(target)
             agents_path = target / "AGENTS.md"
-            agents_path.write_text(
-                agents_path.read_text(encoding="utf-8").replace(
-                    "- The root `Coordinator` is model-agnostic",
-                    "- User changed the owned policy; the root `Coordinator` is model-agnostic",
-                ),
-                encoding="utf-8",
-            )
+            policy_before, policy_after = mutate_owned_policy(agents_path)
+            self.assertNotEqual(policy_after, policy_before)
             before = tree_hash(target)
 
             with self.assertRaises(InstallerError) as raised:

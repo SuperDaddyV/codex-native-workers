@@ -38,7 +38,7 @@ separately demonstrated. Source CI is never native-runtime proof.
 
 The working-tree standard-library suite passed **430 tests in 116.342 seconds**.
 Three Skill validators passed in Python UTF-8 mode. The rendered Global managed
-block is **2,047 UTF-8 bytes**, including markers and final newline. Focused
+block is **2,044 UTF-8 bytes**, including markers and final newline. Focused
 documentation/policy checks passed after final wording corrections. These are
 source and fake-home checks, not installed-runtime acceptance.
 
@@ -49,6 +49,28 @@ the requested model/effort and direct depth-1 parentage. Their writes had disjoi
 ownership and the Coordinator reviewed the results. These workers used the
 pre-rc1 installed role definitions; this is observed three-worker overlap, not
 an rc1 installation test or proof of the configured six-worker maximum.
+
+The first rc1 candidate CI passed on Windows but failed two historical ownership
+tests on Ubuntu/macOS: their stale text replacement made no change, while Windows
+newline rewriting accidentally supplied the expected corruption. The fixtures
+now mutate one byte inside the owned block without changing line endings and
+assert that bytes changed. Installer rejection and no-write assertions remain.
+No installer enforcement was relaxed; the failed CI run remains historical.
+
+An authorized unpublished-candidate transaction installed rc1 with six owned
+changes and a verified backup. Twelve payloads and three rendered Skills matched
+source and manifest. Nonmanaged user content, daily state and unrelated Skills
+were unchanged. A single read-only status call returned schema 4 Healthy,
+10/10 agents and 3/3 Skills; all four native capability fields stayed Not checked.
+The final Release evidence binds this payload to the final tested source commit.
+
+After that installation, fresh direct Sol/max and Luna/max workers overlapped:
+Sol checked source/manifest/installed identity; Luna repaired the two ownership
+fixtures. Parent-visible metadata confirmed gpt-5.6-sol/max and gpt-5.6-luna/max,
+both at depth 1. The Coordinator reviewed the audit and fixture changes. Sol
+again reported six collaboration tools present. Luna reported those collaboration
+definitions absent but a task-messaging tool present. Neither invoked delegation;
+neither observation establishes a host-wide invocation guard or strict isolation.
 
 Post-commit CI and installation/native acceptance are recorded in the sanitized
 Release evidence for the exact published commit. This section does not claim

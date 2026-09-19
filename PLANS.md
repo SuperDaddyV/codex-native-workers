@@ -42,12 +42,14 @@ verify the published Release/tag against the installed source. Record post-commi
 acceptance in the sanitized Release evidence, without moving the tag or claiming
 an untested source. The prior Stable remains the default Stable target.
 
-Implementation validation: 430 standard-library tests passed; the three Skills
-passed structural validation, and the managed Global block is 2,047 bytes. The
+Build-time checkpoint: 430 standard-library tests passed; the three Skills
+passed structural validation, and the managed Global block is 2,044 bytes. The
 Coordinator reviewed disjoint work from two Sol/max and one Luna/max workers
 with observed overlap and verified role metadata. Source CI, candidate install,
-post-install native checks and publication are the remaining delivery steps;
-their exact-commit results belong in the sanitized Release evidence.
+post-install native checks and publication had not completed at this checkpoint.
+Their exact-commit results belong in the sanitized Release evidence. Consult the
+published v4.2.0-rc1 Release before inferring that these steps are still pending;
+this immutable source checkpoint is not the final delivery receipt.
 
 Fresh pre-change evidence on 2026-09-19: Desktop host 0.155.0-alpha.9.2 loaded new
 Sol/max and Luna/max children with useful outputs. Sol reported six collaboration
