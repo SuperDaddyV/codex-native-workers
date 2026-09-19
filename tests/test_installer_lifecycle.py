@@ -27,12 +27,25 @@ from scripts.install import (
     rollback,
     uninstall,
 )
+from src.selector import USER_AGENT
 
 
 ROOT = Path(__file__).resolve().parents[1]
 VALIDATION_ROOT = ROOT / ".tmp" / "installer-validation" / "lifecycle-tests"
 FIXED_TIME = datetime(2026, 8, 12, 0, 0, tzinfo=timezone.utc)
 LEGACY_FIXTURE = ROOT / "fixtures" / "legacy-v3" / "manifest-3.2.json"
+PUBLISHED_V420_RC1_COMMIT = "527b174df13643a38bfe29652208eaa00f63fbf7"
+PUBLISHED_V420_RC1_USER_AGENT = b"codex-sol-luna-worker/4.2.0-rc1"
+PUBLISHED_V420_RC1_SELECTOR_SHA256 = (
+    "c2f0ab9f93179f7feb13b7c76d1a3b83e0e4bc9784a550bfe18f0ae6e50e2225"
+)
+PUBLISHED_V420_RC1_RELEASES_PATH = (
+    b"/repos/SuperDaddyV/codex-sol-luna-worker/releases"
+)
+PUBLISHED_V420_RC1_UPGRADE_SKILL_SHA256 = (
+    "90e28bbd9c2af29164526f22ae0d0a2c101c97da1b05d41f1496715a7e82cd33"
+)
+STABLE_V420_RELEASES_PATH = b"/repos/SuperDaddyV/codex-native-workers/releases"
 
 
 def sandbox():
@@ -213,7 +226,7 @@ def simulate_schema2_local1(target: Path) -> None:
     selector_relative = "sol-luna-v4/selector.py"
     selector_path = target / selector_relative
     selector = selector_path.read_bytes().replace(
-        f"codex-sol-luna-worker/{VERSION.removeprefix('v')}".encode("ascii"),
+        USER_AGENT.encode("ascii"),
         b"codex-sol-luna-worker/4.2.0-local.1",
     )
     selector_path.write_bytes(selector)
@@ -289,7 +302,7 @@ def simulate_v414_managed_install(target: Path) -> None:
     selector_relative = "sol-luna-v4/selector.py"
     selector_path = target / selector_relative
     selector = selector_path.read_bytes().replace(
-        f"codex-sol-luna-worker/{VERSION.removeprefix('v')}".encode("ascii"),
+        USER_AGENT.encode("ascii"),
         b"codex-sol-luna-worker/4.1.4",
     )
     selector_path.write_bytes(selector)
@@ -363,6 +376,50 @@ def call_install(target: Path, **kwargs):
         generated_at=kwargs.pop("generated_at", FIXED_TIME),
         allow_validation_sandbox=True,
         **kwargs,
+    )
+
+
+def simulate_published_v420_rc1_install(target: Path) -> None:
+    """Materialize the published rc1 payload in an isolated fake home."""
+
+    call_install(target, source_commit=PUBLISHED_V420_RC1_COMMIT)
+    manifest_path = target / MANIFEST_RELATIVE
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+    selector_relative = "sol-luna-v4/selector.py"
+    selector_path = target / selector_relative
+    selector = selector_path.read_bytes()
+    stable_user_agent = USER_AGENT.encode("ascii")
+    if selector.count(stable_user_agent) != 1:
+        raise AssertionError("stable selector User-Agent fixture is not unique")
+    selector = selector.replace(stable_user_agent, PUBLISHED_V420_RC1_USER_AGENT)
+    selector_digest = hashlib.sha256(selector).hexdigest()
+    if selector_digest != PUBLISHED_V420_RC1_SELECTOR_SHA256:
+        raise AssertionError("selector does not match the published rc1 payload")
+    selector_path.write_bytes(selector)
+
+    upgrade_relative = "sol-luna-upgrade/SKILL.md"
+    skills_root = Path(manifest["skills_root"])
+    upgrade_path = skills_root / upgrade_relative
+    upgrade_skill = upgrade_path.read_bytes()
+    if upgrade_skill.count(STABLE_V420_RELEASES_PATH) != 1:
+        raise AssertionError("Stable release endpoint fixture is not unique")
+    upgrade_skill = upgrade_skill.replace(
+        STABLE_V420_RELEASES_PATH,
+        PUBLISHED_V420_RC1_RELEASES_PATH,
+    )
+    upgrade_digest = hashlib.sha256(upgrade_skill).hexdigest()
+    if upgrade_digest != PUBLISHED_V420_RC1_UPGRADE_SKILL_SHA256:
+        raise AssertionError("upgrade Skill does not match the published rc1 payload")
+    upgrade_path.write_bytes(upgrade_skill)
+
+    manifest["version"] = "v4.2.0-rc1"
+    manifest["source_commit"] = PUBLISHED_V420_RC1_COMMIT
+    manifest["owned_files"][selector_relative] = selector_digest
+    manifest["owned_skill_files"][upgrade_relative] = upgrade_digest
+    manifest_path.write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
     )
 
 
@@ -1321,7 +1378,182 @@ class InstallerLifecycleTests(unittest.TestCase):
             self.assertEqual(tree_hash(target), before)
             self.assertEqual(manifest_path.read_bytes(), rc6_manifest_before)
 
-    def test_v414_to_v420_local2_adds_workers_skills_module_and_policy(self):
+    def test_published_v420_rc1_to_stable_preserves_state_and_rolls_back(self):
+        with sandbox() as directory:
+            target = Path(directory) / ".codex"
+            write_text(target / "config.toml", 'user_model = "keep"\n')
+            write_text(target / "AGENTS.md", "User policy remains.\n")
+            user_file = target / "user" / "content.txt"
+            write_text(user_file, "user content stays\n")
+            user_skill = target.parent / ".agents" / "skills" / "user-skill" / "SKILL.md"
+            write_text(user_skill, "user skill stays\n")
+            simulate_published_v420_rc1_install(target)
+
+            state = target / "sol-luna-v4" / "state"
+            daily = state / "daily-profile.json"
+            last_good = state / "last-good-profile.json"
+            write_text(daily, '{"role":"sol_max","date":"2026-08-12"}\n')
+            write_text(last_good, '{"role":"sol_max"}\n')
+            protected_paths = (
+                target / "config.toml",
+                target / "AGENTS.md",
+                user_file,
+                user_skill,
+                daily,
+                last_good,
+            )
+            protected_before = {
+                path: path.read_bytes() for path in protected_paths
+            }
+
+            manifest_path = target / MANIFEST_RELATIVE
+            selector_relative = "sol-luna-v4/selector.py"
+            selector_path = target / selector_relative
+            upgrade_relative = "sol-luna-upgrade/SKILL.md"
+            upgrade_path = user_skill.parents[1] / upgrade_relative
+            rc1_manifest = manifest_path.read_bytes()
+            rc1_selector = selector_path.read_bytes()
+            rc1_upgrade_skill = upgrade_path.read_bytes()
+            before = installation_hash(target)
+            expected_modified = {
+                MANIFEST_RELATIVE.as_posix(),
+                selector_relative,
+                f"skills:{upgrade_relative}",
+            }
+            stable_source_commit = "4" * 40
+
+            dry = dry_run_install(
+                target,
+                project_root=ROOT,
+                generated_at=FIXED_TIME + timedelta(days=1),
+                allow_validation_sandbox=True,
+                source_commit=stable_source_commit,
+            )
+            self.assertEqual(dry["status"], "DRY_RUN_PASS")
+            self.assertEqual(dry["effective_changes"], 3)
+            self.assertEqual(dry["created"], [])
+            self.assertEqual(set(dry["modified"]), expected_modified)
+            self.assertEqual(dry["removed"], [])
+            self.assertIsNone(dry["backup"])
+            self.assertEqual(installation_hash(target), before)
+
+            upgraded = call_install(
+                target,
+                generated_at=FIXED_TIME + timedelta(days=1),
+                source_commit=stable_source_commit,
+            )
+            self.assertEqual(upgraded["status"], "UPGRADED")
+            self.assertEqual(upgraded["effective_changes"], 3)
+            self.assertEqual(upgraded["created"], [])
+            self.assertEqual(set(upgraded["modified"]), expected_modified)
+            self.assertEqual(upgraded["removed"], [])
+            for path, payload in protected_before.items():
+                self.assertEqual(path.read_bytes(), payload)
+
+            backup = Path(upgraded["backup"])
+            snapshot = json.loads(
+                (backup / "snapshot.json").read_text(encoding="utf-8")
+            )
+            snapshot_entries = {
+                (entry["root"], entry["path"]): entry
+                for entry in snapshot["entries"]
+            }
+            expected_snapshot_hashes = {
+                ("codex_home", MANIFEST_RELATIVE.as_posix()): hashlib.sha256(
+                    rc1_manifest
+                ).hexdigest(),
+                ("codex_home", selector_relative): hashlib.sha256(
+                    rc1_selector
+                ).hexdigest(),
+                ("skills_root", upgrade_relative): hashlib.sha256(
+                    rc1_upgrade_skill
+                ).hexdigest(),
+            }
+            self.assertEqual(set(snapshot_entries), set(expected_snapshot_hashes))
+            for key, expected_hash in expected_snapshot_hashes.items():
+                self.assertTrue(snapshot_entries[key]["existed"])
+                self.assertEqual(snapshot_entries[key]["sha256"], expected_hash)
+
+            installed = json.loads(manifest_path.read_text(encoding="utf-8"))
+            self.assertEqual(installed["version"], VERSION)
+            self.assertEqual(installed["source_commit"], stable_source_commit)
+            for relative, digest in installed["owned_files"].items():
+                self.assertEqual(
+                    hashlib.sha256((target / relative).read_bytes()).hexdigest(),
+                    digest,
+                )
+            skills_root = Path(installed["skills_root"])
+            for relative, digest in installed["owned_skill_files"].items():
+                self.assertEqual(
+                    hashlib.sha256(
+                        skills_root.joinpath(*Path(relative).parts).read_bytes()
+                    ).hexdigest(),
+                    digest,
+                )
+            self.assertIn(USER_AGENT.encode("ascii"), selector_path.read_bytes())
+            self.assertIn(STABLE_V420_RELEASES_PATH, upgrade_path.read_bytes())
+
+            upgraded_tree = installation_hash(target)
+            second = call_install(
+                target,
+                generated_at=FIXED_TIME + timedelta(days=2),
+            )
+            self.assertEqual(second["status"], "IDEMPOTENT_PASS")
+            self.assertEqual(second["effective_changes"], 0)
+            self.assertIsNone(second["backup"])
+            self.assertEqual(installation_hash(target), upgraded_tree)
+
+            rolled_back = rollback(
+                target,
+                backup,
+                project_root=ROOT,
+                allow_validation_sandbox=True,
+            )
+            self.assertEqual(rolled_back["status"], "ROLLBACK_EXACT_PASS")
+            self.assertEqual(installation_hash(target), before)
+            self.assertEqual(manifest_path.read_bytes(), rc1_manifest)
+            self.assertEqual(selector_path.read_bytes(), rc1_selector)
+            self.assertEqual(upgrade_path.read_bytes(), rc1_upgrade_skill)
+            for path, payload in protected_before.items():
+                self.assertEqual(path.read_bytes(), payload)
+
+    def test_published_v420_rc1_modified_payload_blocks_stable_upgrade(self):
+        with sandbox() as directory:
+            target = Path(directory) / ".codex"
+            simulate_published_v420_rc1_install(target)
+            manifest = json.loads(
+                (target / MANIFEST_RELATIVE).read_text(encoding="utf-8")
+            )
+            upgrade_skill = (
+                Path(manifest["skills_root"])
+                / "sol-luna-upgrade"
+                / "SKILL.md"
+            )
+            upgrade_skill.write_bytes(upgrade_skill.read_bytes() + b"\n# user change\n")
+            before = installation_hash(target)
+
+            for action in ("dry-run", "apply"):
+                with self.subTest(action=action):
+                    with self.assertRaises(InstallerError) as raised:
+                        if action == "dry-run":
+                            dry_run_install(
+                                target,
+                                project_root=ROOT,
+                                generated_at=FIXED_TIME + timedelta(days=1),
+                                allow_validation_sandbox=True,
+                            )
+                        else:
+                            call_install(
+                                target,
+                                generated_at=FIXED_TIME + timedelta(days=1),
+                            )
+                    self.assertEqual(
+                        raised.exception.reason_code,
+                        "OWNERSHIP_CONFLICT",
+                    )
+                    self.assertEqual(installation_hash(target), before)
+
+    def test_v414_to_v420_stable_adds_workers_skills_module_and_policy(self):
         with sandbox() as directory:
             target = Path(directory) / ".codex"
             target.mkdir()
@@ -1405,7 +1637,7 @@ class InstallerLifecycleTests(unittest.TestCase):
             self.assertEqual(installed["source_commit"], "2" * 40)
             self.assertNotEqual(selector_path.read_bytes(), v414_selector)
             self.assertIn(
-                f"codex-sol-luna-worker/{VERSION.removeprefix('v')}".encode("ascii"),
+                USER_AGENT.encode("ascii"),
                 selector_path.read_bytes(),
             )
 

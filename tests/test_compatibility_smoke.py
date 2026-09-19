@@ -183,7 +183,7 @@ class CompatibilitySmokeTests(unittest.TestCase):
             rendered,
         )
         self.assertIn("Legacy Luna-only delegation: REVIEW REQUIRED", rendered)
-        self.assertIn("Core preview compatibility:\nPASS", rendered)
+        self.assertIn("Core product compatibility:\nPASS", rendered)
         self.assertNotIn("mixed-family: PASS", rendered)
         self.assertNotIn("tool isolation: PASS", rendered)
 
@@ -851,7 +851,7 @@ class CompatibilitySmokeTests(unittest.TestCase):
         self.assertIn("--codex-home", command)
         self.assertIn("--state-dir", command)
 
-    def test_documentation_bounds_legacy_smoke_and_routes_preview_to_runtime_checks(self):
+    def test_documentation_bounds_legacy_smoke_and_routes_current_product_to_runtime_checks(self):
         english = (ROOT / "README.md").read_text(encoding="utf-8")
         chinese = (ROOT / "README.zh-CN.md").read_text(encoding="utf-8")
 
@@ -861,9 +861,9 @@ class CompatibilitySmokeTests(unittest.TestCase):
         self.assertIn(
             "historical compatibility smoke exercises Luna-only behavior", english
         )
-        self.assertIn("not acceptance of the two-family v4.2 preview", english)
+        self.assertIn("not acceptance of the two-family v4.2 product", english)
         self.assertIn("历史 compatibility smoke 只覆盖 Luna-only 行为", chinese)
-        self.assertIn("不是双 family v4.2 预览版的验收", chinese)
+        self.assertIn("不是双 family v4.2 产品的验收", chinese)
 
 
 if __name__ == "__main__":

@@ -115,7 +115,7 @@ class SmokeReport:
             f"Legacy Luna-only delegation: {self.delegation.status}",
             f"Protected state: {self.protected.status}",
             f"Runtime contract: {self.runtime.status}",
-            "Core preview compatibility:" if self.preview_core else "Compatibility:",
+            "Core product compatibility:" if self.preview_core else "Compatibility:",
             self.compatibility,
         ]
         if self.compatibility == REVIEW:

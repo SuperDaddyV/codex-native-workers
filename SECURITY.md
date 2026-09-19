@@ -1,6 +1,6 @@
 # Security Policy
 
-## Codex Native Workers v4.2 preview scope
+## Codex Native Workers v4.2 Stable scope
 
 This package configures native workers; it does not enforce a security boundary
 inside Codex. Worker instructions prohibit further delegation and each role
@@ -16,12 +16,26 @@ delegation or quota savings. Keep worker scopes bounded and review their results
 Permissions and sandbox enforcement remain the host's responsibility. Do not
 delegate work whose requirements depend on unverified isolation capabilities.
 
-The preview retains strict owned-file inventories, user-content preservation,
+The product retains strict owned-file inventories, user-content preservation,
 prevalidated transactional backups and rollback, explicit managed roots and
 immutable-source installation. Existing Stable security records below remain
 historical; no previous FAIL or unrun test is promoted to PASS.
 
-## Release boundary
+## Current release boundary
+
+`v4.2.0` is the current Stable target. Its published, non-draft, non-prerelease
+Release must exist before an install, and its remote tag must resolve to a clean
+detached exact source commit. Follow [the Stable contract](NATIVE_WORKERS_SETUP.md).
+The canonical repository is `SuperDaddyV/codex-native-workers`; existing owned
+paths, markers and Skill names are retained. The old repository address is a
+compatibility redirect, not a separate project. Do not reuse the old repository
+name for another project because that would break those redirects.
+
+The previous `v4.2.0-rc1` and `v4.1.4` releases remain immutable. Stable promotion
+does not certify host recursion prevention, six-worker capacity, cross-platform
+native execution or measured savings. The checks and limits above still apply.
+
+## Historical v4.1.4 release boundary
 
 `v4.1.4` is the current Stable release and default installation target.
 Stable runtime Source Commit A is

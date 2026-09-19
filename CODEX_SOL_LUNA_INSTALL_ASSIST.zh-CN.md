@@ -1,5 +1,8 @@
 # Sol/Luna 安装协助合同（中文审阅版）
 
+> 以下是 v4.1.4 历史合同，“当前”均指当时版本。v4.2.0 使用
+> [Codex Native Workers 正式版合同](NATIVE_WORKERS_SETUP.md)。原有不可变安装锚点保持不变，不混用新旧版本源码。
+
 > [!IMPORTANT]
 > 本文件只用于中文审阅，不是可执行安装权威，也不会成为第二份安装合同。
 > Codex 必须读取并执行英文 `CODEX_SOL_LUNA_INSTALL_ASSIST.md`；公开安装入口

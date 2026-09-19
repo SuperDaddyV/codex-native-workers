@@ -1,12 +1,13 @@
 # Codex Native Workers Architecture
 
-## v4.2.0-rc1 preview contract
+## v4.2.0 Stable product contract
 
 Codex Native Workers manages native Sol/Luna profiles, task routing, daily
 reference selection and safe installation. The user selects the Coordinator;
-Astra is one supported usage, not an installer-owned setting. The old repository
-slug, runtime directories, Skill names and managed markers remain compatibility
-identifiers. This package is not a custom orchestration engine or a security
+Astra is one supported usage, not an installer-owned setting. The repository is
+`SuperDaddyV/codex-native-workers`; old repository links redirect. Runtime
+directories, Skill names and managed markers remain compatibility identifiers.
+This package is not a custom orchestration engine or a security
 boundary around the Codex host.
 
 After planning, the Coordinator delegates worthwhile independent bounded work:
@@ -15,7 +16,7 @@ work. Scope, ambiguity, architecture and final acceptance remain with the
 Coordinator. Workers must not delegate. Profiles continue to request
 `agents.enabled=false`; this is configuration intent, not verified enforcement.
 
-The preview's core release checks cover source/lifecycle integrity, validated
+The product's core release checks cover source/lifecycle integrity, validated
 selection, exact model/effort, useful direct Sol/Luna work, disjoint mixed work
 and Coordinator verification. Tool visibility, invocation guards and maximum
 observed concurrency are separate host capabilities. Strict prevention of
@@ -35,9 +36,10 @@ reference-route validation, quality/cost rules and strict transaction/rollback
 ownership remain unchanged from local.2. The Global managed block stays within
 2 KiB; conditional behavior lives in the three Skills.
 
-See [preview installation](NATIVE_WORKERS_PREVIEW.md) and
+See [Stable installation](NATIVE_WORKERS_SETUP.md), the historical
+[v4.2.0-rc1 preview](NATIVE_WORKERS_PREVIEW.md), and
 [runtime acceptance](RUNTIME_TESTS.md). The following Stable and local-candidate
-sections retain their historical scope; they do not override this preview contract.
+sections retain their historical scope; they do not override this product contract.
 
 ## v4.1.4 Stable Architecture Note (historical baseline)
 

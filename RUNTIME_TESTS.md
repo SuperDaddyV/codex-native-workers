@@ -1,8 +1,27 @@
 # Native Runtime Test Protocol
 
-Status: `v4.1.4 — CURRENT STABLE RELEASE / DEFAULT INSTALLATION TARGET`; `v4.1.3` is the previous immutable Stable, while RC6 and RC5 remain historical Prereleases.
+Status: `v4.2.0 — CURRENT STABLE TARGET`; installation requires its published Stable Release. Earlier records below retain their original versions and scope.
 
 These results describe only the recorded environments and scenarios below. They do not imply runtime validation across every operating system, Codex client, account, or user environment.
+
+## v4.2.0 Stable promotion — 2026-09-19
+
+The user explicitly requested formal publication and the previously agreed
+repository rename to `SuperDaddyV/codex-native-workers`. The supported product
+remains native configuration, bounded routing and transactional installation.
+All rc1 host limitations remain: Sol tool-visibility FAIL, nested invocation not
+verified, six-worker capacity not run, and no measured local savings. Formal
+publication is not a claim that these failures or unrun checks passed.
+
+The Stable source keeps rc1 worker definitions, selector algorithms and Global
+policy. Version/User-Agent metadata and the upgrade Skill's canonical repository
+endpoint change. Assistance now verifies the literal `python` command, and the
+schema-4 compatibility report calls its limited result core product compatibility.
+Reused rc1 native evidence remains explicitly rc1 evidence;
+source and fake-home checks cannot become new installed/native claims. The
+sanitized Stable Release validation record binds final checks to one exact commit.
+
+Historical release-time status: `v4.1.4 — CURRENT STABLE RELEASE / DEFAULT INSTALLATION TARGET` described the v4.1.4 publication only; it is now the previous Stable baseline.
 
 ## v4.2.0-rc1 preview acceptance contract — approved 2026-09-19
 

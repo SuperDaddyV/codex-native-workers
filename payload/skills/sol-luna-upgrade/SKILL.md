@@ -13,7 +13,7 @@ The request "upgrade Codex Native Workers" or "upgrade Sol/Luna to the latest ve
 
 ## Resolve the target release
 
-- Release discovery is a semantic workflow outside the installer. Request all pages of `/repos/SuperDaddyV/codex-sol-luna-worker/releases`.
+- Release discovery is a semantic workflow outside the installer. Request all pages of `/repos/SuperDaddyV/codex-native-workers/releases`.
 - Accept only entries with `draft = false`, non-null `published_at`, and a strict project SemVer tag.
 - Reject build metadata, malformed leading zeroes, a mismatch between the Release prerelease flag and the SemVer prerelease, and duplicate Releases with the same normalized version. Choose by SemVer precedence, never by publication time.
 - If the target is a prerelease, show this notice before any apply:

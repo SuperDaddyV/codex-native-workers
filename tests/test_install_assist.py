@@ -3,19 +3,23 @@ import contextlib
 import io
 import json
 import os
+import shutil
 import subprocess
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from scripts.child_environment import build_process_environment
 from scripts.install import MANIFEST_RELATIVE, VERSION
 from scripts.install_assist import (
     AssistError,
     CommandOutcome,
     PHASES,
+    REPOSITORY_URL,
     _github_https_check,
     _is_wsl,
+    _python_check,
     build_recovery_plan,
     check_result,
     classify_installed,
@@ -342,6 +346,14 @@ class RecoveryExecutionTests(unittest.TestCase):
         self.assertEqual(result, {"status": "PASS", "attempts": 3})
         self.assertEqual(len(calls), 3)
         self.assertEqual(sleeps, [1.0, 2.0])
+        self.assertEqual(
+            calls[0],
+            ["git", "ls-remote", "--exit-code", REPOSITORY_URL, "HEAD"],
+        )
+        self.assertEqual(
+            REPOSITORY_URL,
+            "https://github.com/SuperDaddyV/codex-native-workers.git",
+        )
 
     def test_invalid_network_retry_budget_fails_closed(self):
         with self.assertRaises(AssistError) as raised:
@@ -371,10 +383,15 @@ class SnapshotAndReportTests(unittest.TestCase):
 
         def runner(command, **kwargs):
             observed.append((list(command), kwargs["env"]))
+            if command[0] == "python":
+                return CommandOutcome(
+                    0,
+                    '{"version":[3,11,9],"tomllib":true}\n',
+                )
             return CommandOutcome(0, "available")
 
         def which(name):
-            return name if name in {"codex", "git"} else None
+            return name if name in {"codex", "git", "python"} else None
 
         with tempfile.TemporaryDirectory() as temporary, patch.dict(
             os.environ,
@@ -400,14 +417,22 @@ class SnapshotAndReportTests(unittest.TestCase):
                 sleeper=lambda _seconds: None,
             )
 
-        self.assertEqual(len(observed), 3)
+        self.assertEqual(len(observed), 4)
         codex_environment = observed[0][1]
         git_environment = observed[1][1]
-        network_environment = observed[2][1]
+        python_environment = observed[2][1]
+        network_environment = observed[3][1]
         self.assertEqual(codex_environment["CODEX_HOME"], str(codex_home))
-        for environment in (codex_environment, git_environment, network_environment):
+        for environment in (
+            codex_environment,
+            git_environment,
+            python_environment,
+            network_environment,
+        ):
             self.assertEqual(environment["PATH"], "fixture-path")
             self.assertNotIn("UNRELATED_SENTINEL_SECRET", environment)
+        self.assertEqual(observed[2][0][:3], ["python", "-I", "-S"])
+        self.assertEqual(python_environment, git_environment)
         self.assertNotIn("CODEX_API_KEY", codex_environment)
         self.assertNotIn("CODEX_HOME", git_environment)
         self.assertNotIn("HTTPS_PROXY", git_environment)
@@ -415,6 +440,93 @@ class SnapshotAndReportTests(unittest.TestCase):
         self.assertEqual(network_environment["SSL_CERT_FILE"], "/fixture/ssl-ca.pem")
         self.assertEqual(network_environment["GIT_SSL_CAINFO"], "/fixture/git-ca.pem")
         self.assertNotIn("CODEX_API_KEY", network_environment)
+
+    def test_literal_python_failures_block_without_managed_writes(self):
+        cases = (
+            ("missing", None, None, "MISSING"),
+            (
+                "old",
+                "literal-python",
+                CommandOutcome(0, '{"version":[3,10,14],"tomllib":true}\n'),
+                "UNSUPPORTED",
+            ),
+            (
+                "missing-tomllib",
+                "literal-python",
+                CommandOutcome(0, '{"version":[3,11,9],"tomllib":false}\n'),
+                "UNSUPPORTED",
+            ),
+            ("unusable", "literal-python", CommandOutcome(1), "UNUSABLE"),
+            (
+                "invalid-output",
+                "literal-python",
+                CommandOutcome(0, "Python 3.11.9\n"),
+                "UNUSABLE",
+            ),
+        )
+        for name, python_executable, python_outcome, expected_status in cases:
+            with self.subTest(case=name), tempfile.TemporaryDirectory() as directory:
+                target = Path(directory) / ".codex"
+                marker = target / "user" / "content.txt"
+                marker.parent.mkdir(parents=True)
+                marker.write_text("preserve\n", encoding="utf-8")
+                before = {
+                    path.relative_to(target).as_posix(): path.read_bytes()
+                    for path in target.rglob("*")
+                    if path.is_file()
+                }
+
+                def which(tool):
+                    if tool == "python":
+                        return python_executable
+                    if tool in {"codex", "git"}:
+                        return f"literal-{tool}"
+                    return None
+
+                def runner(command, **_kwargs):
+                    if command[0] == python_executable:
+                        return python_outcome
+                    return CommandOutcome(0, "available\n")
+
+                snapshot = collect_snapshot(
+                    target,
+                    approval_policy="on-request",
+                    sandbox_mode="workspace-write",
+                    platform_name="Windows",
+                    which=which,
+                    runner=runner,
+                    sleeper=lambda _seconds: None,
+                )
+                after = {
+                    path.relative_to(target).as_posix(): path.read_bytes()
+                    for path in target.rglob("*")
+                    if path.is_file()
+                }
+
+                self.assertEqual(snapshot["tools"]["python"]["status"], expected_status)
+                self.assertIn("PYTHON_MISSING_OR_UNSUPPORTED", snapshot["blockers"])
+                self.assertEqual(after, before)
+
+    def test_literal_python_real_command_passes_read_only(self):
+        executable = shutil.which("python")
+        self.assertIsNotNone(executable)
+        environment = build_process_environment()
+        observed = []
+
+        def runner(command, **kwargs):
+            observed.append((list(command), kwargs))
+            return run_command(command, **kwargs)
+
+        result = _python_check(
+            which=shutil.which,
+            runner=runner,
+            environment=environment,
+        )
+
+        self.assertEqual(result["status"], "PASS")
+        self.assertRegex(result["version"], r"^Python 3\.(?:1[1-9]|[2-9][0-9])\.[0-9]+$")
+        self.assertEqual(observed[0][0][:3], [executable, "-I", "-S"])
+        self.assertEqual(observed[0][1]["env"], environment)
 
     @patch(
         "scripts.install_assist._python_check",
@@ -463,7 +575,7 @@ class SnapshotAndReportTests(unittest.TestCase):
                 (VERSION, "CURRENT"),
                 ("v4.1.0", "OLDER"),
                 ("v4.1.5", "OLDER"),
-                ("v4.2.0", "NEWER"),
+                ("v4.2.1", "NEWER"),
                 ("not-semver", "INVALID"),
             ):
                 with self.subTest(version=version):
@@ -689,7 +801,8 @@ class SourceAndInstallWorkflowTests(unittest.TestCase):
         self.assertIn("DAILY_SELECTION_PROOF_REQUIRED", result["resume"])
         self.assertIn("--ensure-daily --print-selection --workers", result["resume"])
         self.assertIn("Next phase: FRESH_TASK_SMOKE", result["resume"])
-        self.assertIn("two-family preview gates", result["resume"])
+        self.assertIn("dual-family Stable gates", result["resume"])
+        self.assertNotIn("preview gates", result["resume"])
         self.assertIn("legacy one-Luna smoke does not verify Sol", result["resume"])
 
     def test_dry_run_stops_before_apply(self):
@@ -850,6 +963,8 @@ class ResultCardTests(unittest.TestCase):
         self.assertIn("Sol or Luna worker role", selector_card)
         self.assertIn("DAILY_SELECTION_PROOF_REQUIRED", selector_card)
         self.assertIn("start a new task", selector_card)
+        self.assertIn("dual-family Stable checks", selector_card)
+        self.assertNotIn("compatibility smoke", selector_card)
 
 
 class CommandLineContractTests(unittest.TestCase):

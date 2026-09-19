@@ -12,6 +12,7 @@ INSTALLATION_ZH = ROOT / "INSTALLATION.zh-CN.md"
 ASSIST = ROOT / "CODEX_SOL_LUNA_INSTALL_ASSIST.md"
 ASSIST_ZH = ROOT / "CODEX_SOL_LUNA_INSTALL_ASSIST.zh-CN.md"
 SETUP = ROOT / "CODEX_SOL_LUNA_SETUP.md"
+STABLE_SETUP = ROOT / "NATIVE_WORKERS_SETUP.md"
 ISSUE_TEMPLATE_DIR = ROOT / ".github" / "ISSUE_TEMPLATE"
 ISSUE_FORMS = {
     "bug-report.yml": {
@@ -44,6 +45,7 @@ PUBLIC_DOCS = (
     ASSIST,
     ASSIST_ZH,
     SETUP,
+    STABLE_SETUP,
     ROOT / "ARCHITECTURE.md",
     ROOT / "RUNTIME_TESTS.md",
     ROOT / "SECURITY.md",
@@ -92,15 +94,21 @@ V414_SETUP_CONTRACT_COMMIT = PINNED_SETUP_COMMIT
 V412_BASELINE_RUNTIME_SOURCE_COMMIT = (
     "50ff886d1004ac3dd43b1f4ce531a2a8af8f7a49"
 )
-ASSIST_RAW_PATTERN = re.compile(
-    r"https://raw\.githubusercontent\.com/"
-    r"SuperDaddyV/codex-sol-luna-worker/([0-9a-f]{40})/"
-    r"CODEX_SOL_LUNA_INSTALL_ASSIST\.md"
-)
 SETUP_RAW_PATTERN = re.compile(
     r"https://raw\.githubusercontent\.com/"
     r"SuperDaddyV/codex-sol-luna-worker/([0-9a-f]{40})/"
     r"CODEX_SOL_LUNA_SETUP\.md"
+)
+STABLE_API_URL = (
+    "https://api.github.com/repos/SuperDaddyV/"
+    "codex-native-workers/releases/tags/v4.2.0"
+)
+STABLE_RELEASE_URL = (
+    "https://github.com/SuperDaddyV/codex-native-workers/releases/tag/v4.2.0"
+)
+STABLE_PYTHON_CHECK = (
+    'python -c "import sys, tomllib; '
+    'assert sys.version_info >= (3, 11); print(sys.version)"'
 )
 
 
@@ -121,6 +129,7 @@ class DocumentationTests(unittest.TestCase):
         self.assertTrue(ASSIST.is_file())
         self.assertTrue(ASSIST_ZH.is_file())
         self.assertTrue(SETUP.is_file())
+        self.assertTrue(STABLE_SETUP.is_file())
         self.assertIn("[简体中文](README.zh-CN.md)", text(README))
         self.assertIn("[English](README.md)", text(README_ZH))
         self.assertIn(
@@ -131,6 +140,8 @@ class DocumentationTests(unittest.TestCase):
             "[中文审阅版](CODEX_SOL_LUNA_INSTALL_ASSIST.zh-CN.md)",
             text(README_ZH),
         )
+        self.assertIn("[Stable installation contract](NATIVE_WORKERS_SETUP.md)", text(README))
+        self.assertIn("[正式版安装合同](NATIVE_WORKERS_SETUP.md)", text(README_ZH))
 
     def test_required_badges_and_homepage_sections(self):
         for path, headings in (
@@ -139,11 +150,11 @@ class DocumentationTests(unittest.TestCase):
                 (
                     "What it is",
                     "Choose your version",
-                    "v4.2.0-rc1 preview",
+                    "Stable installation (default)",
                     "How Coordinator and workers collaborate",
                     "Core value",
                     "Requirements",
-                    "Stable installation (default)",
+                    "Previous versions",
                     "Daily use",
                     "Confirm it is working",
                     "Upgrade, rollback, and uninstall",
@@ -157,11 +168,11 @@ class DocumentationTests(unittest.TestCase):
                 (
                     "这是什么",
                     "选择版本",
-                    "v4.2.0-rc1 预览版",
+                    "正式版安装（默认）",
                     "Coordinator 与 worker 如何协作",
                     "核心价值",
                     "系统要求",
-                    "Stable 安装（默认）",
+                    "历史版本",
                     "日常使用",
                     "如何确认生效",
                     "升级、回滚与卸载",
@@ -173,8 +184,8 @@ class DocumentationTests(unittest.TestCase):
         ):
             content = text(path)
             self.assertIn("actions/workflows/validate.yml/badge.svg", content)
-            self.assertIn("releases/tag/v4.1.4", content)
-            self.assertIn("img.shields.io/badge/stable-v4.1.4", content)
+            self.assertIn("releases/tag/v4.2.0", content)
+            self.assertIn("img.shields.io/badge/stable-v4.2.0", content)
             self.assertIn("github/license", content)
             self.assertEqual(
                 re.findall(r"(?m)^## (.+)$", content),
@@ -182,7 +193,7 @@ class DocumentationTests(unittest.TestCase):
             )
             self.assertGreaterEqual(len(content.splitlines()), 180)
             self.assertLessEqual(len(content.splitlines()), 260)
-            self.assertEqual(content.count("> [!WARNING]"), 1)
+            self.assertEqual(content.count("> [!IMPORTANT]"), 1)
             self.assertNotIn("historical_preview", content)
 
     def test_readmes_explain_native_worker_routing_parallelism_and_receipts(self):
@@ -253,14 +264,14 @@ class DocumentationTests(unittest.TestCase):
         chinese = text(README_ZH)
         preview = text(PREVIEW)
         release_url = (
-            "https://github.com/SuperDaddyV/codex-sol-luna-worker/"
+            "https://github.com/SuperDaddyV/codex-native-workers/"
             "releases/tag/v4.2.0-rc1"
         )
 
         for content in (english, chinese):
             self.assertIn("img.shields.io/badge/preview-v4.2.0--rc1", content)
             self.assertIn(release_url, content)
-            self.assertGreaterEqual(content.count("NATIVE_WORKERS_PREVIEW.md"), 3)
+            self.assertGreaterEqual(content.count("NATIVE_WORKERS_PREVIEW.md"), 2)
             self.assertIn("40-hex commit", content)
             self.assertIn("detached checkout", " ".join(content.split()))
             self.assertIn("sol-luna-upgrade", content)
@@ -268,56 +279,46 @@ class DocumentationTests(unittest.TestCase):
             self.assertNotIn("<RC1", content)
 
         for phrase in (
-            "non-draft GitHub Prerelease",
-            "Published preview",
-            "read the remote tag again",
-            "moving branch",
-            "Strong recursive isolation therefore remains unsupported",
-            "not a measured installation success rate",
+            "Previous preview",
+            "Strong recursive isolation is unsupported",
+            "Stable publication does not turn these results into PASS",
+            "Nested invocation was **NOT RUN**",
+            "invocation enforcement remains **UNKNOWN**",
         ):
             self.assertIn(phrase, english)
         for phrase in (
-            "已发布、非 draft 的 GitHub Prerelease",
-            "再次读取远端 tag",
-            "可变分支",
+            "历史版本",
             "强递归隔离仍不受支持",
-            "已发布预览版",
+            "正式发布不会把这些结果改为 PASS",
+            "nested invocation 为 **NOT RUN**",
+            "调用防护为 **UNKNOWN**",
         ):
             self.assertIn(phrase, chinese)
 
-        for content, start, end in (
+        for content, start, end, historical_url in (
             (
                 english,
-                "## v4.2.0-rc1 preview",
-                "## How Coordinator and workers collaborate",
+                "## Previous versions",
+                "## Daily use",
+                "https://github.com/SuperDaddyV/codex-native-workers/blob/"
+                f"{RC1_RUNTIME_SOURCE_COMMIT}/NATIVE_WORKERS_PREVIEW.md",
             ),
             (
                 chinese,
-                "## v4.2.0-rc1 预览版",
-                "## Coordinator 与 worker 如何协作",
+                "## 历史版本",
+                "## 日常使用",
+                "https://github.com/SuperDaddyV/codex-native-workers/blob/"
+                f"{RC1_RUNTIME_SOURCE_COMMIT}/NATIVE_WORKERS_PREVIEW.md",
             ),
         ):
-            section = content[content.index(start) : content.index(end)]
-            self.assertEqual(
-                set(re.findall(r"\b[0-9a-f]{40}\b", section)),
-                {RC1_RUNTIME_SOURCE_COMMIT},
-            )
-            prompts = re.findall(r"```text\n(.*?)\n```", section, re.S)
-            self.assertEqual(len(prompts), 1)
-            self.assertIn(
-                "https://raw.githubusercontent.com/SuperDaddyV/"
-                f"codex-sol-luna-worker/{RC1_RUNTIME_SOURCE_COMMIT}/"
-                "NATIVE_WORKERS_PREVIEW.md",
-                prompts[0],
-            )
-            self.assertIn("dry-run", prompts[0])
-            self.assertIn("apply", prompts[0])
-            self.assertIn("python", prompts[0])
-            self.assertIn("tomllib", prompts[0])
-            self.assertNotIn("already published", section)
-            self.assertNotIn("不声称预览版 Release 已经发布", section)
-            self.assertNotRegex(section, r"\b20\d{2}-\d{2}-\d{2}\b")
-            self.assertNotRegex(section, r"<[^>]*(?:SHA|COMMIT|DATE)[^>]*>")
+            historical = content[content.index(start) : content.index(end)]
+            self.assertIn(historical_url, historical)
+            self.assertIn("v4.2.0-rc1", historical)
+            self.assertIn(RC1_RUNTIME_SOURCE_COMMIT, historical)
+            self.assertNotIn("already published", historical)
+            self.assertNotIn("不声称预览版 Release 已经发布", historical)
+            self.assertNotRegex(historical, r"\b20\d{2}-\d{2}-\d{2}\b")
+            self.assertNotRegex(historical, r"<[^>]*(?:SHA|COMMIT|DATE)[^>]*>")
 
         for content in (
             preview,
@@ -327,7 +328,7 @@ class DocumentationTests(unittest.TestCase):
         ):
             self.assertIn("v4.2.0-rc1", content)
         security = text(ROOT / "SECURITY.md")
-        self.assertIn("Codex Native Workers v4.2 preview scope", security)
+        self.assertIn("Codex Native Workers v4.2 Stable scope", security)
         self.assertIn("Strict recursive isolation is unsupported", security)
         self.assertIn("published, non-draft GitHub", preview)
         self.assertIn("TAG_MOVED", preview)
@@ -406,21 +407,46 @@ class DocumentationTests(unittest.TestCase):
         self.assertIn("用于不可变精确 commit checkout 的 Git", chinese)
 
     def test_installation_help_covers_actual_launcher_roots_and_recovery(self):
-        python_check = (
-            'python -c "import sys, tomllib; '
-            'assert sys.version_info >= (3, 11); print(sys.version)"'
-        )
         for path in (README, README_ZH):
             prompts = re.findall(r"```text\n(.*?)\n```", text(path), re.S)
-            stable = [p for p in prompts if "CODEX_SOL_LUNA_INSTALL_ASSIST.md" in p]
+            stable = [p for p in prompts if STABLE_API_URL in p]
             self.assertEqual(len(stable), 1)
-            self.assertIn(python_check, stable[0])
+            phrases = (
+                (
+                    STABLE_PYTHON_CHECK,
+                    "NATIVE_WORKERS_SETUP.md",
+                    "published, non-draft",
+                    "non-prerelease",
+                    "40-hex commit",
+                    "detached checkout",
+                    "remote tag again",
+                    "target_commitish",
+                    "moving branch",
+                    "unverified tag",
+                )
+                if path == README
+                else (
+                    STABLE_PYTHON_CHECK,
+                    "NATIVE_WORKERS_SETUP.md",
+                    "已发布、非 draft、非 prerelease",
+                    "40-hex commit",
+                    "detached checkout",
+                    "再次读取远端 tag",
+                    "target_commitish",
+                    "可变分支",
+                    "未经验证的 tag",
+                )
+            )
+            for phrase in phrases:
+                self.assertIn(phrase, stable[0])
 
         for guide, homepage in ((INSTALLATION, README), (INSTALLATION_ZH, README_ZH)):
             content = text(guide)
             self.assertIn(f"]({guide.name})", text(homepage))
-            self.assertIn(python_check, content)
-            self.assertIn(RC1_RUNTIME_SOURCE_COMMIT, content)
+            self.assertIn(STABLE_PYTHON_CHECK, content)
+            self.assertIn("v4.2.0", content)
+            self.assertIn("NATIVE_WORKERS_SETUP.md", content)
+            self.assertIn("native-workers-v4.2.0-validation.json", content)
             self.assertIn("CODEX_HOME", content)
             self.assertIn("<SKILLS_ROOT>", content)
             self.assertIn("AGENTS.override.md", content)
@@ -429,7 +455,6 @@ class DocumentationTests(unittest.TestCase):
             self.assertIn("Today Selection not initialized", content)
             self.assertIn("Not checked", content)
             self.assertIn("--source-commit", content)
-            self.assertIn("native-workers-rc1-validation.json", content)
             self.assertNotIn("raw.githubusercontent.com/SuperDaddyV/"
                              "codex-sol-luna-worker/master/", content)
             self.assertEqual(content.count("```") % 2, 0)
@@ -438,20 +463,19 @@ class DocumentationTests(unittest.TestCase):
                       " ".join(text(INSTALLATION).split()))
         self.assertIn("不是用户安装成功率统计", text(INSTALLATION_ZH))
 
-    def test_readme_uses_single_v414_immutable_installation_entry(self):
+    def test_readme_uses_current_v420_stable_installation_entry_and_preserves_legacy_history(self):
         english = text(README)
         chinese = text(README_ZH)
         for content in (english, chinese):
-            assist_url = (
-                "https://raw.githubusercontent.com/SuperDaddyV/"
-                f"codex-sol-luna-worker/{PINNED_ASSIST_COMMIT}/"
-                "CODEX_SOL_LUNA_INSTALL_ASSIST.md"
-            )
-            self.assertEqual(content.count(assist_url), 1)
+            self.assertEqual(content.count(STABLE_API_URL), 1)
+            self.assertIn(STABLE_RELEASE_URL, content)
+            self.assertIn("NATIVE_WORKERS_SETUP.md", content)
+            self.assertIn("v4.2.0", content)
             self.assertEqual(content.count(PINNED_ASSIST_BLOB_URL), 1)
-            self.assertEqual(content.count(PINNED_SETUP_BLOB_URL), 3)
+            self.assertEqual(content.count(PINNED_SETUP_BLOB_URL), 1)
             self.assertNotIn("](CODEX_SOL_LUNA_INSTALL_ASSIST.md)", content)
             self.assertNotIn("](CODEX_SOL_LUNA_SETUP.md)", content)
+            self.assertNotIn("img.shields.io/badge/stable-v4.1.4", content)
             self.assertNotIn(LEGACY_DEFAULT_SETUP_COMMIT, content)
             self.assertIn(PINNED_ASSIST_COMMIT, content)
             self.assertIn(PINNED_SETUP_COMMIT, content)
@@ -465,8 +489,8 @@ class DocumentationTests(unittest.TestCase):
             [V414_SETUP_CONTRACT_COMMIT],
         )
         self.assertIn(V414_RUNTIME_SOURCE_COMMIT, text(SETUP))
-        self.assertIn("single prompt", english)
-        self.assertIn("只粘贴下面这一个提示词", chinese)
+        self.assertIn("single **v4.2.0** prompt", english)
+        self.assertIn("下面这一个 **v4.2.0** 提示词", chinese)
         for stale in (
             PREVIOUS_STABLE_ASSIST_COMMIT,
             PREVIOUS_STABLE_SETUP_COMMIT,
@@ -726,8 +750,9 @@ class DocumentationTests(unittest.TestCase):
                 self.assertEqual(len(labels), len(set(labels)))
                 self.assertNotIn("labels:", content)
                 self.assertNotIn("contact_links:", content)
-                self.assertIn("Stable (v4.1.4)", content)
-                self.assertIn("Prerelease / preview (v4.2.0-rc1)", content)
+                self.assertIn("Current Stable (v4.2.0)", content)
+                self.assertIn("Previous Preview (v4.2.0-rc1)", content)
+                self.assertIn("Legacy Stable (v4.1.4)", content)
                 self.assertIn('"NOT RUN"', content)
                 self.assertIn('"BLOCKED"', content)
                 self.assertNotIn("public beta", content.lower())
@@ -742,13 +767,13 @@ class DocumentationTests(unittest.TestCase):
             "unless specifically requested during later troubleshooting",
         ):
             self.assertIn(phrase, bug)
-        self.assertIn("placeholder: v4.1.4", bug)
+        self.assertIn("placeholder: v4.2.0", bug)
         self.assertNotIn("placeholder: v4.1.1", bug)
         self.assertIn("`Sol/Luna: Sol-only · no independent bounded work`", bug)
         self.assertIn("`Sol/Luna: delegated · luna_max ×2 · parallel`", bug)
         self.assertIn("`No Receipt`", bug)
         self.assertIn("Coordinator/Workers: delegated · sol_high ×1", bug)
-        self.assertIn("Stable / legacy format", bug)
+        self.assertIn("v4.1.4 legacy format", bug)
         self.assertIn('- "Yes"\n        - "No"\n        - "Not sure"', bug)
 
         compatibility = text(ISSUE_TEMPLATE_DIR / "compatibility-report.yml")
@@ -766,11 +791,11 @@ class DocumentationTests(unittest.TestCase):
             "More than 1 week",
         ):
             self.assertIn(option, compatibility)
-        self.assertIn("placeholder: v4.1.4 / v4.1.3 / Unknown", compatibility)
+        self.assertIn("placeholder: v4.1.4 / v4.2.0-rc1 / Unknown", compatibility)
         self.assertIn("placeholder: sol_max / Unknown", compatibility)
         self.assertIn("Coordinator/Workers: delegated", compatibility)
         self.assertIn("sequential execution is not parallel", compatibility)
-        self.assertIn("placeholder: v4.1.4", compatibility)
+        self.assertIn("placeholder: v4.2.0", compatibility)
         self.assertNotIn("placeholder: v4.1.1", compatibility)
 
         feature = text(ISSUE_TEMPLATE_DIR / "feature-feedback.yml")
@@ -799,7 +824,7 @@ class DocumentationTests(unittest.TestCase):
             )
             for filename in templates:
                 self.assertIn(
-                    "https://github.com/SuperDaddyV/codex-sol-luna-worker/"
+                    "https://github.com/SuperDaddyV/codex-native-workers/"
                     f"issues/new?template={filename}",
                     content,
                 )
@@ -824,22 +849,18 @@ class DocumentationTests(unittest.TestCase):
                 README_ZH,
                 ASSIST,
                 SETUP,
+                STABLE_SETUP,
                 ROOT / "ARCHITECTURE.md",
                 ROOT / "SECURITY.md",
             )
         )
-        default_assist_url = (
-            "https://raw.githubusercontent.com/SuperDaddyV/"
-            f"codex-sol-luna-worker/{PINNED_ASSIST_COMMIT}/"
-            "CODEX_SOL_LUNA_INSTALL_ASSIST.md"
-        )
         for path in (README, README_ZH):
             content = text(path)
-            self.assertEqual(content.count(default_assist_url), 1)
+            self.assertEqual(content.count(STABLE_API_URL), 1)
+            self.assertIn(STABLE_RELEASE_URL, content)
+            self.assertIn("NATIVE_WORKERS_SETUP.md", content)
             self.assertIn(PINNED_ASSIST_COMMIT, content)
             self.assertIn(PINNED_SETUP_COMMIT, content)
-            self.assertIn("releases/tag/v4.1.4", content)
-            self.assertIn("img.shields.io/badge/stable-v4.1.4", content)
             self.assertNotIn("historical_preview", content)
             self.assertNotIn(LEGACY_DEFAULT_SETUP_COMMIT, content)
             self.assertNotRegex(content, r"\bRC[3-6]\b")
@@ -857,12 +878,13 @@ class DocumentationTests(unittest.TestCase):
                 self.assertNotIn(removed, content)
             self.assertNotIn("O1–O10", content)
             for link in (
+                "NATIVE_WORKERS_SETUP.md",
                 "CODEX_SOL_LUNA_SETUP.md",
                 "ARCHITECTURE.md",
                 "RUNTIME_TESTS.md",
                 "SECURITY.md",
                 "CHANGELOG.md",
-                "codex-sol-luna-worker/releases",
+                "codex-native-workers/releases",
             ):
                 self.assertIn(link, content)
             for placeholder in ("<APPROVED_40_HEX_COMMIT>", "<TBD>", "pending"):
@@ -912,8 +934,14 @@ class DocumentationTests(unittest.TestCase):
         )
         self.assertNotIn("REAL GLOBAL RUNTIME NOT RUN", combined)
         self.assertIn("Global Runtime G1-G7", combined)
-        self.assertIn("v4.1.4 Stable", text(README))
-        self.assertIn("v4.1.4 Stable", text(README_ZH))
+        for content, start, end in (
+            (text(README), "## Previous versions", "## Daily use"),
+            (text(README_ZH), "## 历史版本", "## 日常使用"),
+        ):
+            historical = content[content.index(start) : content.index(end)]
+            self.assertIn("v4.1.4", historical)
+            self.assertIn(PINNED_ASSIST_COMMIT, historical)
+            self.assertIn(PINNED_SETUP_COMMIT, historical)
         self.assertNotRegex(combined, r"v4\.1\.0-rc3[^\n]*(?:—|is|是)\s*STABLE")
         self.assertNotIn(
             "RC2 repository-context delegation validation remains pending", combined
@@ -975,15 +1003,19 @@ class DocumentationTests(unittest.TestCase):
     def test_v414_stable_publication_uses_v414_immutable_installation_chain(self):
         changelog = text(ROOT / "CHANGELOG.md")
         security = text(ROOT / "SECURITY.md")
+        historical_readmes = []
+        for content, start, end in (
+            (text(README), "## Previous versions", "## Daily use"),
+            (text(README_ZH), "## 历史版本", "## 日常使用"),
+        ):
+            historical_readmes.append(content[content.index(start) : content.index(end)])
         public_installation = "\n".join(
-            text(path)
-            for path in (
-                README,
-                README_ZH,
-                SETUP,
-                ASSIST,
-                ASSIST_ZH,
-            )
+            historical_readmes
+            + [
+                text(SETUP),
+                text(ASSIST),
+                text(ASSIST_ZH),
+            ]
         )
 
         self.assertIn("## v4.1.4 (published Stable release)", changelog)
@@ -1012,9 +1044,12 @@ class DocumentationTests(unittest.TestCase):
             "`v4.1.4` is the current Stable release and default installation target.",
             security,
         )
-        self.assertIn("releases/tag/v4.1.4", public_installation)
-        self.assertIn("img.shields.io/badge/stable-v4.1.4", public_installation)
+        self.assertIn(PINNED_ASSIST_BLOB_URL, public_installation)
+        self.assertIn(PINNED_SETUP_BLOB_URL, public_installation)
+        self.assertIn(V414_RUNTIME_SOURCE_COMMIT, public_installation)
         self.assertIn("Stable release: `v4.1.4`", text(ASSIST))
+        self.assertIn(STABLE_RELEASE_URL, text(README) + text(README_ZH))
+        self.assertIn("img.shields.io/badge/stable-v4.2.0", text(README) + text(README_ZH))
         self.assertNotIn("releases/tag/v4.1.3", text(README) + text(README_ZH))
         self.assertNotIn("img.shields.io/badge/stable-v4.1.3", public_installation)
         stable_public_claims = "\n".join(
@@ -1036,8 +1071,39 @@ class DocumentationTests(unittest.TestCase):
         security = text(ROOT / "SECURITY.md")
         runtime = text(ROOT / "RUNTIME_TESTS.md")
         changelog = text(ROOT / "CHANGELOG.md")
-        setup = text(SETUP)
+        setup = text(STABLE_SETUP)
         readmes = text(README) + "\n" + text(README_ZH)
+
+        self.assertIn("# Codex Native Workers — v4.2.0 Stable installation contract", setup)
+        for required in (
+            "/repos/SuperDaddyV/codex-native-workers/releases/tags/v4.2.0",
+            "draft=false",
+            "prerelease=false",
+            "published_at",
+            "40-hex commit",
+            "clean detached checkout",
+            "remote tag again",
+            "TAG_MOVED",
+            'VERSION == "v4.2.0"',
+            "--source-commit",
+            "two-root transaction",
+            "no file is\n   required to embed its own SHA",
+        ):
+            self.assertIn(required, setup)
+        self.assertNotRegex(setup, r"\b[0-9a-f]{40}\b")
+        self.assertIn("Stable does not mean", setup)
+        self.assertIn("Strong recursive isolation is unsupported", setup)
+        self.assertIn(
+            "Installation can be complete while a native check is NOT RUN",
+            " ".join(setup.split()),
+        )
+
+        for content in (text(README), text(README_ZH)):
+            prompts = re.findall(r"```text\n(.*?)\n```", content, re.S)
+            stable = [prompt for prompt in prompts if STABLE_API_URL in prompt]
+            self.assertEqual(len(stable), 1)
+            self.assertIn(STABLE_PYTHON_CHECK, stable[0])
+            self.assertNotRegex(stable[0], r"\b[0-9a-f]{40}\b")
 
         for required in (
             "structured selection metadata boundary",
@@ -1053,52 +1119,71 @@ class DocumentationTests(unittest.TestCase):
             "no auto-updater",
         ):
             self.assertIn(required, security)
+        self.assertIn("v4.2.0", changelog)
+        self.assertIn("immutable source verification", changelog)
+        self.assertIn("v4.2.0 Stable product contract", architecture)
+        self.assertIn("v4.2 Stable scope", security)
+        self.assertNotRegex(readmes, r"\bRC[3-6]\b")
+        installer_commands = [
+            line
+            for line in setup.splitlines()
+            if "scripts/install.py" in line
+            and ("--dry-run" in line or "--apply" in line)
+        ]
+        self.assertEqual(len(installer_commands), 2)
+        for command in installer_commands:
+            self.assertIn("--source-commit <VERIFIED_40_HEX_COMMIT>", command)
+
+        for placeholder in (
+            "<APPROVED_40_HEX_COMMIT>",
+            "<TBD_SHA>",
+            "PIN_PENDING",
+            "<SETUP_COMMIT>",
+            "<SETUP_COMMIT_SHA>",
+            "SELF_SHA",
+            "CURRENT_DOC_SHA",
+        ):
+            self.assertNotIn(placeholder, setup)
+        self.assertNotRegex(
+            setup,
+            r"(?m)^(?:git|python)[^\n]*\b(?:master|main)\b",
+        )
+        self.assertNotIn(
+            "raw.githubusercontent.com/",
+            setup,
+        )
+        for placeholder in ("<source-sha>", "TBD", "TODO-for-release"):
+            self.assertNotIn(placeholder, "\n".join((architecture, security, runtime, changelog)))
+
+    def test_legacy_v414_setup_contract_integrity_guards_remain_explicit(self):
+        setup = text(SETUP)
+        architecture = text(ROOT / "ARCHITECTURE.md")
+        security = text(ROOT / "SECURITY.md")
+
         for number in range(1, 11):
             self.assertRegex(setup, rf"(?m)^- O{number} .* — `PASS`[;.]$")
-        self.assertIn("v4.1.4 (published Stable release)", changelog)
-        self.assertIn("Source Commit A", changelog)
-        for content in (architecture, security):
-            self.assertIn(
-                "`v4.1.4` is the current Stable release and default installation target.",
-                content,
-            )
-        self.assertIn(
-            "v4.1.4 — CURRENT STABLE RELEASE / DEFAULT INSTALLATION TARGET",
-            architecture,
-        )
-        self.assertIn("Contract version: `v4.1.4`", setup)
+        for required in (
+            "Contract version: `v4.1.4`",
+            "`v4.1.4` is the Stable release target and default installation target",
+            "`v4.1.3` remains the previous immutable Stable release",
+            "`v4.1.2`, `v4.1.1`, and `v4.1.0` remain older immutable Stable releases",
+            "`v4.1.0-rc6` remains an immutable historical Prerelease",
+            "`v4.1.0-rc5` is an older historical Preview",
+            "No real Global v4.1.4 transaction result is claimed",
+            "Final O4/O9 re-certification",
+            "only `sol-luna-v4/selector.py`",
+            "a separate documentation anchor",
+            "not the runtime payload source",
+            "SETUP_CONTRACT_SELF_REFERENCE_REQUIRED = NO",
+            f"checkout --detach {V414_RUNTIME_SOURCE_COMMIT}",
+            f"Require `git rev-parse HEAD` to equal `{V414_RUNTIME_SOURCE_COMMIT}` exactly",
+        ):
+            self.assertIn(required, setup)
         self.assertGreaterEqual(setup.count(V414_RUNTIME_SOURCE_COMMIT), 7)
         self.assertNotIn(RC6_SETUP_CONTRACT_COMMIT, setup)
-        self.assertIn("`v4.1.3` remains the previous immutable Stable release", setup)
-        self.assertIn("`v4.1.2`, `v4.1.1`, and `v4.1.0` remain older immutable Stable releases", setup)
-        self.assertIn("`v4.1.0-rc6` remains an immutable historical Prerelease", setup)
-        self.assertIn("`v4.1.0-rc5` is an older historical Preview", setup)
-        self.assertIn(
-            "`v4.1.4` is the Stable release target and default installation target",
-            setup,
-        )
         self.assertNotIn("RC6 is not tagged", setup)
         self.assertNotIn("RC6 is not published", setup)
-        self.assertIn("No real Global v4.1.4 transaction result is claimed", setup)
-        self.assertIn("Final O4/O9 re-certification", setup)
-        self.assertIn(
-            "only `sol-luna-v4/selector.py`",
-            setup,
-        )
-        self.assertNotRegex(readmes, r"\bRC[3-6]\b")
-        self.assertIn(
-            "Install the pinned v4.1.4 Stable target",
-            text(README),
-        )
-        self.assertIn(
-            "安装固定的 v4.1.4 Stable 目标",
-            text(README_ZH),
-        )
-        self.assertIn(f"checkout --detach {V414_RUNTIME_SOURCE_COMMIT}", setup)
-        self.assertIn(
-            f"Require `git rev-parse HEAD` to equal `{V414_RUNTIME_SOURCE_COMMIT}` exactly",
-            setup,
-        )
+
         installer_commands = [
             line
             for line in setup.splitlines()
@@ -1108,7 +1193,6 @@ class DocumentationTests(unittest.TestCase):
         self.assertEqual(len(installer_commands), 4)
         for command in installer_commands:
             self.assertIn(f"--source-commit {V414_RUNTIME_SOURCE_COMMIT}", command)
-
         for placeholder in (
             "<APPROVED_40_HEX_COMMIT>",
             "<RC6_SOURCE_SHA>",
@@ -1130,11 +1214,14 @@ class DocumentationTests(unittest.TestCase):
             "raw.githubusercontent.com/SuperDaddyV/codex-sol-luna-worker/master/",
             setup,
         )
-        self.assertIn("a separate documentation anchor", setup)
-        self.assertIn("not the runtime payload source", setup)
-        self.assertIn("SETUP_CONTRACT_SELF_REFERENCE_REQUIRED = NO", setup)
-        for placeholder in ("<source-sha>", "TBD", "TODO-for-release"):
-            self.assertNotIn(placeholder, "\n".join((architecture, security, runtime, changelog)))
+        self.assertIn(
+            "`v4.1.4` is the current Stable release and default installation target.",
+            architecture,
+        )
+        self.assertIn(
+            "`v4.1.4` is the current Stable release and default installation target.",
+            security,
+        )
 
     def test_readme_status_guidance_is_bilingual_and_bounded(self):
         english = text(README)
@@ -1181,19 +1268,14 @@ class DocumentationTests(unittest.TestCase):
             combined,
         )
 
-        english_shas = ASSIST_RAW_PATTERN.findall(english)
-        chinese_shas = ASSIST_RAW_PATTERN.findall(chinese)
-        self.assertEqual(len(english_shas), 1)
-        self.assertEqual(len(chinese_shas), 1)
-        self.assertEqual(english_shas, chinese_shas)
+        for content in (english, chinese):
+            prompts = re.findall(r"```text\n(.*?)\n```", content, re.S)
+            stable = [prompt for prompt in prompts if STABLE_API_URL in prompt]
+            self.assertEqual(len(stable), 1)
+            self.assertIn(STABLE_PYTHON_CHECK, stable[0])
+            self.assertIn("NATIVE_WORKERS_SETUP.md", stable[0])
+            self.assertNotRegex(stable[0], r"\b[0-9a-f]{40}\b")
         self.assertNotIn(LEGACY_DEFAULT_SETUP_COMMIT, combined)
-        self.assertEqual(
-            english_shas,
-            [PINNED_ASSIST_COMMIT],
-        )
-        self.assertNotIn(RC6_SETUP_CONTRACT_COMMIT, english_shas)
-        for sha in english_shas:
-            self.assertRegex(sha, r"^[0-9a-f]{40}$")
 
         self.assertEqual(SETUP_RAW_PATTERN.findall(english), [])
         self.assertEqual(SETUP_RAW_PATTERN.findall(chinese), [])
@@ -1211,6 +1293,7 @@ class DocumentationTests(unittest.TestCase):
             INSTALLATION_ZH,
             ASSIST,
             SETUP,
+            STABLE_SETUP,
             ROOT / "SECURITY.md",
         ):
             for target in local_markdown_targets(text(document)):

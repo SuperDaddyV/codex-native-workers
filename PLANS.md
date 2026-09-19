@@ -1,5 +1,40 @@
 # v4.2 Local Coordinator / Sol / Luna Integration
 
+## Authorized v4.2.0 Stable and repository rename — 2026-09-19
+
+The user now explicitly requests the latest version as a formal release and the
+previously agreed project rename. This supersedes the earlier prerelease-only
+publication scope. Target: Codex Native Workers v4.2.0, repository
+SuperDaddyV/codex-native-workers. Preserve installed paths, markers, Skill names,
+strict versioned inventories and all immutable historical tags/releases. Verify
+old GitHub/raw installation links after the repository rename; update canonical
+current entry points, upgrade discovery, Git remote and public documentation.
+
+Stable describes the tested native configuration/routing/transactional installation
+product, with user-selected Coordinator and bounded Sol/Luna workers. It does not
+add a host-enforced isolation product claim. Historical tool-visibility FAIL stays
+FAIL; nested invocation, six-worker capacity and measured savings remain unverified.
+No integrity check may be weakened to promote the release. Required checks include
+version ordering and rc1-to-Stable lifecycle/preservation, source and three-platform
+CI for the exact release commit, immutable release/tag identity, and current
+published installation/upgrade instructions. Separate reused native evidence from
+new source/fake-home/installed results. Existing rc1 remains immutable.
+
+The rename readback passed: all three previous raw installation contracts matched
+their Git blobs exactly; both repository aliases retained repository, rc1 tag,
+Release and validation asset identities. Five current public documents passed
+GitHub Markdown rendering. Initial local full regression found two stale
+rc1-specific documentation/User-Agent expectations; update those expectations to
+the Stable product while preserving their behavioral/integrity assertions. Final
+exact-source CI and isolated CLI installation evidence belong to the Release asset.
+This publication task does not itself apply Stable to the existing real rc1 home.
+
+The completed documentation follow-up commit cbd39d903309e3d68c707ec865bf490e39ca3448
+is included in this release work. It passed 431 local tests and three-platform CI
+run 35439171006; its branch was published with byte-identical Git objects through
+the GitHub API after Git HTTPS transport failed. It has not yet become master;
+the new release publication replaces that pending documentation-only promotion.
+
 ## Public documentation follow-up — 2026-09-19
 
 The user requested updated GitHub content that explains the project accurately

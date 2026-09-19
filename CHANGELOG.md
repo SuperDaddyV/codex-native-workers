@@ -1,5 +1,26 @@
 # Changelog
 
+## v4.2.0 (Codex Native Workers Stable)
+
+- Promotes the native configuration/routing/install product from rc1 with a
+  user-selected Coordinator, five Sol profiles, five Luna profiles and three Skills.
+- Renames the repository to `SuperDaddyV/codex-native-workers` and updates current
+  release discovery and public links. Installed paths, markers and Skill names
+  remain compatible; historical release/tag identities are preserved.
+- Adds a Stable installation contract, bilingual installation/troubleshooting
+  guides, one default installation prompt and explicit previous-version guidance.
+  Requires the actual `python` command used by installed selectors, correct roots,
+  immutable source verification and distinct configuration/native checkpoints.
+- Updates version/User-Agent metadata and covers rc1-to-Stable upgrade,
+  idempotence, ownership protection and rollback. Daily selection logic, native
+  role models/efforts and the lightweight Global policy are unchanged from rc1.
+- Makes assistance preflight validate the literal `python` executable used by
+  installed selectors. Running the helper under another compatible interpreter
+  no longer suffices for a Python readiness PASS.
+- Keeps strong recursive isolation unsupported and historical leaf FAIL intact.
+  Six-worker capacity, all-platform native acceptance and local quota savings
+  are not claimed. Evidence for the exact published commit belongs to its Release.
+
 ## v4.2.0-rc1 (Codex Native Workers preview)
 
 - Introduces user-selected Coordinator with five native Sol and five Luna

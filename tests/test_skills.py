@@ -130,9 +130,11 @@ class SkillPayloadTests(unittest.TestCase):
             "authorization covers this product upgrade only",
             "one two-root transaction",
             "prevalidate every backup and rollback entry",
+            "/repos/SuperDaddyV/codex-native-workers/releases",
         ):
             with self.subTest(invariant=invariant):
                 self.assertIn(invariant, content)
+        self.assertNotIn("/repos/SuperDaddyV/codex-sol-luna-worker/releases", content)
         notice = (
             "目标：<version>",
             "渠道：Prerelease / Public Beta",

@@ -1,5 +1,9 @@
 # Sol/Luna v4.1.4 Assisted Installation Contract
 
+> Historical v4.1.4 contract. Current v4.2.0 installation uses
+> [Codex Native Workers Stable setup](NATIVE_WORKERS_SETUP.md). The pinned original
+> v4.1.4 contract and runtime source remain immutable; do not mix their versions.
+
 Assistance contract version: `4`.
 
 The English contract is the only executable authority. The review-only Chinese

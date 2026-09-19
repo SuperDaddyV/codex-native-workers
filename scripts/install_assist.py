@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-import importlib.util
 import json
 import os
 import platform
@@ -43,7 +42,8 @@ from scripts.probe_capabilities import run_probe  # noqa: E402
 
 ASSIST_SCHEMA = 1
 CATALOG_PATH = PROJECT_ROOT / "scripts" / "install_recovery_catalog.json"
-REPOSITORY_URL = "https://github.com/SuperDaddyV/codex-sol-luna-worker.git"
+# Connectivity only; published release/tag identity is verified by a separate workflow.
+REPOSITORY_URL = "https://github.com/SuperDaddyV/codex-native-workers.git"
 SUPPORTED_PLATFORMS = {"Windows", "Linux", "Darwin"}
 SUPPORTED_APPROVAL_POLICIES = (
     "unknown",
@@ -229,11 +229,52 @@ def _tool_check(
     }
 
 
-def _python_check() -> dict:
-    supported = sys.version_info >= (3, 11) and importlib.util.find_spec("tomllib") is not None
+def _python_check(
+    *,
+    which: Callable[[str], str | None],
+    runner: Runner,
+    environment: Mapping[str, str],
+) -> dict:
+    executable = which("python")
+    if executable is None:
+        return {"status": "MISSING", "version": None}
+    script = (
+        "import json, sys\n"
+        "try:\n"
+        "    import tomllib\n"
+        "except Exception:\n"
+        "    tomllib_available = False\n"
+        "else:\n"
+        "    tomllib_available = True\n"
+        "print(json.dumps({\"version\": list(sys.version_info[:3]), "
+        "\"tomllib\": tomllib_available}, separators=(\",\", \":\")))\n"
+    )
+    outcome = runner(
+        [executable, "-I", "-S", "-c", script],
+        timeout=10,
+        env=environment,
+    )
+    if outcome.returncode != 0:
+        return {"status": "UNUSABLE", "version": None}
+    try:
+        payload = json.loads(outcome.stdout)
+    except (TypeError, json.JSONDecodeError):
+        return {"status": "UNUSABLE", "version": None}
+    if not isinstance(payload, dict) or set(payload) != {"tomllib", "version"}:
+        return {"status": "UNUSABLE", "version": None}
+    version = payload["version"]
+    if (
+        not isinstance(version, list)
+        or len(version) != 3
+        or not all(type(item) is int and item >= 0 for item in version)
+        or type(payload["tomllib"]) is not bool
+    ):
+        return {"status": "UNUSABLE", "version": None}
+    version_text = f"Python {version[0]}.{version[1]}.{version[2]}"
+    supported = tuple(version) >= (3, 11, 0) and payload["tomllib"]
     return {
         "status": "PASS" if supported else "UNSUPPORTED",
-        "version": f"Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
+        "version": version_text,
     }
 
 
@@ -365,7 +406,11 @@ def collect_snapshot(
         runner=runner,
         environment=local_environment,
     )
-    python = _python_check()
+    python = _python_check(
+        which=which,
+        runner=runner,
+        environment=local_environment,
+    )
     github = _github_https_check(
         git["status"] == "PASS",
         runner=runner,
@@ -822,7 +867,7 @@ def _resume_block(phase: str, reason_code: str | None = None) -> str:
             "Next proof: exit 0; selected_role is an allowed Sol or Luna worker "
             "role and selected_effort matches that role\n"
             "Next phase: FRESH_TASK_SMOKE\n"
-            "Scope: follow the two-family preview gates in RUNTIME_TESTS.md; "
+            "Scope: follow the dual-family Stable gates in RUNTIME_TESTS.md; "
             "a legacy one-Luna smoke does not verify Sol, mixed work, tool "
             "isolation, invocation enforcement or maximum capacity"
         )
@@ -1199,7 +1244,7 @@ def render_card(payload: Mapping[str, object]) -> str:
             f"Action: {SELECTOR_INITIALIZATION_COMMAND}\n"
             "Proof: exit 0; selected_role is an allowed Sol or Luna worker role "
             "and selected_effort matches that role\n"
-            "Next: start a new task for the one-run compatibility smoke"
+            "Next: start a new task for useful bounded dual-family Stable checks"
         )
     if phase == "NEEDS_USER_ACTION":
         action = payload.get("next_action", "Follow the single documented recovery action")

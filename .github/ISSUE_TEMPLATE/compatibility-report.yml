@@ -1,11 +1,13 @@
 name: Compatibility report
-description: Report compatibility with Stable v4.1.4 or the v4.2.0-rc1 preview
+description: Report compatibility with current Stable v4.2.0, the previous v4.2.0-rc1 Preview, or legacy Stable v4.1.4
 title: "[Compatibility]: "
 body:
   - type: markdown
     attributes:
       value: |
-        Success reports are welcome. They help us understand OS compatibility, fresh installs, upgrades, Sol and Luna delegation, and current Coordinator/Workers Receipt or legacy Delegation Receipt behavior across the Stable release and the v4.2.0-rc1 preview. Reports are public GitHub Issues only.
+        Success reports are welcome. They help us understand OS compatibility, fresh installs, upgrades, Sol and Luna delegation, and current Coordinator/Workers Receipt or legacy Delegation Receipt behavior across current Stable v4.2.0, the previous v4.2.0-rc1 Preview, and legacy Stable v4.1.4. Reports are public GitHub Issues only.
+
+        Stable describes the tested configuration, routing, and transactional installation product; it does not guarantee host-enforced recursive isolation. Keep configuration/status evidence separate from actual native execution.
 
         **Privacy warning — read before submitting.** Before submitting, remove or redact secrets and private information, including API keys, access tokens, cookies, passwords, private repository credentials, personal email addresses, unnecessary absolute home-directory information, and proprietary source/code unless you intentionally choose to share it. Include only the minimum relevant logs, with secrets and private information removed or redacted. Do not upload the entire CODEX_HOME (the whole `CODEX_HOME`) unless specifically requested during later troubleshooting; never upload an archive of it or its private files.
 
@@ -42,8 +44,9 @@ body:
       label: Release channel
       description: Which published target did you test?
       options:
-        - "Stable (v4.1.4)"
-        - "Prerelease / preview (v4.2.0-rc1)"
+        - "Current Stable (v4.2.0)"
+        - "Previous Preview (v4.2.0-rc1)"
+        - "Legacy Stable (v4.1.4)"
         - Other published version
         - Unknown
     validations:
@@ -67,14 +70,14 @@ body:
     attributes:
       label: From version
       description: Optional. For an upgrade, enter the version you upgraded from.
-      placeholder: v4.1.4 / v4.1.3 / Unknown
+      placeholder: v4.1.4 / v4.2.0-rc1 / Unknown
 
   - type: input
     id: installed_version
     attributes:
       label: Installed / tested version
       description: Enter the version actually installed or tested, including the exact tag or commit when available.
-      placeholder: v4.1.4 (or v4.2.0-rc1)
+      placeholder: v4.2.0 (or v4.2.0-rc1 / v4.1.4)
     validations:
       required: true
 
@@ -130,14 +133,14 @@ body:
   - type: textarea
     id: sol_only_receipt
     attributes:
-      label: Legacy Sol-only Receipt (Stable / legacy format)
+      label: Legacy Sol-only Receipt (v4.1.4 legacy format)
       description: Optional. Paste an older `Sol/Luna:` Sol-only Receipt, or leave blank if none was observed. Do not treat it as current Coordinator/Workers runtime evidence.
       placeholder: "Sol/Luna: Sol-only · reasoning/architecture task"
 
   - type: textarea
     id: delegated_receipt
     attributes:
-      label: Legacy delegated Sol/Luna Receipt (Stable / legacy format)
+      label: Legacy delegated Sol/Luna Receipt (v4.1.4 legacy format)
       description: Optional. Paste an older `Sol/Luna:` delegated Receipt, or leave blank if none was observed. Do not treat it as current Coordinator/Workers runtime evidence.
       placeholder: "Sol/Luna: delegated · luna_max ×3 · parallel"
 

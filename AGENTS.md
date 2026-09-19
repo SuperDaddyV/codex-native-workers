@@ -22,8 +22,8 @@ must remain bounded; do not delegate again from a Worker.
   missing live data and unrun native checks explicitly; final acceptance belongs
   to the Coordinator.
 
-The v4.2 preview contract in PLANS.md separates core product acceptance from host
+The v4.2 product contract in PLANS.md separates core product acceptance from host
 tool isolation, invocation enforcement and measured capacity. Keep historical
 failures; do not claim strong recursive isolation or six-worker support without
 native evidence. A host capability failure stops checks that depend on it, not
-independent core checks under the approved preview contract.
+independent core checks under the approved product contract.
