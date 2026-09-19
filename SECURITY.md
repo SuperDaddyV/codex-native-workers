@@ -1,5 +1,26 @@
 # Security Policy
 
+## Codex Native Workers v4.2 preview scope
+
+This package configures native workers; it does not enforce a security boundary
+inside Codex. Worker instructions prohibit further delegation and each role
+requests `agents.enabled=false`. On the tested Desktop host 0.155.0-alpha.9.2,
+a fresh Sol child still reported collaboration tools. No nested invocation was
+attempted; invocation enforcement and maximum concurrency are not established.
+See [issue 45066](https://github.com/openai/codex/issues/45066) and
+[runtime evidence](RUNTIME_TESTS.md). Strict recursive isolation is unsupported.
+
+`leaf_config=Ready` and `health=Healthy` describe installation/configuration.
+They do not certify tool removal, invocation denial, sandboxing, successful
+delegation or quota savings. Keep worker scopes bounded and review their results.
+Permissions and sandbox enforcement remain the host's responsibility. Do not
+delegate work whose requirements depend on unverified isolation capabilities.
+
+The preview retains strict owned-file inventories, user-content preservation,
+prevalidated transactional backups and rollback, explicit managed roots and
+immutable-source installation. Existing Stable security records below remain
+historical; no previous FAIL or unrun test is promoted to PASS.
+
 ## Release boundary
 
 `v4.1.4` is the current Stable release and default installation target.

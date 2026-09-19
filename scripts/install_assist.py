@@ -32,6 +32,7 @@ from scripts.install import (  # noqa: E402
     dry_run_install,
     install as transactional_install,
     resolve_codex_home,
+    resolve_skills_root,
 )
 from scripts.child_environment import (  # noqa: E402
     build_child_environment,
@@ -95,7 +96,7 @@ PHASES = (
 SELECTOR_INITIALIZATION_COMMAND = (
     "<PYTHON> <CODEX_HOME>/sol-luna-v4/selector.py "
     "--state-dir <CODEX_HOME>/sol-luna-v4/state "
-    "--ensure-daily --print-selection"
+    "--ensure-daily --print-selection --workers"
 )
 OFFICIAL_SOURCE_HOSTS = {
     "docs.brew.sh",
@@ -818,9 +819,12 @@ def _resume_block(phase: str, reason_code: str | None = None) -> str:
             f"Pending blocker: {pending}\n"
             "Prerequisite: complete any pending Codex reload\n"
             f"Action: {SELECTOR_INITIALIZATION_COMMAND}\n"
-            "Next proof: exit 0; selected_role is an allowed Luna role and "
-            "selected_effort matches that role\n"
-            "Next phase: FRESH_TASK_SMOKE"
+            "Next proof: exit 0; selected_role is an allowed Sol or Luna worker "
+            "role and selected_effort matches that role\n"
+            "Next phase: FRESH_TASK_SMOKE\n"
+            "Scope: follow the two-family preview gates in RUNTIME_TESTS.md; "
+            "a legacy one-Luna smoke does not verify Sol, mixed work, tool "
+            "isolation, invocation enforcement or maximum capacity"
         )
     pending = reason_code or "FRESH_TASK_SMOKE_REQUIRED"
     return (
@@ -840,12 +844,16 @@ def install_workflow(
     apply: bool,
     migrate_v3: bool,
     capability_timeout: int,
+    skills_root: Path | None = None,
     allow_validation_sandbox: bool = False,
     source_verifier: Callable[..., dict] | None = None,
     capability_probe: Callable[..., dict] | None = None,
     dry_runner: Callable[..., dict] | None = None,
     apply_runner: Callable[..., dict] | None = None,
 ) -> dict:
+    skills_root = resolve_skills_root(
+        None if skills_root is None else str(skills_root), codex_home
+    )
     catalog = load_catalog()
     plan = build_recovery_plan(snapshot, catalog)
     if snapshot["blockers"]:
@@ -888,12 +896,19 @@ def install_workflow(
     raw_results = capability.get("results", []) if isinstance(capability, Mapping) else []
     if not isinstance(raw_results, list):
         raw_results = []
-    capability_summary = {
-        "all_supported": capability.get("all_supported") is True
-        if isinstance(capability, Mapping)
-        else False,
-        "results": [
+    raw_sol_results = (
+        capability.get("sol_results", []) if isinstance(capability, Mapping) else []
+    )
+    if not isinstance(raw_sol_results, list):
+        raw_sol_results = []
+
+    def summarize_results(results: list) -> list[dict]:
+        return [
             {
+                "model": item.get("model")
+                if isinstance(item.get("model"), str)
+                and item.get("model") in {"gpt-5.6-luna", "gpt-5.6-sol"}
+                else None,
                 "effort": item.get("effort"),
                 "supported": item.get("supported") is True,
                 "response_exact": item.get("response_exact") is True,
@@ -904,24 +919,59 @@ def install_workflow(
                     else None
                 ),
             }
-            for item in raw_results
+            for item in results
             if isinstance(item, dict)
-        ],
+        ]
+
+    capability_summary = {
+        "model": capability.get("model")
+        if isinstance(capability, Mapping)
+        and capability.get("model") == "gpt-5.6-luna"
+        else None,
+        "sol_model": capability.get("sol_model")
+        if isinstance(capability, Mapping)
+        and capability.get("sol_model") == "gpt-5.6-sol"
+        else None,
+        "all_supported": capability.get("all_supported") is True
+        if isinstance(capability, Mapping)
+        else False,
+        "sol_all_supported": capability.get("sol_all_supported") is True
+        if isinstance(capability, Mapping)
+        else False,
+        "all_models_supported": capability.get("all_models_supported") is True
+        if isinstance(capability, Mapping)
+        else False,
+        "results": summarize_results(raw_results),
+        "sol_results": summarize_results(raw_sol_results),
     }
     expected_efforts = {"low", "medium", "high", "xhigh", "max"}
-    observed_efforts = {
-        item["effort"]
-        for item in capability_summary["results"]
-        if isinstance(item["effort"], str)
-    }
+
+    def complete_model_evidence(results: list[dict], model: str) -> bool:
+        observed_efforts = {
+            item["effort"] for item in results if isinstance(item["effort"], str)
+        }
+        return (
+            len(results) == len(expected_efforts)
+            and observed_efforts == expected_efforts
+            and all(
+                item["model"] == model
+                and item["supported"]
+                and item["exit_code"] == 0
+                for item in results
+            )
+        )
+
     if (
-        not capability_summary["all_supported"]
-        or len(capability_summary["results"]) != len(expected_efforts)
-        or observed_efforts != expected_efforts
-        or not all(
-            item["supported"]
-            and item["exit_code"] == 0
-            for item in capability_summary["results"]
+        capability_summary["model"] != "gpt-5.6-luna"
+        or capability_summary["sol_model"] != "gpt-5.6-sol"
+        or not capability_summary["all_supported"]
+        or not capability_summary["sol_all_supported"]
+        or not capability_summary["all_models_supported"]
+        or not complete_model_evidence(
+            capability_summary["results"], "gpt-5.6-luna"
+        )
+        or not complete_model_evidence(
+            capability_summary["sol_results"], "gpt-5.6-sol"
         )
     ):
         return {
@@ -939,6 +989,7 @@ def install_workflow(
     try:
         dry = dry_runner(
             codex_home,
+            skills_root=skills_root,
             migrate_legacy=migrate_v3,
             source_commit=source_commit,
             allow_validation_sandbox=allow_validation_sandbox,
@@ -998,6 +1049,7 @@ def install_workflow(
     try:
         applied = apply_runner(
             codex_home,
+            skills_root=skills_root,
             migrate_legacy=migrate_v3,
             source_commit=source_commit,
             allow_validation_sandbox=allow_validation_sandbox,
@@ -1145,8 +1197,8 @@ def render_card(payload: Mapping[str, object]) -> str:
             f"Version: {payload.get('target_version', VERSION)}\n"
             "Reason: DAILY_SELECTION_PROOF_REQUIRED\n"
             f"Action: {SELECTOR_INITIALIZATION_COMMAND}\n"
-            "Proof: exit 0; selected_role is an allowed Luna role and "
-            "selected_effort matches that role\n"
+            "Proof: exit 0; selected_role is an allowed Sol or Luna worker role "
+            "and selected_effort matches that role\n"
             "Next: start a new task for the one-run compatibility smoke"
         )
     if phase == "NEEDS_USER_ACTION":
@@ -1245,6 +1297,7 @@ def main(argv: list[str] | None = None) -> int:
 
     install_parser = commands.add_parser("install")
     _add_context_arguments(install_parser)
+    install_parser.add_argument("--skills-root", required=True)
     install_parser.add_argument("--source-commit", required=True)
     install_parser.add_argument("--apply", action="store_true")
     install_parser.add_argument("--migrate-v3", action="store_true")
@@ -1285,6 +1338,7 @@ def main(argv: list[str] | None = None) -> int:
                 apply=args.apply,
                 migrate_v3=args.migrate_v3,
                 capability_timeout=args.capability_timeout,
+                skills_root=Path(args.skills_root),
                 allow_validation_sandbox=args.validation_sandbox,
             )
         else:

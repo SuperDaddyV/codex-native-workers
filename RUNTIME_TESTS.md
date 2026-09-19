@@ -4,6 +4,418 @@ Status: `v4.1.4 — CURRENT STABLE RELEASE / DEFAULT INSTALLATION TARGET`; `v4.1
 
 These results describe only the recorded environments and scenarios below. They do not imply runtime validation across every operating system, Codex client, account, or user environment.
 
+## v4.2.0-rc1 preview acceptance contract — approved 2026-09-19
+
+The user approved narrowing this preview to native profile/routing/install
+support. Historical local.2 leaf isolation failures remain FAIL. Strong recursive
+isolation is unsupported. The separate historical protocol below is preserved;
+its blanket stop on tool exposure does not govern independent core checks under
+this new contract. Stable v4.1.4 and its immutable evidence remain unchanged.
+
+Required preview gates:
+
+1. Source regressions, three Skill validators, Global managed policy <=2,048 UTF-8
+   bytes, strict manifest inventories, installation/upgrade/rollback integrity.
+2. Exact published-source identity for install, owned hashes, preserved unrelated
+   user content and Coordinator settings, second-apply idempotence.
+3. One valid installed Worker selection per delegation workflow; current Beijing
+   date, explicit benchmark identity and reference-only/quality-only limits.
+4. Fresh direct Sol and Luna children with verified model/effort, useful independent
+   outputs, actual overlap for a mixed task, and Coordinator review/integration.
+5. Small work remains direct; task-specific selection adjustments obey allowed
+   roles; read-only status never initializes profiles or probes native behavior.
+
+Report host capabilities separately: configuration request, child-observed tool
+visibility, actual invocation enforcement, observed overlap and maximum capacity.
+`Not checked`, unknown or configuration Ready cannot become a native PASS. A known
+tool-visibility failure does not stop unrelated core checks, but any unexpected
+worker delegation, wrong model/effort, unsafe write or ownership drift stops the
+affected check. No nested invocation is required to publish this limited preview.
+Six-child capacity/overflow and comparative quota/cost remain unclaimed unless
+separately demonstrated. Source CI is never native-runtime proof.
+
+### rc1 source validation — 2026-09-19 (before publication)
+
+The working-tree standard-library suite passed **430 tests in 116.342 seconds**.
+Three Skill validators passed in Python UTF-8 mode. The rendered Global managed
+block is **2,047 UTF-8 bytes**, including markers and final newline. Focused
+documentation/policy checks passed after final wording corrections. These are
+source and fake-home checks, not installed-runtime acceptance.
+
+Three direct native workers overlapped during this implementation: two Sol/max
+workers handled diagnostics and bilingual documentation; one Luna/max worker
+handled bounded policy/Skill edits. Parent-visible session metadata confirmed
+the requested model/effort and direct depth-1 parentage. Their writes had disjoint
+ownership and the Coordinator reviewed the results. These workers used the
+pre-rc1 installed role definitions; this is observed three-worker overlap, not
+an rc1 installation test or proof of the configured six-worker maximum.
+
+Post-commit CI and installation/native acceptance are recorded in the sanitized
+Release evidence for the exact published commit. This section does not claim
+those later steps have already run.
+
+### Updated-host observation — 2026-09-19 (before rc1 installation)
+
+Desktop's running binary reports **0.155.0-alpha.9.2**, updated from the earlier
+0.154.0-alpha.6.2. Two newly created children have parent-visible direct depth-1
+metadata: Sol/max and Luna/max, multi-agent v2. Both ran concurrently and returned
+useful results. Twelve installed payload hashes matched source/manifest; all
+three Skill ownership hashes matched. The policy payload was byte-identical to
+its source template. No child invoked collaboration tools.
+
+**FAIL (tool absence):** Sol explicitly reported spawn_agent, followup_task,
+send_message, interrupt_agent, list_agents and wait_agent. **UNKNOWN (Luna):** the
+follow-up report said definitions were not provided and marked its observation
+unknown. Do not infer either an invocation bypass or successful invocation guard.
+**NOT RUN:** nested calls, six-worker capacity and overflow. Issue 45066 remained
+open without comments at this check. This observation belongs to local.2, not an
+rc1 install. During the window the whole user configuration hash changed; its
+owned agents block still matched the manifest. No whole-config immutability claim
+is made; the checking workflow did not modify that configuration.
+
+## Upstream submission — 2026-09-13
+
+The user authorized publishing the sanitized report to the official tracker:
+[openai/codex issue 45066](https://github.com/openai/codex/issues/45066).
+Creation succeeded; a separate read verified the exact submitted title/body and
+open state. The report distinguishes child-observed visibility from a server-side
+tool registry and does not claim successful nested execution. Private paths,
+session identifiers, credentials and raw session attachments were excluded.
+The earlier draft is retained below as historical evidence. Native leaf FAIL,
+root-cause BLOCKED and downstream NOT RUN are unchanged by submission.
+
+## Documentation repair — 2026-09-12
+
+The user approved redacting the private backup path in PLANS.md. The public
+record now uses a portable placeholder; original documents and exact recovery
+information remain in ignored local evidence, and the backup still exists.
+All four repository-safety tests PASS; the full standard-library suite passes
+**423 tests in 101.355 seconds**. Final evidence-text edits receive another focused
+repository check and diff validation before delivery. The earlier failed run
+below remains a truthful historical result, rather than current acceptance.
+
+This documentation repair does not change native leaf FAIL or root-cause BLOCKED.
+No new native children, nested calls, capacity checks or runtime/configuration
+changes occurred. The upstream report remains a draft and has not been submitted.
+
+## Local.2 installed acceptance — 2026-09-12
+
+The explicitly approved real local installation completed: `UPGRADED` to
+`v4.2.0-local.2`, manifest schema 3. Source regression passed 423 tests; installed
+ownership verified twelve source-identical files and three rendered Skills.
+Global non-managed bytes, configured Astra/high and legacy Daily/LKG hashes were
+preserved. The managed Global block is 1,882 bytes including its final newline.
+
+The installed selector initialized the new Worker profile from current public
+reference data: Luna max; Sol general max, backend xhigh, frontend high and
+reasoning max. Both families report `cloudflare-reference/custom_endpoint` and
+`reference_only`. Missing same-batch complete data leaves every Sol view in
+`quality_only` mode. No local performance, billing or quota advantage is proven.
+
+The read-only installed status reports `Healthy` / `OK`, agents 10/10, Skills
+3/3 and native-leaf configuration `Ready`. It reports native runtime and actual
+capacity `Not checked`; configured `max_parallel=6` is not observed concurrency.
+The backup remains available; see `PLANS.md` for the installation record.
+
+## Historical upstream report draft — before submission
+
+**Title:** Custom Sol/Luna child agents report collaboration tools despite
+agents.enabled=false on Desktop host 0.154.0-alpha.6.2 (multi-agent v2)
+
+**Environment:** Windows, Codex Desktop, bundled executable
+0.154.0-alpha.6.2; child turn metadata reports multi_agent_version=v2. The
+separate PATH CLI version is not the tested host.
+
+**Observed setup and reproduction:**
+
+1. Parent/project configuration enables agents with a six-child concurrency cap.
+   Project and personal role copies are byte-identical. sol_max uses
+   gpt-5.6-sol/max; luna_max uses gpt-5.6-luna/max. Each role has
+   `[agents] enabled = false` and instructions prohibiting further delegation.
+2. Create fresh direct children using native agent_type, without model or effort
+   overrides. Assign useful bounded read-only checks and ask each to report its
+   actual available tool names without invoking delegation.
+3. Parent metadata verifies expected models/efforts, direct depth-1 parentage and
+   v2 runtime. The children return useful check results and report collaboration
+   tools still visible, including spawn_agent and followup_task.
+4. Fully restart Desktop and repeat with new children. The reported exposure
+   persists; process restart and fresh child identities were verified locally.
+
+**Expected:** multi-agent tools disabled for these custom children, consistent
+with the documented agents.enabled setting. See the official configuration and
+subagent references in the diagnosis section below.
+
+**Evidence limitation:** visibility is reported by the children, not a captured
+server-side tool registry. No nested tool was invoked and no successful nested
+spawn or invocation rejection is alleged. This could be a settings-precedence,
+tool-filtering, or observation problem; a specific host defect is not proven.
+
+**Requested maintainer check:** inspect final child agents.enabled and its layer
+origin, tool definitions actually emitted to each child, and any independent
+invocation guard. Compare fresh spawn and continuation under multi-agent v2.
+
+**Impact:** local tool-absence acceptance fails; downstream six-worker capacity
+acceptance was stopped, rather than weakening the criterion. Package ownership
+and useful native execution succeed. No model performance or quota claim is made.
+
+**Additional diagnostic inspection:** the host's experimental server/diagnostics
+schema contains process memory information and named unsigned-integer gauges;
+it exposes no typed child effective-config/tool-registry response. The agents
+command is a session browser. Doctor's help advertises auth as part of its health
+inspection and provides no scoped child-inspection option; it was not executed.
+No feedback/upload request was sent. This draft intentionally contains no user
+paths, session identifiers, credentials or raw session attachments.
+
+**Disposition:** draft ready for review/submission; not sent externally. Native
+leaf remains FAIL, exact root cause BLOCKED, nested and capacity checks NOT RUN.
+Further identical local runs have no identified new evidence target.
+
+## Post-restart native leaf check — 2026-09-12 — FAIL
+
+User-confirmed Desktop restart was corroborated by a host process start at
+23:44:52 BJT. The executable version remains 0.154.0-alpha.6.2. Installed owned
+file/source/manifest checks and all three Skill ownership hashes match; selected
+Sol/Luna role files still have agents.enabled=false.
+
+The new post-restart workflow ran the installed Skill selection command exactly
+once. It returned the current Beijing-date schema-2/reference-policy-1 profile:
+Sol general sol_max and Luna luna_max, retaining the public reference route
+cloudflare-reference/custom_endpoint. No per-child selection or override occurred.
+
+- **PASS, bounded:** two fresh direct children (not resumed old children) ran as
+  gpt-5.6-sol/max and gpt-5.6-luna/max, confirmed by parent-visible turn metadata.
+  Both use multi_agent_version=v2 on the same host version and depth 1. A parent
+  snapshot establishes simultaneous running. Both returned useful file checks
+  and RESTART_SOL_LEAF_COMPLETE / RESTART_LUNA_LEAF_COMPLETE sentinels.
+- **FAIL — Sol leaf:** the new child reports spawn_agent, followup_task,
+  send_message, interrupt_agent, list_agents and wait_agent in its actual
+  collaboration tool definitions.
+- **FAIL — Luna leaf:** the new child reports collaboration.spawn_agent and
+  collaboration.followup_task as visible. It separately reports Codex task tools;
+  those are not needed to establish the native collaboration absence failure.
+- Neither child invoked delegation. Tool exposure remains a child-observed,
+  parent-received report, not independently captured server-side registration.
+  No successful nested execution or invocation rejection is claimed.
+- **NOT RUN / downstream acceptance BLOCKED:** six-worker capacity, overflow and
+  remaining acceptance, stopped after the fresh Sol failure. Observed concurrency
+  is at least two; the actual upper capacity remains unverified.
+
+Restart plus fresh children did not resolve the reported exposure. This narrows
+the old-process explanation but does not establish the exact filtering defect
+or exclude all persistent state. Preserve the existing FAIL and obtain the host
+diagnostic evidence described below before proposing configuration changes.
+No global config, installation or Git mutation occurred. `git diff --check`
+passes. The previously recorded full-suite failure remains; no new source change
+or new test concern justified rerunning that suite for this evidence-only update.
+
+## Leaf diagnosis — host interface evidence
+
+This follow-up leaves the native leaf FAIL below unchanged. The Desktop binary
+and both tested child session headers report `0.154.0-alpha.6.2`, with child
+`multi_agent_version=v2`. The separately installed PATH CLI reports `0.146.0`;
+its behavior is not evidence for this Desktop host. Recorded developer messages
+contain the selected role's prohibition on further delegation, and recorded
+model/effort values match; this excludes complete role-loading failure only.
+
+Official [configuration reference](https://learn.chatgpt.com/docs/config-file/config-reference)
+defines agents.enabled as enabling/disabling multi-agent tools. Official
+[subagent documentation](https://learn.chatgpt.com/docs/agent-configuration/subagents)
+allows normal supported configuration keys in custom-agent layers. The key and
+the intended configuration mechanism are supported; actual precedence and tool
+filtering for these child turns remain unobserved.
+
+The exact running host executable exported its experimental app-server protocol
+using `app-server generate-json-schema --experimental`. Local schema artifacts
+are under ignored `.var/leaf-diagnostic-schema/`. Inspection found:
+
+- ConfigReadParams: cwd and includeLayers only, no child/thread selector.
+- ThreadReadParams: threadId and includeTurns; its Thread response has no typed
+  effective agents configuration or complete native tool-registry field.
+- ClientRequest: config/read and thread/read exist; no generic native tools/list
+  or per-child effective-configuration inspection method is advertised. MCP tool
+  operations do not establish the built-in collaboration tool surface.
+
+No proxy connection or new app-server daemon was started: these documented
+request shapes cannot supply the missing child-specific evidence. Session logs
+also did not serialize a complete tool registry. Binary string inspection did
+not establish control flow and is not used as proof of the implementation.
+
+**BLOCKED — exact root cause:** available evidence cannot discriminate a setting
+precedence issue, missing filtering, and tool advertisement with a separate
+invocation guard. **NOT RUN — nested invocation:** deliberately unexercised.
+Minimum host diagnostic should expose final child agents.enabled with its layer
+origin, emitted native tool names and the corresponding invocation guard. Until
+that evidence exists, no repair or capacity PASS is justified. No global config,
+credentials, agent execution, package installation or Git publication was touched.
+
+Documentation diff validation passes; the previously recorded full-suite failure
+on the pre-existing private path remains unresolved. Tests were not rerun solely
+for this additional evidence record; no source implementation changed.
+
+## Local.2 resumed native acceptance — 2026-09-12 — FAIL
+
+This explicitly authorized continuation supersedes the interrupted attempt's
+missing-output/leaf status below, while preserving that historical attempt.
+Fingerprint verification found no installed or source drift and the date remained
+2026-09-12 BJT. The two original children resumed; the original single Worker
+selection was reused. No new selection, model override or child was introduced.
+
+| Gate | Result | Actual evidence and limitation |
+| --- | --- | --- |
+| Installed integrity and selection | PASS | Original hashes unchanged except the two evidence documents; same-day schema-2/reference-policy-1 profile reused. |
+| Sol native useful output | PASS | Policy comparison returned SOL_BOUNDARY_CHECK_COMPLETE; template and installed managed block match, DiffCount=0. Resumed turn metadata: gpt-5.6-sol/max. |
+| Luna native useful output | PASS | Ten names/model/effort/leaf configurations and ten source/installed hashes match; zero mismatches; LUNA_ROLE_CHECK_COMPLETE. Resumed turn metadata: gpt-5.6-luna/max. |
+| Sol native leaf | FAIL | Child reports actual exposure of collaboration.spawn_agent, followup_task, send_message, interrupt_agent, list_agents and wait_agent. |
+| Luna native leaf | FAIL | Child reports actual exposure of collaboration.spawn_agent and collaboration.followup_task. |
+| Direct parentage and mixed overlap | PASS, bounded | Original depth-1 metadata and both-running parent snapshot; useful results now returned for disjoint read-only scopes. Overall mixed acceptance remains BLOCKED by leaf failure. |
+| Status read-only behavior | PASS | One installed Skill status command: schema 3, Healthy/OK, agents 10/10, Skills 3/3, native_leaf Ready, max_parallel 6, native_runtime/runtime_max_parallel Not checked. Protected file and all four Daily/LKG JSON hashes unchanged. |
+| Six Workers and overflow behavior | NOT RUN / acceptance BLOCKED | First substantive leaf failure stopped downstream native work. Host advertises seven total slots; configured Workers six; observed concurrency at least two, maximum unverified. |
+| Small-task routing and permitted Sol adjustment | NOT RUN | Downstream of the failed native gate. |
+| Equivalent-task benchmark and attributable cost/usage | NOT RUN | Downstream of the failed gate; no efficiency or savings claim. |
+
+Tool exposure is evidence reported by the two children and visible to the parent
+in their returned results. The parent did not independently introspect the host's
+tool registry. Neither child invoked delegation, and no grandchild was created;
+the captured child call records contain no collaboration calls. Therefore this
+run establishes failure of the required *tool-absence* gate, not proof that a
+nested spawn would execute successfully. Configuration alone cannot close it.
+
+The Coordinator accepted the useful file checks and rejected leaf acceptance.
+The Luna result's own delegated receipt is not child-count evidence; the parent
+retains the observed two direct children and zero grandchildren. Status Healthy
+and native_leaf Ready describe installed configuration, not native enforcement.
+
+Minimum follow-up is a scoped diagnosis of native custom-agent tool filtering
+when `agents.enabled=false`. Do not relax the tool-absence criterion, alter global
+configuration, reinstall, or use nested/top-level workarounds to obtain PASS.
+This run performs no such repair, credential access or Git publication operation.
+
+### Resumed delivery validation
+
+- `git diff --check`: PASS.
+- `python -m unittest discover -s tests -q`: **FAIL**, 423 tests, 97.110 seconds,
+  one failure in
+  `test_no_private_paths_installation_ids_or_secret_material`. It detects the
+  absolute private user backup path in PLANS.md's historical installation record,
+  already present in the initial task baseline. Historical evidence was preserved;
+  no test was bypassed and no unrelated cleanup was performed. All other tests
+  completed without a reported failure; there were no reported skips.
+- The earlier 423-test PASS is historical source/fake-home evidence and does not
+  replace this current failure or establish native runtime acceptance.
+
+## Local.2 fresh-task attempt — 2026-09-12 — BLOCKED (interrupted)
+
+This authorized read-only native attempt was interrupted before either Worker
+returned useful output. The parent subsequently observed both children as
+`interrupted`. This is incomplete acceptance, not a substantive runtime FAIL.
+
+- **PASS — installed integrity and discovery:** manifest version
+  `v4.2.0-local.2`, schema 3; twelve owned files match source bytes and manifest
+  hashes; three installed Skills match rendered source and ownership hashes.
+  Both managed blocks pass ownership verification; Global policy is 1,882 bytes.
+  All ten native roles are discoverable and their files pin the expected family,
+  effort and `agents.enabled=false`. This last check is configuration evidence.
+- **PASS — one installed selection:** the exact installed delegation Skill
+  command ran once and reused the valid 2026-09-12 profile, schema 2/reference
+  policy 1, selected at 22:59:38 BJT. Luna selected `luna_max`; Sol general
+  `sol_max`, backend `sol_xhigh`, frontend `sol_high`, reasoning `sol_max`.
+  Both families retain `cloudflare-reference/custom_endpoint`, `reference_only`,
+  fallback false and capability_degraded false. Sol uses `quality_only`;
+  reference costs and local savings are not established. Luna uses the backend
+  score; Sol general uses overallScore. Source generated at 09:46:52.323 UTC.
+- **PASS — native invocation, identity and direct parentage only:** parent-visible
+  session metadata and turn contexts establish one `sol_max` / `gpt-5.6-sol` /
+  max child and one `luna_max` / `gpt-5.6-luna` / max child, each at depth 1 under
+  this Coordinator. No model or effort override was supplied. The current parent
+  is `gpt-6-astra` / medium; historical Astra/high is not this task's setting.
+- **PASS — two-family overlap observation only:** one parent `list_agents`
+  snapshot showed both direct children `running` simultaneously. Sol was assigned
+  policy-boundary synthesis; Luna was assigned ten-role inventory verification.
+  Both scopes were read-only. This proves observed concurrency of at least two,
+  not completed mixed-task acceptance or the maximum runtime capacity.
+- **BLOCKED — useful outputs, native leaf and complete mixed acceptance:** neither
+  child returned a commentary/final result before interruption. Tool absence
+  cannot be inferred from TOML; native leaf enforcement remains unverified.
+- **NOT RUN — six independent Workers and cap overflow:** the host advertises
+  seven total slots and the installed/project configuration allows six Workers.
+  Six-way overlap and rejection/queuing of a seventh Worker were not exercised.
+  Small-task routing, permitted Sol role adjustment, read-only status execution,
+  equivalent-task comparison and attributable usage/cost checks were not run.
+- **FAIL:** no substantive failure was observed in the completed checks.
+- **Preservation:** before recording this result, all 97 captured repository and
+  protected installed-file/state fingerprints were unchanged, including Global
+  policy/config, manifest, roles, Skills and all four Daily/LKG JSON records.
+  No reinstall, global configuration mutation, credentials, Git mutation or
+  publication occurred. Source/fake-home tests were not rerun in this attempt;
+  the historical 423-test result remains separate evidence.
+
+Resume the incomplete native gates in an explicitly continued acceptance run;
+no implementation repair is justified by interruption alone. Preserve the
+first-substantive-failure stop rule below. The protocol and handoff remain valid.
+
+## Local.2 native acceptance protocol
+
+The combined `v4.2.0-local.2` source candidate requires fresh evidence beyond the
+historical Luna-only protocol. Run only after a separately authorized installation
+of the exact reviewed payload (completed above). Do not copy authentication or mutate unrelated
+configuration to make a test pass. Native checks must use the real installed
+selector; a synthetic snapshot is fixture evidence, not live acceptance.
+
+1. Verify source/installed owned hashes and all ten native role configurations,
+   three Skills and manifest schema 3. Confirm user Global rules outside the
+   managed block and parent model/effort are unchanged.
+2. In a fresh task, read the installed delegation Skill and obtain one Worker
+   profile. Record source identity, axis, freshness, route and degradation. If
+   no valid Sol data/LKG exists, mark Sol-dependent tests BLOCKED; do not substitute
+   a different route or force a guessed role.
+3. Delegate one bounded read-only task to selected Sol and another to selected
+   Luna. Parent-visible evidence must establish actual model, effort, direct
+   parentage, useful output and absence of delegation tools in both children.
+4. Verify a normal mixed parallel task, disjoint ownership and acceptance. Then
+   use six genuinely independent read-only tasks to verify six overlapping direct
+   Workers and rejection/queuing beyond the configured cap. If the host exposes a
+   lower cap, report that actual value; configuration text is not a PASS.
+5. Verify small work does not load the delegation Skill or run a selector merely
+   for a receipt; verify a task-local permitted Sol role adjustment records the
+   reason without changing the daily default. Status must stay read-only.
+6. Compare representative equivalent tasks against the previous Astra/Luna setup,
+   holding inputs and acceptance fixed. Report correctness, elapsed time, rework
+   and available attributable usage. Missing usage does not prove quota savings.
+
+Stop downstream native acceptance on the first substantive failure and report the
+minimum repair boundary. No source test or legacy one-child smoke closes these
+gates. Publishing and production use remain unapproved by this test protocol.
+
+### Fresh-task handoff
+
+Open a fresh task in this project so it loads the installed native role catalog.
+The current task cannot hot-reload new roles or its original host agent capacity.
+Copy this prompt:
+
+```text
+在 D:\codex-sol-luna-worker 执行 v4.2.0-local.2 新任务原生验收。
+先读 AGENTS.md、PLANS.md 和 RUNTIME_TESTS.md 的最新安装记录，遵循实际已安装的 sol-luna-delegate Skill，保存一次真实 Worker selection。
+我授权本轮进行只读原生子代理验收，以及将真实结果写入项目现有 PLANS.md、RUNTIME_TESTS.md。
+核验已安装版本/所有权与实际可发现角色；用选出的原生 Sol 和 Luna 各执行有用的、范围明确的只读检查，核验模型、档位、leaf 工具边界、直接父子关系和混合并行。
+容量检查仅在实际工具允许时运行六个独立只读子任务：分别核对角色配置、全局轻量策略、Skill 约束、来源验证、缓存隔离、安装回滚保护。任务边界须具体，不为凑数重复工作。记录真实重叠及容量上限；宿主仍限制三子时如实标为 BLOCKED，不通过模型覆盖、嵌套或新建顶层任务绕过限制。
+比较任务基准只有在可构造等价输入与验收标准时才运行；无法归因的用量或费用标为未验证。首次实质失败后停止依赖它的验收并报告最小修复边界。
+不要重新安装或修改全局配置，不读取凭据，不创建 commit/branch/tag/PR，不 push 或发布 GitHub。最终明确区分 PASS、FAIL、BLOCKED、NOT RUN。
+```
+
+## Local candidate repairs — 2026-09-07
+
+Repository regressions cover corrupted or missing later backup payloads in
+either root, invalid or duplicate restore entries, legacy single-root backup
+compatibility, incomplete schema-2 Skill ownership, pre-existing empty Skill
+roots and parents, and uninstall failure after the Skill phase has completed.
+Diagnostic tests reject inconsistent or malformed schema-2 Skill inventories
+and preserve uninitialized selection combined with installation errors.
+
+These are source and isolated fake-home checks. See `PLANS.md` for the completed
+local test results. The repairs were not applied to the real installation;
+native-leaf runtime tool visibility remains unverified. Historical runtime and
+remote CI results below do not certify this modified candidate.
+
 ## v4.1.4 Stable promotion — source and fake-home evidence
 
 `v4.1.4` is the published Stable release and default public installation target.

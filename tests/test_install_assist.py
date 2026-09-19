@@ -68,9 +68,24 @@ def make_snapshot(
 
 def capability_pass():
     return {
+        "model": "gpt-5.6-luna",
+        "sol_model": "gpt-5.6-sol",
         "all_supported": True,
+        "sol_all_supported": True,
+        "all_models_supported": True,
         "results": [
             {
+                "model": "gpt-5.6-luna",
+                "effort": effort,
+                "supported": True,
+                "response_exact": True,
+                "exit_code": 0,
+            }
+            for effort in ("low", "medium", "high", "xhigh", "max")
+        ],
+        "sol_results": [
+            {
+                "model": "gpt-5.6-sol",
                 "effort": effort,
                 "supported": True,
                 "response_exact": True,
@@ -447,7 +462,8 @@ class SnapshotAndReportTests(unittest.TestCase):
             for version, expected in (
                 (VERSION, "CURRENT"),
                 ("v4.1.0", "OLDER"),
-                ("v4.1.5", "NEWER"),
+                ("v4.1.5", "OLDER"),
+                ("v4.2.0", "NEWER"),
                 ("not-semver", "INVALID"),
             ):
                 with self.subTest(version=version):
@@ -598,6 +614,11 @@ class SourceAndInstallWorkflowTests(unittest.TestCase):
             lambda payload: payload["results"][0].update(exit_code=True),
             lambda payload: payload["results"][0].update(effort=[]),
             lambda payload: payload.update(all_supported="true"),
+            lambda payload: payload["sol_results"].pop(),
+            lambda payload: payload["sol_results"][0].update(supported=False),
+            lambda payload: payload.update(all_models_supported=False),
+            lambda payload: payload.update(sol_model="gpt-5.6-luna"),
+            lambda payload: payload["sol_results"][0].update(model="gpt-5.6-luna"),
         ):
             with self.subTest(mutation=mutate):
                 capability = capability_pass()
@@ -666,8 +687,10 @@ class SourceAndInstallWorkflowTests(unittest.TestCase):
         self.assertEqual(result["writes_performed"], "NO")
         self.assertEqual(result["backup"], "NONE")
         self.assertIn("DAILY_SELECTION_PROOF_REQUIRED", result["resume"])
-        self.assertIn("--ensure-daily --print-selection", result["resume"])
+        self.assertIn("--ensure-daily --print-selection --workers", result["resume"])
         self.assertIn("Next phase: FRESH_TASK_SMOKE", result["resume"])
+        self.assertIn("two-family preview gates", result["resume"])
+        self.assertIn("legacy one-Luna smoke does not verify Sol", result["resume"])
 
     def test_dry_run_stops_before_apply(self):
         result = install_workflow(
@@ -696,10 +719,12 @@ class SourceAndInstallWorkflowTests(unittest.TestCase):
 
             def dry_runner(_home, *, migrate_legacy, **_kwargs):
                 observed["dry_migrate_legacy"] = migrate_legacy
+                observed["dry_skills_root"] = _kwargs["skills_root"]
                 return {"status": "DRY_RUN_PASS", "effective_changes": 9}
 
             def apply_runner(_home, *, migrate_legacy, **_kwargs):
                 observed["apply_migrate_legacy"] = migrate_legacy
+                observed["apply_skills_root"] = _kwargs["skills_root"]
                 return {
                     "status": "INSTALLED",
                     "effective_changes": 9,
@@ -720,17 +745,20 @@ class SourceAndInstallWorkflowTests(unittest.TestCase):
                 apply_runner=apply_runner,
             )
         self.assertEqual(result["phase"], "RELOAD_REQUIRED")
+        expected_skills_root = (home.parent / ".agents" / "skills").resolve(
+            strict=False
+        )
+        self.assertEqual(observed["dry_skills_root"], expected_skills_root)
+        self.assertEqual(observed["apply_skills_root"], expected_skills_root)
         self.assertEqual(
             result["backup"],
             "<CODEX_HOME>/sol-luna-v4/backups/transaction-1",
         )
         self.assertIn("Phase: SELECTOR_INITIALIZATION", result["resume"])
-        self.assertIn("--ensure-daily --print-selection", result["resume"])
+        self.assertIn("--ensure-daily --print-selection --workers", result["resume"])
         self.assertIn("Next phase: FRESH_TASK_SMOKE", result["resume"])
-        self.assertEqual(
-            observed,
-            {"dry_migrate_legacy": True, "apply_migrate_legacy": True},
-        )
+        self.assertTrue(observed["dry_migrate_legacy"])
+        self.assertTrue(observed["apply_migrate_legacy"])
 
     def test_capability_exception_becomes_bounded_user_action(self):
         def broken_probe(*args, **kwargs):
@@ -818,7 +846,8 @@ class ResultCardTests(unittest.TestCase):
         self.assertTrue(
             selector_card.startswith("Selector Initialization Required")
         )
-        self.assertIn("--ensure-daily --print-selection", selector_card)
+        self.assertIn("--ensure-daily --print-selection --workers", selector_card)
+        self.assertIn("Sol or Luna worker role", selector_card)
         self.assertIn("DAILY_SELECTION_PROOF_REQUIRED", selector_card)
         self.assertIn("start a new task", selector_card)
 
@@ -844,9 +873,25 @@ class CommandLineContractTests(unittest.TestCase):
                         "install",
                         "--codex-home",
                         "unused",
+                        "--skills-root",
+                        "unused-skills",
                         "--source-commit",
                         "0" * 40,
                         "--migrate-v3",
+                    ]
+                )
+        self.assertEqual(raised.exception.code, 2)
+
+    def test_install_requires_explicit_skill_root(self):
+        with contextlib.redirect_stderr(io.StringIO()):
+            with self.assertRaises(SystemExit) as raised:
+                main(
+                    [
+                        "install",
+                        "--codex-home",
+                        "unused",
+                        "--source-commit",
+                        "0" * 40,
                     ]
                 )
         self.assertEqual(raised.exception.code, 2)

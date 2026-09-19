@@ -9,9 +9,12 @@ from pathlib import Path
 from unittest.mock import patch
 
 from scripts.install import (
+    AGENT_FILES,
     FUTURE_ARTIFACTS,
+    GLOBAL_POLICY_MAX_BYTES,
     InstallerError,
     MANIFEST_RELATIVE,
+    SKILL_FILES,
     STABLE_AGENT_FILES,
     UnsafeTarget,
     VERSION,
@@ -20,6 +23,7 @@ from scripts.install import (
     dry_run_install,
     install,
     resolve_codex_home,
+    render_delegate_skill,
     rollback,
     uninstall,
     validate_target,
@@ -87,8 +91,12 @@ class InstallPlanTests(unittest.TestCase):
             self.assertFalse(plan["will_modify"])
             self.assertFalse(plan["backup_plan"]["will_create"])
             self.assertEqual(
-                [Path(action["source"]).name for action in plan["actions"]],
-                list(STABLE_AGENT_FILES),
+                len(plan["actions"]),
+                len(AGENT_FILES) + len(SKILL_FILES),
+            )
+            self.assertEqual(
+                {Path(action["destination"]).name for action in plan["actions"]},
+                set(AGENT_FILES) | {"SKILL.md"},
             )
 
     def test_future_inventory_is_stable_minimum_and_excludes_legacy_layers(self):
@@ -101,35 +109,38 @@ class InstallPlanTests(unittest.TestCase):
             )
 
             inventory = plan["future_artifacts"]
-            self.assertEqual(len(inventory), 8)
+            self.assertEqual(len(inventory), 17)
             expected = {
-                ".codex/agents/luna-low.toml": (
-                    "agents/luna-low.toml",
+                f".codex/agents/{filename}": (
+                    f"agents/{filename}",
                     "agent-conflict-check",
-                ),
-                ".codex/agents/luna-medium.toml": (
-                    "agents/luna-medium.toml",
-                    "agent-conflict-check",
-                ),
-                ".codex/agents/luna-high.toml": (
-                    "agents/luna-high.toml",
-                    "agent-conflict-check",
-                ),
-                ".codex/agents/luna-xhigh.toml": (
-                    "agents/luna-xhigh.toml",
-                    "agent-conflict-check",
-                ),
-                ".codex/agents/luna-max.toml": (
-                    "agents/luna-max.toml",
-                    "agent-conflict-check",
-                ),
+                )
+                for filename in AGENT_FILES
+            }
+            expected.update({
                 "templates/AGENTS.global.md": ("AGENTS.md", "merge-policy"),
                 "src/selector.py": (
                     "sol-luna-v4/selector.py",
                     "copy-if-owned",
                 ),
+                "src/worker_selector.py": (
+                    "sol-luna-v4/worker_selector.py",
+                    "copy-if-owned",
+                ),
                 ".codex/config.toml": ("config.toml", "merge-agents-config"),
-            }
+                "payload/skills/sol-luna-status/SKILL.md": (
+                    "sol-luna-status/SKILL.md",
+                    "copy-if-owned",
+                ),
+                "payload/skills/sol-luna-upgrade/SKILL.md": (
+                    "sol-luna-upgrade/SKILL.md",
+                    "copy-if-owned",
+                ),
+                "payload/skills/sol-luna-delegate/SKILL.md": (
+                    "sol-luna-delegate/SKILL.md",
+                    "copy-if-owned",
+                ),
+            })
             self.assertEqual(
                 {item["source"] for item in inventory}, set(expected)
             )
@@ -141,16 +152,20 @@ class InstallPlanTests(unittest.TestCase):
                     Path(item["source_path"]),
                     (ROOT / item["source"]).resolve(),
                 )
+                destination_root = (
+                    target.parent / ".agents" / "skills"
+                    if item.get("target_root") == "skills_root"
+                    else target
+                )
                 self.assertEqual(
                     Path(item["destination_path"]),
-                    (target / destination).resolve(),
+                    (destination_root / destination).resolve(),
                 )
 
             rendered = json.dumps(plan).lower()
             for excluded in (
                 "luna-leaf-experiment",
                 "hook",
-                "managed",
                 "registry",
                 "slr_",
                 "v3.2.1",
@@ -335,7 +350,7 @@ class InstallPlanTests(unittest.TestCase):
                 allow_validation_sandbox=True,
             )
             self.assertEqual(result["status"], "DRY_RUN_PASS")
-            self.assertEqual(result["effective_changes"], 9)
+            self.assertEqual(result["effective_changes"], 18)
             self.assertFalse(result["will_modify"])
             self.assertIsNone(result["backup"])
             self.assertFalse(target.exists())
@@ -450,7 +465,7 @@ class InstallPlanTests(unittest.TestCase):
             )
             manifest_path = target / MANIFEST_RELATIVE
             manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-            manifest["version"] = "v4.1.5"
+            manifest["version"] = "v4.2.1"
             manifest_path.write_text(
                 json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
             )
@@ -468,9 +483,11 @@ class InstallPlanTests(unittest.TestCase):
                     )
                     self.assertEqual(tree_hash(target), before)
 
-    def test_v414_candidate_and_historical_semver_contract(self):
-        self.assertEqual(VERSION, "v4.1.4")
+    def test_v420_preview_and_historical_semver_contract(self):
+        self.assertEqual(VERSION, "v4.2.0-rc1")
         self.assertEqual(USER_AGENT, f"codex-sol-luna-worker/{VERSION.removeprefix('v')}")
+        self.assertGreater(_compare_project_semver(VERSION, "v4.2.0-local.2"), 0)
+        self.assertLess(_compare_project_semver(VERSION, "v4.2.0"), 0)
         self.assertGreater(_compare_project_semver(VERSION, "v4.1.2"), 0)
         self.assertGreater(_compare_project_semver(VERSION, "v4.1.1"), 0)
         self.assertGreater(_compare_project_semver(VERSION, "v4.1.0"), 0)
@@ -482,6 +499,29 @@ class InstallPlanTests(unittest.TestCase):
             with self.subTest(invalid=invalid):
                 with self.assertRaises(InstallerError):
                     _compare_project_semver(invalid, VERSION)
+
+    def test_delegate_skill_renders_worker_command_and_policy_budget_includes_markers(self):
+        template = (
+            ROOT / "payload" / "skills" / "sol-luna-delegate" / "SKILL.md"
+        ).read_text(encoding="utf-8")
+        home = Path("C:/Codex User/.codex")
+        for platform_name in ("Windows", "Linux", "Darwin"):
+            with self.subTest(platform_name=platform_name):
+                rendered = render_delegate_skill(
+                    template, home, platform_name=platform_name
+                )
+                self.assertIn("--workers", rendered)
+                self.assertNotIn("<SELECTOR_COMMAND>", rendered)
+
+        policy = (ROOT / "templates" / "AGENTS.global.md").read_text(
+            encoding="utf-8"
+        )
+        managed = (
+            "<!-- BEGIN SOL_LUNA_V4 -->\n"
+            + policy.rstrip()
+            + "\n<!-- END SOL_LUNA_V4 -->\n"
+        )
+        self.assertLessEqual(len(managed.encode("utf-8")), GLOBAL_POLICY_MAX_BYTES)
 
 
 if __name__ == "__main__":

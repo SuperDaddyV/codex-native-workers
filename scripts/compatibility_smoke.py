@@ -92,19 +92,30 @@ class SmokeReport:
     protected: CheckResult
     runtime: CheckResult
     compatibility: str
+    preview_core: bool = False
 
     def render(self) -> str:
+        scope = (
+            "Scope: schema-4 core configuration/integrity; host capability checks "
+            "are reported separately"
+            if self.preview_core
+            else (
+                "Scope: bounded legacy Luna checks; no Sol, mixed-family, "
+                "tool-isolation, delegation-guard, or host-capacity attestation"
+            )
+        )
         lines = [
             "Sol/Luna Compatibility Smoke",
+            scope,
             f"Codex Desktop: {self.desktop_version}",
             f"Codex CLI: {self.cli_version}",
             f"CLI: {self.cli.status}",
-            f"Luna capability: {self.capability.status}",
+            f"Legacy direct Luna CLI capability: {self.capability.status}",
             f"Selector: {self.selector.status}",
-            f"Delegation: {self.delegation.status}",
+            f"Legacy Luna-only delegation: {self.delegation.status}",
             f"Protected state: {self.protected.status}",
             f"Runtime contract: {self.runtime.status}",
-            "Compatibility:",
+            "Core preview compatibility:" if self.preview_core else "Compatibility:",
             self.compatibility,
         ]
         if self.compatibility == REVIEW:
@@ -325,8 +336,37 @@ def _check_selector(
         )
     health = payload.get("health")
     reason_codes = payload.get("reason_codes")
+    diagnostic_schema = payload.get("diagnostic_schema_version")
+    expected_skill_count = 3 if diagnostic_schema in (3, 4) else 2
+    skills_contract_valid = (
+        diagnostic_schema not in (2, 3, 4)
+        or (
+            isinstance(payload.get("skills_ready"), int)
+            and not isinstance(payload.get("skills_ready"), bool)
+            and 0 <= payload["skills_ready"] <= expected_skill_count
+            and isinstance(payload.get("skills_expected"), int)
+            and not isinstance(payload.get("skills_expected"), bool)
+            and payload["skills_expected"] == expected_skill_count
+            and isinstance(payload.get("skills_status"), str)
+            and payload.get("skills_status")
+            in {"Ready", "Missing", "Invalid", "Ownership mismatch"}
+        )
+    )
+    schema4_contract_valid = diagnostic_schema != 4 or (
+        isinstance(payload.get("leaf_config"), str)
+        and payload["leaf_config"] in {"Ready", "Invalid"}
+        and payload.get("native_delegation") == "Not checked"
+        and payload.get("native_tool_isolation") == "Not checked"
+        and payload.get("native_delegation_guard") == "Not checked"
+        and payload.get("runtime_max_parallel") == "Not checked"
+        and "native_leaf" not in payload
+        and "native_runtime" not in payload
+    )
     if (
-        payload.get("diagnostic_schema_version") != 1
+        type(diagnostic_schema) is not int
+        or diagnostic_schema not in (1, 2, 3, 4)
+        or not skills_contract_valid
+        or not schema4_contract_valid
         or health not in {"Healthy", "Degraded", "Unavailable", "Misconfigured"}
         or not isinstance(reason_codes, list)
         or not reason_codes
@@ -353,26 +393,46 @@ def _check_selector(
     reason_set = set(reason_codes)
     benign_degraded = {"LKG_FALLBACK_ACTIVE", "CAPABILITY_DEGRADED"}
     selection_initialized = payload.get("selection_initialized")
+    skills_ready_for_schema = (
+        diagnostic_schema not in (2, 3, 4)
+        or (
+            payload.get("skills_ready") == expected_skill_count
+            and payload.get("skills_expected") == expected_skill_count
+            and payload.get("skills_status") == "Ready"
+        )
+    )
+    new_inventory_valid = diagnostic_schema not in (3, 4) or (
+        type(payload.get("agents_ready")) is int and payload["agents_ready"] == 10
+        and type(payload.get("agents_expected")) is int and payload["agents_expected"] == 10
+        and type(payload.get("max_parallel")) is int and payload["max_parallel"] == 6
+        and (
+            (diagnostic_schema == 3 and payload.get("native_leaf") == "Ready")
+            or (diagnostic_schema == 4 and payload.get("leaf_config") == "Ready")
+        )
+    )
     status_compatible = (
-        (
-            health == "Healthy"
-            and (
-                (selection_initialized is True and reason_codes == ["OK"])
-                or (
-                    selection_initialized is False
-                    and reason_codes == ["TODAY_SELECTION_NOT_INITIALIZED"]
+        new_inventory_valid and skills_ready_for_schema
+        and (
+            (
+                health == "Healthy"
+                and (
+                    (selection_initialized is True and reason_codes == ["OK"])
+                    or (
+                        selection_initialized is False
+                        and reason_codes == ["TODAY_SELECTION_NOT_INITIALIZED"]
+                    )
                 )
             )
-        )
-        or (
-            health == "Degraded"
-            and selection_initialized is True
-            and reason_set <= benign_degraded
-        )
-        or (
-            health == "Misconfigured"
-            and "PROJECT_OVERRIDE_PRESENT" in reason_set
-            and reason_set <= {"PROJECT_OVERRIDE_PRESENT", *benign_degraded}
+            or (
+                health == "Degraded"
+                and selection_initialized is True
+                and reason_set <= benign_degraded
+            )
+            or (
+                health == "Misconfigured"
+                and "PROJECT_OVERRIDE_PRESENT" in reason_set
+                and reason_set <= {"PROJECT_OVERRIDE_PRESENT", *benign_degraded}
+            )
         )
     )
     if not status_compatible:
@@ -385,7 +445,10 @@ def _check_selector(
             ),
             payload,
         )
-    if payload.get("selection_initialized") is True:
+    if (
+        payload.get("selection_initialized") is True
+        and diagnostic_schema != 4
+    ):
         effort = payload.get("selected_effort")
         role = payload.get("selected_role")
         if effort not in EFFORTS or role != f"luna_{effort}":
@@ -407,7 +470,9 @@ def _delegation_prompt(role: str, effort: str, receipt: str) -> str:
         sort_keys=True,
         separators=(",", ":"),
     )
-    return f"""Controlled read-only Sol/Luna compatibility smoke.
+    return f"""Controlled read-only bounded legacy Luna compatibility smoke.
+This check covers exactly one direct Luna child. It does not attest Sol,
+mixed-family execution, tool isolation, delegation guards, or host capacity.
 Do not read or write files, run commands, browse, call selector or status, inspect
 configuration, or use any tool except spawn_agent and wait_agent.
 
@@ -539,6 +604,16 @@ def _check_delegation(
     selector_payload: Mapping[str, Any] | None,
     timeout: int,
 ) -> CheckResult:
+    if selector_payload and selector_payload.get("diagnostic_schema_version") in (3, 4):
+        return CheckResult(
+            REVIEW,
+            reason="Bounded legacy Luna smoke is not native Worker acceptance",
+            evidence=(
+                "configuration readiness does not prove Sol, mixed-family execution, "
+                "tool isolation, delegation guards, or host capacity",
+            ),
+            targeted_review="fresh-session Sol/Luna mixed native acceptance",
+        )
     if not selector_payload or selector_payload.get("selection_initialized") is not True:
         return CheckResult(
             REVIEW,
@@ -555,7 +630,7 @@ def _check_delegation(
             evidence=("selected role/effort mismatch",),
             targeted_review="delegation metadata",
         )
-    receipt = f"Sol/Luna: delegated · {role} ×1"
+    receipt = f"Legacy Luna-only smoke: delegated · {role} ×1"
     try:
         before_rollouts = _compatibility_rollout_files(codex_home)
         state_dir = codex_home / "sol-luna-v4" / "state"
@@ -769,6 +844,7 @@ def run_smoke(
         runtime_before = None
 
     cli, cli_version = _check_cli(codex_command, codex_home, timeout)
+    selector_payload: Mapping[str, Any] | None = None
     if cli.status == BLOCKED:
         capability = _not_run("Codex CLI is blocked")
         selector_result = _not_run("Codex CLI is blocked")
@@ -785,6 +861,7 @@ def run_smoke(
             timeout=timeout,
         )
         selector_result = selector_observation.result
+        selector_payload = selector_observation.payload
         delegation = _check_delegation(
             codex_command=codex_command,
             codex_home=codex_home,
@@ -829,11 +906,19 @@ def run_smoke(
         runtime_after = None
     runtime = _runtime_result(runtime_before, runtime_after)
 
+    preview_core = bool(
+        selector_payload
+        and selector_payload.get("diagnostic_schema_version") == 4
+    )
     if cli.status == BLOCKED:
         compatibility = BLOCKED
     elif any(
         result.status in {REVIEW, FAIL}
-        for result in (capability, selector_result, delegation, protected, runtime)
+        for result in (
+            (selector_result, protected, runtime)
+            if preview_core
+            else (capability, selector_result, delegation, protected, runtime)
+        )
     ):
         compatibility = REVIEW
     else:
@@ -848,6 +933,7 @@ def run_smoke(
         protected=protected,
         runtime=runtime,
         compatibility=compatibility,
+        preview_core=preview_core,
     )
 
 

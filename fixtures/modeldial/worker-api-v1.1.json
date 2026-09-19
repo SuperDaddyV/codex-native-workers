@@ -1,0 +1,72 @@
+{
+  "_fixtureNote": "Synthetic offline fixture using the documented ModelDial Public Radar API v1.1 field shape; scores and identifiers are test data.",
+  "schemaVersion": "1.1",
+  "generatedAt": "2026-09-12T09:46:52Z",
+  "defaultRanking": "overallRankings",
+  "weights": {"backend": 0.4, "frontend": 0.3, "knowledge": 0.3},
+  "source": {
+    "name": "ModelDial Public Radar",
+    "kind": "first_party_snapshot",
+    "methodologyUrl": "https://modeldial.com/method",
+    "license": "CC BY 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0/"
+  },
+  "batch": {
+    "id": "worker-backend-batch-001",
+    "revision": 1,
+    "publishedAt": "2026-09-12T08:00:00Z",
+    "questionPackVersion": "worker-pack-v1",
+    "graderVersion": "worker-grader-v1",
+    "evaluationProfile": "full",
+    "scoreBaselineId": "worker-baseline-v1",
+    "pricingSnapshotId": "worker-pricing-v1",
+    "entryCount": 5,
+    "sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "overallBatch": {
+    "id": "worker-overall-batch-001",
+    "publishedAt": "2026-09-12T09:00:00Z",
+    "sha256": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "entryCount": 5,
+    "sources": {
+      "backend": {
+        "batchId": "worker-backend-batch-001",
+        "publishedAt": "2026-09-12T08:00:00Z",
+        "sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "frontend": {
+        "batchId": "worker-frontend-batch-001",
+        "publishedAt": "2026-09-12T07:00:00Z",
+        "sha256": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "knowledge": {
+        "batchId": "worker-knowledge-batch-001",
+        "publishedAt": "2026-09-12T06:00:00Z",
+        "sha256": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      }
+    }
+  },
+  "overallRankings": [
+    {"rank": 1, "backendRank": 1, "id": "codex:gpt-5.6-sol:max:overall", "provider": "codex", "model": "gpt-5.6-sol", "displayName": "gpt-5.6-sol / Max", "reasoningEffort": "max", "route": "official_login", "score": 90, "scoreBasis": "overall", "maxScore": 100, "backendScore": 95, "frontendScore": 83, "knowledgeScore": 89, "overallScore": 90, "elapsedMs": 500, "estimatedReferenceCostUsd": 0.9, "decisionTags": [], "targetLabels": []},
+    {"rank": 2, "backendRank": 2, "id": "codex:gpt-5.6-sol:high:overall", "provider": "codex", "model": "gpt-5.6-sol", "displayName": "gpt-5.6-sol / High", "reasoningEffort": "high", "route": "official_login", "score": 88, "scoreBasis": "overall", "maxScore": 100, "backendScore": 93, "frontendScore": 75, "knowledgeScore": 89, "overallScore": 88, "elapsedMs": 400, "estimatedReferenceCostUsd": 0.8, "decisionTags": [], "targetLabels": []},
+    {"rank": 3, "backendRank": 3, "id": "codex:gpt-5.6-sol:xhigh:overall", "provider": "codex", "model": "gpt-5.6-sol", "displayName": "gpt-5.6-sol / XHigh", "reasoningEffort": "xhigh", "route": "official_login", "score": 87, "scoreBasis": "overall", "maxScore": 100, "backendScore": 92, "frontendScore": 82, "knowledgeScore": 90, "overallScore": 87, "elapsedMs": 300, "estimatedReferenceCostUsd": 0.7, "decisionTags": [], "targetLabels": []},
+    {"rank": 4, "backendRank": 4, "id": "codex:gpt-5.6-sol:medium:overall", "provider": "codex", "model": "gpt-5.6-sol", "displayName": "gpt-5.6-sol / Medium", "reasoningEffort": "medium", "route": "official_login", "score": 80, "scoreBasis": "overall", "maxScore": 100, "backendScore": 85, "frontendScore": 80, "knowledgeScore": 75, "overallScore": 80, "elapsedMs": 250, "estimatedReferenceCostUsd": 0.6, "decisionTags": [], "targetLabels": []},
+    {"rank": 5, "backendRank": 5, "id": "codex:gpt-5.6-sol:low:overall", "provider": "codex", "model": "gpt-5.6-sol", "displayName": "gpt-5.6-sol / Low", "reasoningEffort": "low", "route": "official_login", "score": 70, "scoreBasis": "overall", "maxScore": 100, "backendScore": 70, "frontendScore": 70, "knowledgeScore": 60, "overallScore": 70, "elapsedMs": 200, "estimatedReferenceCostUsd": 0.5, "decisionTags": [], "targetLabels": []}
+  ],
+  "rankings": [
+    {"rank": 1, "backendRank": 1, "id": "codex:gpt-5.6-sol:max:backend", "provider": "codex", "model": "gpt-5.6-sol", "displayName": "gpt-5.6-sol / Max", "reasoningEffort": "max", "route": "official_login", "score": 95, "scoreBasis": "backend", "maxScore": 100, "backendScore": 95, "frontendScore": 83, "knowledgeScore": 89, "overallScore": 90, "elapsedMs": 500, "estimatedReferenceCostUsd": 2.0, "decisionTags": [], "targetLabels": []},
+    {"rank": 2, "backendRank": 2, "id": "codex:gpt-5.6-sol:high:backend", "provider": "codex", "model": "gpt-5.6-sol", "displayName": "gpt-5.6-sol / High", "reasoningEffort": "high", "route": "official_login", "score": 93, "scoreBasis": "backend", "maxScore": 100, "backendScore": 93, "frontendScore": 75, "knowledgeScore": 89, "overallScore": 88, "elapsedMs": 400, "estimatedReferenceCostUsd": 1.0, "decisionTags": [], "targetLabels": []},
+    {"rank": 3, "backendRank": 3, "id": "codex:gpt-5.6-sol:xhigh:backend", "provider": "codex", "model": "gpt-5.6-sol", "displayName": "gpt-5.6-sol / XHigh", "reasoningEffort": "xhigh", "route": "official_login", "score": 92, "scoreBasis": "backend", "maxScore": 100, "backendScore": 92, "frontendScore": 82, "knowledgeScore": 90, "overallScore": 87, "elapsedMs": 300, "estimatedReferenceCostUsd": 0.8, "decisionTags": [], "targetLabels": []},
+    {"rank": 4, "backendRank": 4, "id": "codex:gpt-5.6-sol:medium:backend", "provider": "codex", "model": "gpt-5.6-sol", "displayName": "gpt-5.6-sol / Medium", "reasoningEffort": "medium", "route": "official_login", "score": 85, "scoreBasis": "backend", "maxScore": 100, "backendScore": 85, "frontendScore": 80, "knowledgeScore": 75, "overallScore": 80, "elapsedMs": 250, "estimatedReferenceCostUsd": 0.7, "decisionTags": [], "targetLabels": []},
+    {"rank": 5, "backendRank": 5, "id": "codex:gpt-5.6-sol:low:backend", "provider": "codex", "model": "gpt-5.6-sol", "displayName": "gpt-5.6-sol / Low", "reasoningEffort": "low", "route": "official_login", "score": 70, "scoreBasis": "backend", "maxScore": 100, "backendScore": 70, "frontendScore": 70, "knowledgeScore": 60, "overallScore": 70, "elapsedMs": 200, "estimatedReferenceCostUsd": 0.5, "decisionTags": [], "targetLabels": []}
+  ],
+  "links": {
+    "self": "https://modeldial.com/api/v1/radar/latest.json",
+    "agentProfile": "https://modeldial.com/api/v1/radar/agent-profile.json",
+    "changes": "https://modeldial.com/api/v1/radar/changes.json",
+    "index": "https://modeldial.com/api/v1/radar/index.json",
+    "fullSnapshot": "https://modeldial.com/data/reference-snapshots/latest.json",
+    "agentGuide": "https://modeldial.com/modeldial-skill/SKILL.md",
+    "openApi": "https://modeldial.com/openapi-v1.json"
+  }
+}

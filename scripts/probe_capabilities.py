@@ -1,4 +1,9 @@
-"""Probe direct local availability of the five allowed Luna effort levels."""
+"""Record direct ephemeral CLI outcomes for Sol and Luna model/effort pairs.
+
+A zero exit records acceptance of that direct CLI invocation only. It does not
+verify native custom-agent loading, model identity, delegation, tool isolation,
+delegation guards, worker leaf behavior, or host concurrency.
+"""
 
 from __future__ import annotations
 
@@ -14,6 +19,9 @@ from typing import Mapping
 
 
 EFFORTS = ("low", "medium", "high", "xhigh", "max")
+LUNA_MODEL = "gpt-5.6-luna"
+SOL_MODEL = "gpt-5.6-sol"
+MODELS = (LUNA_MODEL, SOL_MODEL)
 BJT = timezone(timedelta(hours=8), name="BJT")
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
@@ -25,8 +33,15 @@ from scripts.child_environment import build_child_environment  # noqa: E402
 DEFAULT_STATE = PROJECT_ROOT / ".var" / "capabilities.json"
 
 
-def build_command(codex: str, effort: str) -> list[str]:
-    marker = f"LUNA_CAPABILITY_{effort.upper()}_OK"
+def _marker(model: str, effort: str) -> str:
+    model_token = model.upper().replace(".", "_").replace("-", "_")
+    return f"MODEL_{model_token}_EFFORT_{effort.upper()}_OK"
+
+
+def build_command(codex: str, effort: str, model: str = LUNA_MODEL) -> list[str]:
+    if model not in MODELS:
+        raise ValueError("capability probe model is unsupported")
+    marker = _marker(model, effort)
     return [
         codex,
         "exec",
@@ -34,7 +49,7 @@ def build_command(codex: str, effort: str) -> list[str]:
         "--ignore-user-config",
         "--strict-config",
         "--model",
-        "gpt-5.6-luna",
+        model,
         "--config",
         f'model_reasoning_effort="{effort}"',
         "--sandbox",
@@ -77,40 +92,52 @@ def run_probe(
         codex_home=explicit_home,
         source=inherited,
     )
-    results = []
-    for effort in EFFORTS:
-        marker = f"LUNA_CAPABILITY_{effort.upper()}_OK"
-        try:
-            result = subprocess.run(
-                build_command(codex, effort),
-                capture_output=True,
-                text=True,
-                timeout=timeout,
-                check=False,
-                env=network_environment,
+    def probe_model(model: str) -> list[dict]:
+        results = []
+        for effort in EFFORTS:
+            marker = _marker(model, effort)
+            try:
+                result = subprocess.run(
+                    build_command(codex, effort, model),
+                    capture_output=True,
+                    text=True,
+                    timeout=timeout,
+                    check=False,
+                    env=network_environment,
+                )
+                supported = result.returncode == 0
+                response_exact = result.stdout.strip() == marker
+                exit_code = result.returncode
+            except subprocess.TimeoutExpired:
+                supported = False
+                response_exact = False
+                exit_code = None
+            results.append(
+                {
+                    "model": model,
+                    "effort": effort,
+                    "supported": supported,
+                    "response_exact": response_exact,
+                    "exit_code": exit_code,
+                }
             )
-            supported = result.returncode == 0
-            response_exact = result.stdout.strip() == marker
-            exit_code = result.returncode
-        except subprocess.TimeoutExpired:
-            supported = False
-            response_exact = False
-            exit_code = None
-        results.append(
-            {
-                "effort": effort,
-                "supported": supported,
-                "response_exact": response_exact,
-                "exit_code": exit_code,
-            }
-        )
+        return results
+
+    results = probe_model(LUNA_MODEL)
+    sol_results = probe_model(SOL_MODEL)
 
     return {
-        "model": "gpt-5.6-luna",
+        "model": LUNA_MODEL,
+        "sol_model": SOL_MODEL,
         "codex_version": _codex_version(codex, version_environment),
         "probed_at_bjt": datetime.now(BJT).isoformat(),
         "all_supported": all(item["supported"] for item in results),
         "results": results,
+        "sol_all_supported": all(item["supported"] for item in sol_results),
+        "sol_results": sol_results,
+        "all_models_supported": all(
+            item["supported"] for item in (*results, *sol_results)
+        ),
     }
 
 
@@ -132,7 +159,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--execute",
         action="store_true",
-        help="Run five ephemeral Codex calls; otherwise print a dry-run plan",
+        help="Run ten direct ephemeral CLI checks; otherwise print a dry-run plan",
     )
     parser.add_argument("--timeout", type=int, default=180)
     parser.add_argument("--state", type=Path, default=DEFAULT_STATE)
@@ -145,7 +172,9 @@ def main(argv: list[str] | None = None) -> int:
     if not args.execute:
         plan = {
             "dry_run": True,
-            "model": "gpt-5.6-luna",
+            "model": LUNA_MODEL,
+            "sol_model": SOL_MODEL,
+            "models": list(MODELS),
             "efforts": list(EFFORTS),
             "global_config_ignored": True,
             "sessions_ephemeral": True,
@@ -157,7 +186,7 @@ def main(argv: list[str] | None = None) -> int:
     payload = run_probe(codex, args.timeout)
     write_state(args.state.resolve(), payload)
     print(json.dumps(payload, indent=2, sort_keys=True))
-    return 0 if payload["all_supported"] else 1
+    return 0 if payload["all_models_supported"] else 1
 
 
 if __name__ == "__main__":

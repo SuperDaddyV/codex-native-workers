@@ -5,45 +5,47 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 AGENT_DIR = ROOT / ".codex" / "agents"
-EXPECTED = {
-    "luna-low.toml": ("luna_low", "low"),
-    "luna-medium.toml": ("luna_medium", "medium"),
-    "luna-high.toml": ("luna_high", "high"),
-    "luna-xhigh.toml": ("luna_xhigh", "xhigh"),
-    "luna-max.toml": ("luna_max", "max"),
-}
+EFFORTS = {"low", "medium", "high", "xhigh", "max"}
+MODELS = {"sol": "gpt-5.6-sol", "luna": "gpt-5.6-luna"}
 
 
 class AgentConfigTests(unittest.TestCase):
-    def test_five_formal_agent_files(self):
-        self.assertEqual({path.name for path in AGENT_DIR.glob("*.toml")}, set(EXPECTED))
+    def test_exactly_five_fixed_effort_profiles_per_family(self):
+        configs = {
+            path.name: tomllib.loads(path.read_text(encoding="utf-8"))
+            for path in AGENT_DIR.glob("*.toml")
+        }
+        self.assertEqual(len(configs), 10)
+        for family, model in MODELS.items():
+            seen_efforts = set()
+            for effort in sorted(EFFORTS):
+                filename = f"{family}-{effort}.toml"
+                self.assertIn(filename, configs)
+                config = configs[filename]
+                role = f"{family}_{effort}"
+                with self.subTest(role=role):
+                    self.assertEqual(config["name"], role)
+                    self.assertEqual(config["model"], model)
+                    self.assertEqual(config["model_reasoning_effort"], effort)
+                    self.assertNotEqual(config["model_reasoning_effort"], "ultra")
+                    self.assertTrue(config["description"].strip())
+                    instructions = config["developer_instructions"]
+                    self.assertIn("bounded task assigned by the parent Coordinator", instructions)
+                    self.assertIn("Do not expand scope", instructions)
+                    self.assertIn("Do not spawn, organize, or delegate", instructions)
+                    self.assertFalse(config["agents"]["enabled"])
+                    seen_efforts.add(config["model_reasoning_effort"])
+            self.assertEqual(seen_efforts, EFFORTS)
 
-    def test_agent_schema_and_efforts(self):
-        names = set()
-        for filename, (expected_name, expected_effort) in EXPECTED.items():
-            with (AGENT_DIR / filename).open("rb") as handle:
-                config = tomllib.load(handle)
-            self.assertEqual(config["name"], expected_name)
-            self.assertNotIn(config["name"], names)
-            names.add(config["name"])
-            self.assertEqual(config["model"], "gpt-5.6-luna")
-            self.assertEqual(config["model_reasoning_effort"], expected_effort)
-            self.assertNotEqual(config["model_reasoning_effort"], "ultra")
-            self.assertTrue(config["description"].strip())
-            instructions = config["developer_instructions"]
-            self.assertTrue(instructions.strip())
-            self.assertFalse(config["agents"]["enabled"])
-            self.assertIn("Complete only the bounded task assigned by the parent Sol agent.", instructions)
-            self.assertIn("Do not expand scope, redefine architecture, or make the final acceptance decision.", instructions)
-            self.assertIn("Do not spawn, organize, or delegate to other agents.", instructions)
-
-    def test_project_agent_limits(self):
+    def test_coordinator_model_remains_session_selected_and_capacity_is_a_ceiling(self):
         with (ROOT / ".codex" / "config.toml").open("rb") as handle:
             config = tomllib.load(handle)
-        self.assertTrue(config["agents"]["enabled"])
-        self.assertEqual(config["agents"]["max_concurrent_threads_per_session"], 3)
-        self.assertNotIn("default_subagent_model", config["agents"])
-        self.assertNotIn("default_subagent_reasoning_effort", config["agents"])
+        agents = config["agents"]
+        self.assertTrue(agents["enabled"])
+        self.assertEqual(agents["max_concurrent_threads_per_session"], 6)
+        self.assertNotIn("default_subagent_model", agents)
+        self.assertNotIn("default_subagent_reasoning_effort", agents)
+
 
 if __name__ == "__main__":
     unittest.main()

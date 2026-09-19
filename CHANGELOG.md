@@ -1,5 +1,23 @@
 # Changelog
 
+## v4.2.0-rc1 (Codex Native Workers preview)
+
+- Introduces user-selected Coordinator with five native Sol and five Luna
+  profiles, shared validated daily acquisition and independent family choices.
+- Carries forward the unpublished local.1/local.2 installation, rollback,
+  three-Skill ownership and public-reference data compatibility improvements.
+- Adds an explicit worthwhile-work delegation trigger while keeping the managed
+  Global policy below 2 KiB and conditional workflows in three Skills.
+- Separates schema-4 leaf configuration from unmeasured native delegation,
+  tool isolation, invocation guards and maximum concurrency. Historical readers
+  remain supported; selection algorithms and reference-cost rules are unchanged.
+- Defines a narrower preview contract for native profile/routing/install support.
+  Strong recursive isolation is unsupported; the historical leaf-tool FAIL and
+  open upstream issue remain disclosed. Six-worker capacity and quota savings
+  are not claimed. v4.1.4 remains the Stable installation target.
+- Renames the displayed product to Codex Native Workers while preserving the
+  repository address, managed paths, Skill names and immutable Stable anchors.
+
 ## v4.1.4 (published Stable release)
 
 - Verifies the uninstall transaction backup before modifying any managed path,

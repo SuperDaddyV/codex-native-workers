@@ -1,4 +1,4 @@
-"""Fixtures-first Daily ModelDial selector for stable Luna custom-agent roles."""
+"""Daily ModelDial selection for native Sol/Luna workers and legacy Luna roles."""
 
 from __future__ import annotations
 
@@ -19,18 +19,19 @@ from pathlib import Path
 from typing import Any, Callable, Iterable, Mapping
 
 
-SOL_MODEL = "gpt-5.6-sol"
+REFERENCE_MODEL = "gpt-5.6-sol"
 LUNA_MODEL = "gpt-5.6-luna"
 EFFORTS = ("low", "medium", "high", "xhigh", "max")
 METADATA_SCHEMA_VERSION = 1
-STATUS_SCHEMA_VERSION = 1
+STATUS_SCHEMA_VERSION = 2
 REFERENCE_COST_METRIC = "modeldial_estimated_reference_cost_usd"
-USER_AGENT = "codex-sol-luna-worker/4.1.4"
+USER_AGENT = "codex-sol-luna-worker/4.2.0-rc1"
 ROLE_BY_EFFORT = {effort: f"luna_{effort}" for effort in EFFORTS}
 BJT = timezone(timedelta(hours=8), name="BJT")
 UTC = timezone.utc
 MODELDIAL_API_URL = "https://modeldial.com/api/v1/radar/latest.json"
 MODELDIAL_SNAPSHOT_URL = "https://modeldial.com/data/reference-snapshots/latest.json"
+MODELDIAL_INDEX_URL = "https://modeldial.com/api/v1/radar/index.json"
 MODELDIAL_ALLOWED_HOSTS = frozenset({"modeldial.com", "reference.modeldial.com"})
 MAX_SNAPSHOT_BYTES = 2 * 1024 * 1024
 API_CLOCK_SKEW = timedelta(minutes=10)
@@ -42,6 +43,245 @@ AGENTS_END = "<!-- END SOL_LUNA_V4 -->"
 CONFIG_BEGIN = "# BEGIN SOL_LUNA_V4_CONFIG"
 CONFIG_END = "# END SOL_LUNA_V4_CONFIG"
 STABLE_AGENT_FILES = tuple(f"luna-{effort}.toml" for effort in EFFORTS)
+STABLE_SKILL_FILES = (
+    "sol-luna-status/SKILL.md",
+    "sol-luna-upgrade/SKILL.md",
+)
+WORKER_AGENT_FILES = STABLE_AGENT_FILES + tuple(f"sol-{effort}.toml" for effort in EFFORTS)
+WORKER_SKILL_FILES = STABLE_SKILL_FILES + ("sol-luna-delegate/SKILL.md",)
+WORKER_PROFILE_SCHEMA_VERSION = 2
+REFERENCE_POLICY_VERSION = 1
+BENCHMARK_PAIRS = (("codex", "official_login"), ("cloudflare-reference", "custom_endpoint"))
+
+
+def _sol_module():
+    # Both source imports and the installed, sibling-file layout are supported.
+    if __package__:
+        from . import worker_selector
+    else:
+        import worker_selector
+    return worker_selector
+
+
+def _matching_snapshot_record(api: Mapping[str, Any], index: Any) -> Mapping[str, Any]:
+    if not isinstance(index, Mapping) or index.get("schemaVersion") not in ("1.0", "1.1"):
+        raise SnapshotInvalid("unsupported publication index")
+    batch = api.get("batch")
+    records = index.get("snapshots")
+    if not isinstance(batch, Mapping) or not isinstance(records, list):
+        raise SnapshotInvalid("invalid publication index")
+    matches = [row for row in records if isinstance(row, Mapping) and row.get("batchId") == batch.get("id")]
+    if len(matches) != 1:
+        raise SnapshotInvalid("publication index has no unique matching batch")
+    record = matches[0]
+    fields = ("revision", "publishedAt", "questionPackVersion", "graderVersion", "evaluationProfile", "scoreBaselineId", "pricingSnapshotId", "entryCount", "sha256")
+    if any(record.get(key) is None or type(record[key]) is not type(batch.get(key)) or record[key] != batch[key] for key in fields):
+        raise SnapshotInvalid("publication index metadata mismatch")
+    _validated_modeldial_url(record.get("fullSnapshotUrl"))
+    return record
+
+
+def _require_matching_full(record: Mapping[str, Any], payload: Any) -> None:
+    fields = {"batchId": "batch_id", "publishedAt": "published_at", "questionPackVersion": "question_pack_version", "graderVersion": "grader_version", "evaluationProfile": "evaluation_profile", "scoreBaselineId": "score_baseline_id", "pricingSnapshotId": "pricing_snapshot_id", "sha256": "batch_sha256"}
+    if not isinstance(payload, Mapping) or any(payload.get(dest) != record[key] for key, dest in fields.items()):
+        raise SnapshotInvalid("complete snapshot metadata mismatch")
+    if not isinstance(payload.get("entries"), list) or len(payload["entries"]) != record["entryCount"]:
+        raise SnapshotInvalid("complete snapshot count mismatch")
+
+
+def fetch_worker_data(*, timeout: float = 15.0) -> dict[str, Any]:
+    """One refresh round; never combine an API identity with another snapshot."""
+    result: dict[str, Any] = {}
+    try:
+        body, _ = _fetch_bytes(MODELDIAL_API_URL, expected_type="application/json", timeout=timeout)
+        payload = json.loads(body.decode("utf-8"))
+        if isinstance(payload, Mapping):
+            result["api"] = payload
+            try:
+                result["luna_snapshot"] = adapt_modeldial_api(payload, allow_reference=True)
+            except (SnapshotInvalid, ValueError, TypeError):
+                pass
+    except (OSError, UnicodeError, json.JSONDecodeError, SnapshotInvalid):
+        pass
+    api = result.get("api")
+    record = None
+    try:
+        if isinstance(api, Mapping) and api.get("schemaVersion") in ("1.0", "1.1"):
+            body, _ = _fetch_bytes(MODELDIAL_INDEX_URL, expected_type="application/json", timeout=timeout)
+            record = _matching_snapshot_record(api, json.loads(body.decode("utf-8")))
+            snapshot_url = record["fullSnapshotUrl"]
+        else:
+            snapshot_url = MODELDIAL_SNAPSHOT_URL
+        body, url = _fetch_bytes(snapshot_url, expected_type="application/json", timeout=timeout)
+        payload = json.loads(body.decode("utf-8"))
+        if record is not None:
+            _require_matching_full(record, payload)
+        result["full_snapshot"] = payload
+        result["full_snapshot_status"] = "matched" if record is not None else "independent_fallback"
+        if "luna_snapshot" not in result:
+            # A complete fallback is validated under its own identity. It is not
+            # labelled as the newer API publication or used for overall Sol costs.
+            result["luna_snapshot"] = adapt_modeldial_snapshot(payload, source_url=url, allow_reference=True)
+    except (OSError, UnicodeError, json.JSONDecodeError, SnapshotInvalid, TypeError):
+        result["full_snapshot_status"] = "unavailable_or_mismatched"
+    return result
+
+
+def _worker_record_valid(value: Any) -> bool:
+    if not isinstance(value, Mapping) or value.get("worker_profile_schema_version") != 2:
+        return False
+    if value.get("reference_policy_version") != REFERENCE_POLICY_VERSION:
+        return False
+    if _profile_date(value) is None:
+        return False
+    for family in ("luna", "sol"):
+        supported = value.get(f"supported_{family}")
+        if not isinstance(supported, list) or not supported or any(effort not in EFFORTS for effort in supported) or len(set(supported)) != len(supported):
+            return False
+        item = value.get(family)
+        if not isinstance(item, Mapping) or item.get("status") not in ("ready", "unavailable"):
+            return False
+        if item["status"] == "ready":
+            pair = (item.get("benchmark_provider"), item.get("benchmark_route"))
+            if item.get("evidence_scope") != "reference_only" or (pair not in BENCHMARK_PAIRS and not (family == "luna" and pair == ("not_recorded", "not_recorded"))):
+                return False
+            if family == "sol" and item.get("allowed_roles") != [f"sol_{effort}" for effort in supported]:
+                return False
+            records = [item] if family == "luna" else list(item.get("views", {}).values()) if isinstance(item.get("views"), Mapping) else []
+            if not records or not any(isinstance(row, Mapping) and row.get("status") == "ready" for row in records):
+                return False
+            for row in records:
+                if not isinstance(row, Mapping):
+                    return False
+                if row.get("status") == "unavailable":
+                    continue
+                effort = row.get("selected_effort")
+                if row.get("status") != "ready" or effort not in supported or row.get("selected_role") != f"{family}_{effort}":
+                    return False
+    return True
+
+
+def ensure_worker_profile(
+    live_data: Mapping[str, Any] | None = None, *, state_dir: str | Path,
+    now: datetime | None = None, supported_sol: Iterable[str] | None = None,
+    supported_luna: Iterable[str] | None = None,
+    live_fetcher: Callable[[], Mapping[str, Any]] | None = None,
+    refresh: bool = False,
+) -> dict[str, Any]:
+    """Cache one family-isolated daily choice without migrating legacy state."""
+    current = _aware_bjt(now)
+    root = Path(state_dir)
+    daily = root / "worker-profile.json"
+    lkg_path = root / "worker-last-good.json"
+    supported_sol = _normalize_supported(supported_sol)
+    supported_luna = _normalize_supported(supported_luna)
+    with _selector_lock(root):
+        existing = _read_json_safely(daily)
+        if not refresh and _worker_record_valid(existing) and _profile_date(existing) == current.date().isoformat():
+            # A changed explicit capability set requires re-selection, never a
+            # silently unsupported cached native role.
+            if existing.get("supported_sol") == list(supported_sol) and existing.get("supported_luna") == list(supported_luna):
+                return dict(existing)
+        if live_data is None and live_fetcher is not None:
+            try:
+                live_data = live_fetcher()
+            except (OSError, ValueError, UnicodeError):
+                live_data = None
+        data = live_data if isinstance(live_data, Mapping) else {}
+        if "schemaVersion" in data:
+            data = {"api": data}
+        previous = _read_json_safely(lkg_path)
+        previous = previous if isinstance(previous, Mapping) else {}
+        cache = dict(previous)
+        result: dict[str, Any] = {
+            "worker_profile_schema_version": WORKER_PROFILE_SCHEMA_VERSION,
+            "reference_policy_version": REFERENCE_POLICY_VERSION,
+            "selection_date_bjt": current.date().isoformat(),
+            "selected_at_bjt": current.isoformat(),
+            "supported_sol": list(supported_sol), "supported_luna": list(supported_luna),
+            "luna": {"status": "unavailable"}, "sol": {"status": "unavailable", "views": {}},
+        }
+        luna_candidates = []
+        if data.get("luna_snapshot") is not None:
+            luna_candidates.append((data["luna_snapshot"], False))
+        elif isinstance(data.get("api"), Mapping):
+            try:
+                luna_candidates.append((adapt_modeldial_api(data["api"], now=current, allow_reference=True), False))
+            except (SnapshotInvalid, ValueError, TypeError):
+                pass
+        if not luna_candidates and isinstance(data.get("full_snapshot"), Mapping):
+            try:
+                luna_candidates.append((adapt_modeldial_snapshot(data["full_snapshot"], now=current, allow_reference=True), False))
+            except (SnapshotInvalid, ValueError, TypeError):
+                pass
+        if previous.get("luna") is not None:
+            luna_candidates.append((previous["luna"], True))
+        legacy = _read_json_safely(root / "last-good-profile.json")
+        if isinstance(legacy, Mapping):
+            luna_candidates.append((legacy.get("snapshot"), True))
+        for snapshot, fallback in luna_candidates:
+            try:
+                valid = validate_snapshot(snapshot)
+                choice = select_snapshot(valid, supported_efforts=supported_luna, now=current, fallback=fallback)
+            except (SnapshotInvalid, ValueError, TypeError, KeyError):
+                continue
+            result["luna"] = {"status": "ready", **{key: value for key, value in choice.items() if key != "source_url"}}
+            result["luna"].update({"evidence_scope": "reference_only", "benchmark_provider": valid.get("benchmark_provider", "not_recorded"), "benchmark_route": valid.get("benchmark_route", "not_recorded")})
+            cache["luna"] = valid
+            break
+        sol = _sol_module()
+        sol_candidates = []
+        if isinstance(data.get("api"), Mapping):
+            try:
+                adapted = sol.adapt_sol_api(data["api"])
+                if isinstance(data.get("full_snapshot"), Mapping):
+                    adapted = sol.enrich_sol_backend_costs(adapted, data["full_snapshot"])
+                sol_candidates.append((adapted, False))
+            except (ValueError, TypeError, KeyError):
+                pass
+        if isinstance(data.get("full_snapshot"), Mapping):
+            try:
+                sol_candidates.append((sol.adapt_sol_full_snapshot(data["full_snapshot"]), False))
+            except (ValueError, TypeError, KeyError):
+                pass
+        if previous.get("sol") is not None:
+            sol_candidates.append((previous["sol"], True))
+        for snapshot, fallback in sol_candidates:
+            try:
+                if not isinstance(snapshot, Mapping):
+                    raise ValueError("invalid Sol snapshot")
+                timestamps = [snapshot.get("generated_at")]
+                batch = snapshot.get("batch")
+                if isinstance(batch, Mapping):
+                    timestamps.append(batch.get("published_at"))
+                overall = snapshot.get("overall_batch")
+                if isinstance(overall, Mapping):
+                    timestamps.append(overall.get("published_at"))
+                    sources = overall.get("sources")
+                    if isinstance(sources, Mapping):
+                        timestamps.extend(row.get("published_at") for row in sources.values() if isinstance(row, Mapping))
+                for timestamp in timestamps:
+                    if timestamp is not None and datetime.fromisoformat(_parse_published_at(timestamp).replace("Z", "+00:00")) > current.astimezone(UTC) + API_CLOCK_SKEW:
+                        raise ValueError("future Sol publication")
+                choice = sol.select_sol(snapshot, supported_efforts=supported_sol, quality_gap=2.0)
+                views = choice.get("views", {})
+                if not isinstance(views, Mapping) or not any(isinstance(row, Mapping) and row.get("selected_role") for row in views.values()):
+                    if not fallback and isinstance(views, Mapping):
+                        result["sol"] = {**choice, "status": "unavailable", "fallback": False}
+                    continue
+            except (ValueError, TypeError, KeyError):
+                continue
+            result["sol"] = {
+                **choice, "status": "ready", "fallback": fallback,
+                "allowed_roles": [f"sol_{effort}" for effort in supported_sol],
+                "source_generated_at": snapshot.get("generated_at"),
+            }
+            cache["sol"] = snapshot
+            break
+        if cache != previous:
+            _write_json(lkg_path, cache)
+        _write_json(daily, result)
+        return result
 
 
 class SnapshotInvalid(ValueError):
@@ -171,6 +411,8 @@ def validate_snapshot(payload: Mapping[str, Any]) -> dict[str, Any]:
     missing = [effort for effort in EFFORTS if effort not in scores]
     if missing:
         raise SnapshotInvalid(f"missing canonical Luna rows: {', '.join(missing)}")
+    if payload.get("evidence_scope") == "reference_only" and any(score < 0 or score > 100 for score in scores.values()):
+        raise SnapshotInvalid("benchmark scores must be in the published 0-100 range")
 
     normalized = {
         "metadata_schema_version": METADATA_SCHEMA_VERSION,
@@ -181,8 +423,18 @@ def validate_snapshot(payload: Mapping[str, Any]) -> dict[str, Any]:
     for key in ("source_mode", "source_url", "snapshot_hash"):
         if isinstance(payload.get(key), str) and payload[key]:
             normalized[key] = payload[key]
+    if "benchmark_provider" in payload or "benchmark_route" in payload:
+        pair = (payload.get("benchmark_provider"), payload.get("benchmark_route"))
+        if pair not in BENCHMARK_PAIRS or payload.get("evidence_scope") != "reference_only":
+            raise SnapshotInvalid("benchmark provenance is invalid")
+        normalized.update({"benchmark_provider": pair[0], "benchmark_route": pair[1], "evidence_scope": "reference_only"})
+        evidence_ids = payload.get("evidence_ids")
+        if evidence_ids is not None:
+            if not isinstance(evidence_ids, Mapping) or set(evidence_ids) != set(EFFORTS) or any(not isinstance(value, str) or not value.strip() for value in evidence_ids.values()):
+                raise SnapshotInvalid("benchmark evidence ids are incomplete")
+            normalized["evidence_ids"] = dict(evidence_ids)
     reference_costs = _validated_reference_costs(payload)
-    if reference_costs is not None:
+    if reference_costs is not None and normalized.get("benchmark_provider", "codex") == "codex":
         normalized["pricing_snapshot_id"], normalized["reference_costs"] = reference_costs
     return normalized
 
@@ -203,7 +455,7 @@ def _reference_cost_metadata(
     by_effort = {}
     for effort in EFFORTS:
         luna = candidates.get((LUNA_MODEL, effort), [])
-        sol = candidates.get((SOL_MODEL, effort), [])
+        sol = candidates.get((REFERENCE_MODEL, effort), [])
         if len(luna) != 1 or len(sol) != 1 or luna[0] is None or sol[0] is None:
             continue
         if 0 <= luna[0] < sol[0]:
@@ -224,12 +476,34 @@ def _reference_cost_metadata(
     }
 
 
+def _luna_benchmark_pair(rows: list, *, full: bool = False) -> tuple[str, str]:
+    for pair in BENCHMARK_PAIRS:
+        efforts = []
+        for row in rows:
+            if not isinstance(row, Mapping):
+                continue
+            config = row.get("model_configuration") if full else row
+            if not isinstance(config, Mapping):
+                continue
+            if config.get("canonical_model_id" if full else "model") != LUNA_MODEL:
+                continue
+            if (config.get("provider_id" if full else "provider"), config.get("route_type" if full else "route")) != pair:
+                continue
+            effort = config.get("reasoning_effort" if full else "reasoningEffort")
+            if effort in EFFORTS:
+                efforts.append(effort)
+        if len(efforts) == len(EFFORTS) and set(efforts) == set(EFFORTS):
+            return pair
+    raise SnapshotInvalid("no complete permitted Luna benchmark source")
+
+
 def adapt_modeldial_snapshot(
     payload: Mapping[str, Any],
     *,
     source_url: str = MODELDIAL_SNAPSHOT_URL,
     source_mode: str = "live_json",
     now: datetime | None = None,
+    allow_reference: bool = False,
 ) -> dict[str, Any]:
     """Validate a first-party ModelDial publication and map it to selector rows."""
 
@@ -266,6 +540,8 @@ def adapt_modeldial_snapshot(
 
     rows = []
     evidence_groups = set()
+    evidence_ids = {}
+    pair = _luna_benchmark_pair(entries, full=True) if allow_reference else BENCHMARK_PAIRS[0]
     for entry in entries:
         if not isinstance(entry, Mapping):
             continue
@@ -278,8 +554,8 @@ def adapt_modeldial_snapshot(
         if effort not in EFFORTS:
             continue
         if (
-            configuration.get("provider_id") != "codex"
-            or configuration.get("route_type") != "official_login"
+            configuration.get("provider_id") != pair[0]
+            or configuration.get("route_type") != pair[1]
         ):
             continue
         if entry.get("advisor_eligible") is not True:
@@ -292,9 +568,10 @@ def adapt_modeldial_snapshot(
         if not isinstance(evidence_group, str) or not evidence_group:
             raise SnapshotInvalid(f"ModelDial Luna row lacks evidence group: {effort}")
         evidence_groups.add(evidence_group)
+        evidence_ids[effort] = evidence_group
         rows.append({"model": LUNA_MODEL, "effort": effort, "score": entry.get("score")})
 
-    if len(evidence_groups) != 1:
+    if not allow_reference and len(evidence_groups) != 1:
         raise SnapshotInvalid("ModelDial Luna rows do not share one evidence group")
 
     adapted = {
@@ -305,6 +582,8 @@ def adapt_modeldial_snapshot(
         "source_url": source_url,
         "snapshot_hash": payload["batch_sha256"],
     }
+    if allow_reference:
+        adapted.update({"benchmark_provider": pair[0], "benchmark_route": pair[1], "evidence_scope": "reference_only", "evidence_ids": evidence_ids})
     cost_candidates: dict[tuple[str, str], list[float | None]] = {}
     for entry in entries:
         if not isinstance(entry, Mapping):
@@ -314,7 +593,7 @@ def adapt_modeldial_snapshot(
             continue
         model = configuration.get("canonical_model_id")
         effort = configuration.get("reasoning_effort")
-        if model not in (LUNA_MODEL, SOL_MODEL) or effort not in EFFORTS:
+        if model not in (LUNA_MODEL, REFERENCE_MODEL) or effort not in EFFORTS:
             continue
         if (
             configuration.get("provider_id") != "codex"
@@ -328,9 +607,8 @@ def adapt_modeldial_snapshot(
             continue
         cost = _finite_cost(entry.get("estimated_api_cost_usd"))
         cost_candidates.setdefault((model, effort), []).append(cost)
-    adapted.update(
-        _reference_cost_metadata(payload.get("pricing_snapshot_id"), cost_candidates)
-    )
+    if pair == BENCHMARK_PAIRS[0]:
+        adapted.update(_reference_cost_metadata(payload.get("pricing_snapshot_id"), cost_candidates))
     return validate_snapshot(adapted)
 
 
@@ -339,6 +617,7 @@ def adapt_modeldial_api(
     *,
     source_url: str = MODELDIAL_API_URL,
     now: datetime | None = None,
+    allow_reference: bool = False,
 ) -> dict[str, Any]:
     """Validate ModelDial API v1 and map its Luna rows to the selector contract."""
 
@@ -402,14 +681,15 @@ def adapt_modeldial_api(
 
     rows = []
     cost_candidates: dict[tuple[str, str], list[float | None]] = {}
+    pair = _luna_benchmark_pair(rankings) if allow_reference else BENCHMARK_PAIRS[0]
     for ranking in rankings:
         if not isinstance(ranking, Mapping):
             continue
-        if ranking.get("provider") != "codex" or ranking.get("route") != "official_login":
+        if ranking.get("provider") != pair[0] or ranking.get("route") != pair[1]:
             continue
         model = ranking.get("model")
         effort = ranking.get("reasoningEffort")
-        if model not in (LUNA_MODEL, SOL_MODEL) or effort not in EFFORTS:
+        if model not in (LUNA_MODEL, REFERENCE_MODEL) or effort not in EFFORTS:
             continue
         score = ranking.get("score")
         if schema_version == "1.1":
@@ -438,9 +718,10 @@ def adapt_modeldial_api(
         "source_url": source_url,
         "snapshot_hash": batch_hash,
     }
-    adapted.update(
-        _reference_cost_metadata(batch.get("pricingSnapshotId"), cost_candidates)
-    )
+    if allow_reference:
+        adapted.update({"benchmark_provider": pair[0], "benchmark_route": pair[1], "evidence_scope": "reference_only"})
+    if pair == BENCHMARK_PAIRS[0]:
+        adapted.update(_reference_cost_metadata(batch.get("pricingSnapshotId"), cost_candidates))
     return validate_snapshot(adapted)
 
 
@@ -566,7 +847,7 @@ def select_snapshot(
         "selection_date_bjt": selected_at.date().isoformat(),
         "fallback": fallback,
     }
-    for key in ("source_mode", "source_url", "snapshot_hash"):
+    for key in ("source_mode", "source_url", "snapshot_hash", "benchmark_provider", "benchmark_route", "evidence_scope", "evidence_ids"):
         if key in snapshot:
             profile[key] = snapshot[key]
     reference_costs = snapshot.get("reference_costs")
@@ -796,6 +1077,17 @@ def _owned_hash(manifest: Mapping[str, Any] | None, relative: str) -> str | None
     return None
 
 
+def _owned_skill_hash(manifest: Mapping[str, Any] | None, relative: str) -> str | None:
+    if not isinstance(manifest, Mapping):
+        return None
+    value = manifest.get("owned_skill_files", {}).get(relative)
+    if isinstance(value, str):
+        return value
+    if isinstance(value, Mapping) and isinstance(value.get("sha256"), str):
+        return value["sha256"]
+    return None
+
+
 def _block_hash(manifest: Mapping[str, Any] | None, filename: str) -> str | None:
     if not isinstance(manifest, Mapping):
         return None
@@ -872,7 +1164,7 @@ def _project_override_present(project_root: Path) -> bool:
         return True
     agents = project_root / ".codex" / "agents"
     try:
-        if agents.is_dir() and any((agents / name).exists() for name in STABLE_AGENT_FILES):
+        if agents.is_dir() and any((agents / name).exists() for name in WORKER_AGENT_FILES):
             return True
     except OSError:
         return True
@@ -937,12 +1229,26 @@ def read_status(
         misconfigured.append("MANIFEST_MISSING")
     else:
         candidate = _read_json_safely(manifest_path)
+        schema_version = (
+            candidate.get("schema_version")
+            if isinstance(candidate, Mapping)
+            else None
+        )
         if (
             not isinstance(candidate, Mapping)
-            or candidate.get("schema_version") != 1
+            or type(schema_version) is not int
+            or schema_version not in {1, 2, 3}
             or not isinstance(candidate.get("version"), str)
             or not isinstance(candidate.get("owned_files"), Mapping)
             or not isinstance(candidate.get("owned_blocks"), Mapping)
+            or (
+                schema_version in {2, 3}
+                and (
+                    not isinstance(candidate.get("owned_skill_files"), Mapping)
+                    or not isinstance(candidate.get("skills_root"), str)
+                    or not candidate["skills_root"].strip()
+                )
+            )
         ):
             manifest_status = "Invalid"
             misconfigured.append("MANIFEST_INVALID")
@@ -963,6 +1269,15 @@ def read_status(
     ):
         selector_status = "Ownership mismatch" if selector_bytes is not None else "Missing"
         misconfigured.append("SELECTOR_OWNERSHIP_MISMATCH")
+    if manifest and manifest.get("schema_version") == 3:
+        module_path = home / "sol-luna-v4" / "worker_selector.py"
+        try:
+            module_bytes = module_path.read_bytes()
+        except OSError:
+            module_bytes = None
+        if module_bytes is None or _owned_hash(manifest, "sol-luna-v4/worker_selector.py") != _sha256_bytes(module_bytes):
+            selector_status = "Ownership mismatch" if module_bytes is not None else "Missing"
+            misconfigured.append("WORKER_MODULE_OWNERSHIP_MISMATCH")
 
     policy_path = home / "AGENTS.md"
     policy_block = _owned_block(policy_path, AGENTS_BEGIN, AGENTS_END)
@@ -1015,7 +1330,7 @@ def read_status(
         if agents_config.get("enabled") is not True:
             misconfigured.append("AGENTS_DISABLED")
         configured_max = agents_config.get("max_concurrent_threads_per_session")
-        if isinstance(configured_max, bool) or not isinstance(configured_max, int) or configured_max != 3:
+        if isinstance(configured_max, bool) or not isinstance(configured_max, int) or configured_max != (6 if manifest and manifest.get("schema_version") == 3 else 3):
             misconfigured.append("MAX_PARALLEL_INVALID")
         else:
             max_parallel = configured_max
@@ -1026,7 +1341,18 @@ def read_status(
     missing_agents = False
     invalid_agents = False
     ownership_agents = False
-    for effort, filename in zip(EFFORTS, STABLE_AGENT_FILES):
+    expected_agents = WORKER_AGENT_FILES if manifest and manifest.get("schema_version") == 3 else STABLE_AGENT_FILES
+    if manifest and manifest.get("schema_version") == 3:
+        owned_agents = {key for key in manifest["owned_files"] if key.startswith("agents/")}
+        if owned_agents != {f"agents/{name}" for name in expected_agents}:
+            misconfigured.append("AGENT_INVENTORY_INVALID")
+        expected_files = {f"agents/{name}" for name in expected_agents} | {
+            "sol-luna-v4/selector.py", "sol-luna-v4/worker_selector.py",
+        }
+        if set(manifest["owned_files"]) != expected_files:
+            misconfigured.append("PAYLOAD_INVENTORY_INVALID")
+    for filename in expected_agents:
+        family, effort = filename.removesuffix(".toml").split("-", 1)
         relative = f"agents/{filename}"
         path = home / relative
         if not path.is_file():
@@ -1040,7 +1366,8 @@ def read_status(
             continue
         leaf = payload.get("agents")
         if (
-            payload.get("model") != LUNA_MODEL
+            payload.get("model") != (LUNA_MODEL if family == "luna" else REFERENCE_MODEL)
+            or payload.get("name") != f"{family}_{effort}"
             or payload.get("model_reasoning_effort") != effort
             or not isinstance(leaf, Mapping)
             or leaf.get("enabled") is not False
@@ -1054,10 +1381,59 @@ def read_status(
     if missing_agents:
         misconfigured.append("AGENT_SET_INCOMPLETE")
     if invalid_agents:
-        misconfigured.extend(["AGENT_PAYLOAD_INVALID", "NATIVE_LEAF_INVALID"])
+        misconfigured.extend(
+            [
+                "AGENT_PAYLOAD_INVALID",
+                (
+                    "LEAF_CONFIG_INVALID"
+                    if manifest and manifest.get("schema_version") == 3
+                    else "NATIVE_LEAF_INVALID"
+                ),
+            ]
+        )
     if ownership_agents:
         misconfigured.append("AGENT_OWNERSHIP_MISMATCH")
-    native_leaf = "Ready" if agents_ready == len(EFFORTS) else "Invalid"
+    leaf_config = "Ready" if agents_ready == len(expected_agents) else "Invalid"
+
+    skills_ready = 0
+    skills_expected = 0
+    skills_status = "Not managed"
+    if manifest and manifest.get("schema_version") in {2, 3}:
+        expected_skills = WORKER_SKILL_FILES if manifest["schema_version"] == 3 else STABLE_SKILL_FILES
+        skills_expected = len(expected_skills)
+        skills_status = "Ready"
+        if set(manifest.get("owned_skill_files", {})) != set(expected_skills):
+            skills_status = "Invalid"
+            misconfigured.append("SKILL_INVENTORY_INVALID")
+        raw_skills_root = manifest.get("skills_root")
+        try:
+            candidate_root = Path(raw_skills_root).expanduser()
+            skills_root = (
+                candidate_root.resolve(strict=False)
+                if candidate_root.is_absolute()
+                else None
+            )
+        except (TypeError, OSError):
+            skills_root = None
+        if skills_root is None:
+            skills_status = "Invalid"
+            misconfigured.append("SKILLS_ROOT_INVALID")
+        else:
+            for relative in expected_skills:
+                path = skills_root.joinpath(*Path(relative).parts)
+                try:
+                    data = path.read_bytes() if path.is_file() else None
+                except OSError:
+                    data = None
+                if data is None:
+                    skills_status = "Missing"
+                    misconfigured.append("SKILL_SET_INCOMPLETE")
+                    continue
+                if _owned_skill_hash(manifest, relative) != _sha256_bytes(data):
+                    skills_status = "Ownership mismatch"
+                    misconfigured.append("SKILL_OWNERSHIP_MISMATCH")
+                    continue
+                skills_ready += 1
 
     project_override_status = "Not checked"
     if project_root is not None:
@@ -1088,12 +1464,42 @@ def read_status(
                 else:
                     selection_initialized = True
                     profile = candidate_profile
-                    if agents_ready != len(EFFORTS):
+                    if agents_ready != len(expected_agents):
                         unavailable.append("DAILY_ROLE_UNAVAILABLE")
                     if profile.get("fallback"):
                         degraded.append("LKG_FALLBACK_ACTIVE")
                     if profile.get("capability_degraded"):
                         degraded.append("CAPABILITY_DEGRADED")
+
+    worker_profile = None
+    if manifest and manifest.get("schema_version") == 3:
+        worker_read, raw_worker = _read_daily_profile(state_root / "worker-profile.json")
+        if worker_read == "READ_FAILED":
+            misconfigured.append("WORKER_PROFILE_READ_FAILED")
+        elif worker_read == "INVALID_CONTENT" or (worker_read == "OK" and not _worker_record_valid(raw_worker)):
+            unavailable.append("WORKER_PROFILE_INVALID")
+        elif worker_read == "OK" and _profile_date(raw_worker) == current.date().isoformat():
+            worker_profile = raw_worker
+            # A current Worker profile is authoritative for schema 3. An unused
+            # legacy daily file must not contaminate independent family health.
+            misconfigured = [reason for reason in misconfigured if reason != "DAILY_PROFILE_READ_FAILED"]
+            unavailable = [reason for reason in unavailable if reason not in ("DAILY_PROFILE_INVALID", "DAILY_ROLE_UNAVAILABLE")]
+            degraded = [reason for reason in degraded if reason not in ("LKG_FALLBACK_ACTIVE", "CAPABILITY_DEGRADED")]
+            profile = None
+            luna_choice = raw_worker["luna"]
+            if luna_choice["status"] == "ready":
+                profile = luna_choice
+            selection_initialized = any(raw_worker[name]["status"] == "ready" for name in ("sol", "luna"))
+            for name in ("sol", "luna"):
+                choice = raw_worker[name]
+                if choice["status"] == "unavailable":
+                    degraded.append(f"{name.upper()}_SELECTION_UNAVAILABLE")
+                elif choice.get("fallback"):
+                    degraded.append("LKG_FALLBACK_ACTIVE")
+                if choice.get("capability_degraded"):
+                    degraded.append("CAPABILITY_DEGRADED")
+            if not selection_initialized:
+                unavailable.append("NO_WORKER_PROFILE_AVAILABLE")
 
     if misconfigured:
         health = "Misconfigured"
@@ -1141,7 +1547,7 @@ def read_status(
         default="Not available",
     )
     diagnostic = {
-        "diagnostic_schema_version": STATUS_SCHEMA_VERSION,
+        "diagnostic_schema_version": 4 if manifest and manifest.get("schema_version") == 3 else STATUS_SCHEMA_VERSION,
         "generated_at_utc": current.astimezone(UTC).isoformat(),
         "os": _safe_identifier(platform.system(), default="Unknown"),
         "architecture": _safe_identifier(platform.machine(), default="Unknown"),
@@ -1153,8 +1559,10 @@ def read_status(
         "global_policy_status": global_policy_status,
         "selector_status": selector_status,
         "agents_ready": agents_ready,
-        "agents_expected": len(EFFORTS),
-        "native_leaf": native_leaf,
+        "agents_expected": len(expected_agents),
+        "skills_ready": skills_ready,
+        "skills_expected": skills_expected,
+        "skills_status": skills_status,
         "config_status": config_status,
         "max_parallel": max_parallel,
         "today_bjt": current.date().isoformat(),
@@ -1179,6 +1587,42 @@ def read_status(
             "project_root": "<PROJECT_ROOT>" if project_root is not None else "Not checked",
         },
     }
+    if manifest and manifest.get("schema_version") == 3:
+        # Read-only configuration evidence is distinct from native runtime proof.
+        diagnostic.update({
+            "coordinator_model": "User selected; not observed",
+            "leaf_config": leaf_config,
+            "native_delegation": "Not checked",
+            "native_tool_isolation": "Not checked",
+            "native_delegation_guard": "Not checked",
+            "runtime_max_parallel": "Not checked",
+            "workers": {"luna": {"status": "Not initialized"}, "sol": {"status": "Not initialized", "views": {}}},
+        })
+        if worker_profile:
+            whitelist = ("status", "selected_role", "selected_effort", "selection_mode", "fallback", "capability_degraded", "source_winner_effort", "quality_gap", "benchmark_provider", "benchmark_route", "evidence_scope")
+            def safe_choice(row):
+                result = {key: row[key] for key in whitelist if key in row}
+                source = row.get("source_metadata")
+                if isinstance(source, Mapping):
+                    result["source_metadata"] = {
+                        key: source[key] for key in ("name", "kind", "generated_at", "group_id", "group_published_at", "source_array", "score_field")
+                        if key in source and isinstance(source[key], str)
+                    }
+                elif isinstance(row.get("snapshot_id"), str):
+                    result["source_metadata"] = {
+                        key: row[key] for key in ("snapshot_id", "published_at", "source_mode")
+                        if key in row and isinstance(row[key], str)
+                    }
+                return result
+            diagnostic["workers"]["luna"] = safe_choice(worker_profile["luna"])
+            diagnostic["workers"]["sol"] = safe_choice(worker_profile["sol"])
+            diagnostic["workers"]["sol"]["views"] = {
+                view: safe_choice(row) for view, row in worker_profile["sol"].get("views", {}).items()
+                if view in ("general", "backend", "frontend", "reasoning")
+            }
+    else:
+        # Preserve the historical schema-1/2 diagnostic field contract.
+        diagnostic["native_leaf"] = leaf_config
     return _sanitize_value(diagnostic)
 
 
@@ -1212,6 +1656,9 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Print one read-only, sanitized Sol/Luna diagnostic snapshot",
     )
+    parser.add_argument("--workers", action="store_true", help="Select both Worker families with isolated daily state")
+    parser.add_argument("--refresh-workers", action="store_true", help="Explicitly refresh Worker choices for subsequent delegations")
+    parser.add_argument("--sol-supported", default=",".join(EFFORTS), help="Locally supported Sol efforts")
     parser.add_argument("--codex-home", help="Installed CODEX_HOME to inspect read-only")
     parser.add_argument("--project-dir", help="Optional project root to inspect read-only")
     parser.add_argument(
@@ -1231,6 +1678,25 @@ def main(argv: list[str] | None = None) -> int:
     if args.live and args.snapshot:
         parser.error("--live and --snapshot are mutually exclusive")
     supported = tuple(item.strip() for item in args.supported.split(",") if item.strip())
+    if args.refresh_workers and not args.workers:
+        parser.error("--refresh-workers requires --workers")
+
+    if args.workers:
+        if args.print_role:
+            parser.error("--workers requires structured output, not --print-role")
+        try:
+            data = _read_json(Path(args.snapshot)) if args.snapshot else None
+            profile = ensure_worker_profile(
+                data, state_dir=args.state_dir, supported_luna=supported,
+                supported_sol=tuple(x.strip() for x in args.sol_supported.split(",") if x.strip()),
+                live_fetcher=fetch_worker_data if args.snapshot is None else None,
+                refresh=args.refresh_workers,
+            )
+        except (OSError, ValueError, UnicodeError, SelectionUnavailable):
+            print("NO_WORKER_PROFILE_AVAILABLE")
+            return 3
+        print(json.dumps(profile, ensure_ascii=False, sort_keys=True))
+        return 0 if any(profile[name]["status"] == "ready" for name in ("sol", "luna")) else 3
 
     live_snapshot = None if args.live else _load_optional_snapshot(args.snapshot)
     should_fetch = args.live or (args.ensure_daily and args.snapshot is None)

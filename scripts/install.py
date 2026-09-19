@@ -28,7 +28,7 @@ from scripts.child_environment import build_child_environment  # noqa: E402
 
 
 SUPPORTED_PLATFORMS = {"Windows", "Linux", "Darwin"}
-VERSION = "v4.1.4"
+VERSION = "v4.2.0-rc1"
 MANIFEST_RELATIVE = PurePosixPath("sol-luna-v4/install-manifest.json")
 LEGACY_MANIFEST_RELATIVE = PurePosixPath("sol-luna-router/install-manifest.json")
 LEGACY_HOOKS_RELATIVE = ".".join(("hooks", "json"))
@@ -36,6 +36,7 @@ AGENTS_BEGIN = "<!-- BEGIN SOL_LUNA_V4 -->"
 AGENTS_END = "<!-- END SOL_LUNA_V4 -->"
 CONFIG_BEGIN = "# BEGIN SOL_LUNA_V4_CONFIG"
 CONFIG_END = "# END SOL_LUNA_V4_CONFIG"
+GLOBAL_POLICY_MAX_BYTES = 2048
 LEGACY_AGENTS_BEGIN = "<!-- BEGIN SOL_LUNA_DAILY_BEST -->"
 LEGACY_AGENTS_END = "<!-- END SOL_LUNA_DAILY_BEST -->"
 LEGACY_VERSION = "3.2"
@@ -47,6 +48,20 @@ STABLE_AGENT_FILES = (
     "luna-xhigh.toml",
     "luna-max.toml",
 )
+SOL_AGENT_FILES = (
+    "sol-low.toml",
+    "sol-medium.toml",
+    "sol-high.toml",
+    "sol-xhigh.toml",
+    "sol-max.toml",
+)
+AGENT_FILES = (*STABLE_AGENT_FILES, *SOL_AGENT_FILES)
+SCHEMA2_SKILL_FILES = (
+    "sol-luna-status",
+    "sol-luna-upgrade",
+)
+SKILL_FILES = (*SCHEMA2_SKILL_FILES, "sol-luna-delegate")
+MAX_CONCURRENT_THREADS = 6
 
 FUTURE_ARTIFACTS = (
     *(
@@ -56,7 +71,7 @@ FUTURE_ARTIFACTS = (
             "strategy": "agent-conflict-check",
             "kind": "stable-agent",
         }
-        for filename in STABLE_AGENT_FILES
+        for filename in AGENT_FILES
     ),
     {
         "source": "templates/AGENTS.global.md",
@@ -71,11 +86,27 @@ FUTURE_ARTIFACTS = (
         "kind": "daily-selector",
     },
     {
+        "source": "src/worker_selector.py",
+        "destination": "sol-luna-v4/worker_selector.py",
+        "strategy": "copy-if-owned",
+        "kind": "worker-selector-module",
+    },
+    {
         "source": ".codex/config.toml",
         "destination": "config.toml",
         "strategy": "merge-agents-config",
         "kind": "minimum-config",
     },
+    *(
+        {
+            "source": f"payload/skills/{name}/SKILL.md",
+            "destination": f"{name}/SKILL.md",
+            "strategy": "copy-if-owned",
+            "kind": "global-skill",
+            "target_root": "skills_root",
+        }
+        for name in SKILL_FILES
+    ),
 )
 
 
@@ -170,6 +201,16 @@ def resolve_codex_home(
     return Path(raw).expanduser().resolve(strict=False)
 
 
+def resolve_skills_root(
+    value: str | None,
+    codex_home: Path,
+) -> Path:
+    """Resolve the explicit or same-user Codex Skill root."""
+
+    raw = value or str(codex_home.parent / ".agents" / "skills")
+    return Path(raw).expanduser().resolve(strict=False)
+
+
 def validate_target(
     target: Path,
     project_root: Path = PROJECT_ROOT,
@@ -184,6 +225,26 @@ def validate_target(
         sandbox = project_root / ".tmp" / "installer-validation"
         if not allow_validation_sandbox or not _is_within(target, sandbox):
             raise UnsafeTarget("CODEX_HOME cannot be inside the project repository")
+
+
+def validate_skills_root(
+    skills_root: Path,
+    codex_home: Path,
+    project_root: Path = PROJECT_ROOT,
+    *,
+    allow_validation_sandbox: bool = False,
+) -> None:
+    skills_root = skills_root.resolve(strict=False)
+    codex_home = codex_home.resolve(strict=False)
+    project_root = project_root.resolve(strict=False)
+    if skills_root == Path(skills_root.anchor):
+        raise UnsafeTarget("Skill root cannot be a filesystem root")
+    if _is_within(skills_root, codex_home) or _is_within(codex_home, skills_root):
+        raise UnsafeTarget("Skill root and CODEX_HOME cannot overlap")
+    if skills_root == project_root or project_root in skills_root.parents:
+        sandbox = project_root / ".tmp" / "installer-validation"
+        if not allow_validation_sandbox or not _is_within(skills_root, sandbox):
+            raise UnsafeTarget("Skill root cannot be inside the project repository")
 
 
 def _target_path(
@@ -257,6 +318,7 @@ def _codex_version(codex_home: Path) -> str:
 def build_plan(
     target: Path,
     *,
+    skills_root: Path | None = None,
     project_root: Path = PROJECT_ROOT,
     platform_name: str | None = None,
     generated_at: datetime | None = None,
@@ -265,8 +327,17 @@ def build_plan(
     """Return the stable non-mutating v4 deployment inventory."""
 
     target = target.resolve(strict=False)
+    skills_root = resolve_skills_root(
+        None if skills_root is None else str(skills_root), target
+    )
     project_root = project_root.resolve(strict=False)
     validate_target(
+        target,
+        project_root,
+        allow_validation_sandbox=allow_validation_sandbox,
+    )
+    validate_skills_root(
+        skills_root,
         target,
         project_root,
         allow_validation_sandbox=allow_validation_sandbox,
@@ -277,7 +348,7 @@ def build_plan(
     actions = []
     conflicts = []
     source_dir = project_root / ".codex" / "agents"
-    for filename in STABLE_AGENT_FILES:
+    for filename in AGENT_FILES:
         source = source_dir / filename
         destination = target / "agents" / filename
         if not source.exists():
@@ -293,6 +364,33 @@ def build_plan(
             {"source": str(source), "destination": str(destination), "status": status}
         )
 
+    for name in SKILL_FILES:
+        source = project_root / "payload" / "skills" / name / "SKILL.md"
+        destination = skills_root / name / "SKILL.md"
+        if not source.exists():
+            status = "missing-source"
+        else:
+            raw = source.read_text(encoding="utf-8") if name in {
+                "sol-luna-status",
+                "sol-luna-delegate",
+            } else None
+            if name == "sol-luna-status":
+                desired = render_status_skill(raw, target).encode("utf-8")
+            elif name == "sol-luna-delegate":
+                desired = render_delegate_skill(raw, target).encode("utf-8")
+            else:
+                desired = source.read_bytes()
+            if not destination.exists():
+                status = "create"
+            elif destination.is_file() and destination.read_bytes() == desired:
+                status = "identical"
+            else:
+                status = "conflict"
+                conflicts.append(str(destination))
+        actions.append(
+            {"source": str(source), "destination": str(destination), "status": status}
+        )
+
     return {
         "mode": "dry-run",
         "will_modify": False,
@@ -300,6 +398,7 @@ def build_plan(
         "platform_supported": current_platform in SUPPORTED_PLATFORMS,
         "codex_version": _codex_version(target),
         "target_codex_home": str(target),
+        "target_skills_root": str(skills_root),
         "conflicts": conflicts,
         "backup_plan": {
             "required": bool(conflicts),
@@ -311,24 +410,24 @@ def build_plan(
             {
                 **artifact,
                 "source_path": str(project_root / artifact["source"]),
-                "destination_path": str(target / artifact["destination"]),
+                "destination_path": str(
+                    (skills_root if artifact.get("target_root") == "skills_root" else target)
+                    / artifact["destination"]
+                ),
             }
             for artifact in FUTURE_ARTIFACTS
         ],
     }
 
 
-def render_global_policy(
-    template: str,
+def _render_selector_commands(
     codex_home: str | Path,
     *,
     platform_name: str | None = None,
-) -> str:
-    """Render the global policy with one safely quoted selector command."""
-
+) -> tuple[str, str]:
     current_platform = platform.system() if platform_name is None else platform_name
     if current_platform not in SUPPORTED_PLATFORMS:
-        raise InstallerError("UNSUPPORTED_PLATFORM", "global policy platform is unsupported")
+        raise InstallerError("UNSUPPORTED_PLATFORM", "managed payload platform is unsupported")
     raw_home = str(codex_home)
     if current_platform == "Windows":
         home = PureWindowsPath(raw_home)
@@ -355,7 +454,6 @@ def render_global_policy(
                 state,
             ]
         )
-        rendered_home = str(home)
     else:
         home = PurePosixPath(raw_home.replace("\\", "/"))
         selector = str(home / "sol-luna-v4" / "selector.py")
@@ -381,17 +479,63 @@ def render_global_policy(
                 state,
             ]
         )
-        rendered_home = str(home)
-    rendered = (
-        template.replace("<SELECTOR_COMMAND>", command)
-        .replace("<STATUS_COMMAND>", status_command)
-        .replace("<CODEX_HOME>", rendered_home)
+    return command, status_command
+
+
+def render_global_policy(
+    template: str,
+    codex_home: str | Path,
+    *,
+    platform_name: str | None = None,
+) -> str:
+    """Render the Global policy with one safely quoted selector command."""
+
+    selector_command, _ = _render_selector_commands(
+        codex_home, platform_name=platform_name
     )
-    if any(
-        placeholder in rendered
-        for placeholder in ("<SELECTOR_COMMAND>", "<STATUS_COMMAND>", "<CODEX_HOME>")
-    ):
+    rendered = template.replace("<SELECTOR_COMMAND>", selector_command)
+    if "<SELECTOR_COMMAND>" in rendered:
         raise InstallerError("POLICY_RENDER_FAILED", "global policy placeholder remains")
+    return rendered
+
+
+def render_status_skill(
+    template: str,
+    codex_home: str | Path,
+    *,
+    platform_name: str | None = None,
+) -> str:
+    """Render the read-only status Skill with one safely quoted command."""
+
+    _, status_command = _render_selector_commands(
+        codex_home, platform_name=platform_name
+    )
+    rendered = template.replace("<STATUS_COMMAND>", status_command)
+    if "<STATUS_COMMAND>" in rendered:
+        raise InstallerError("SKILL_RENDER_FAILED", "status Skill placeholder remains")
+    return rendered
+
+
+def render_delegate_skill(
+    template: str,
+    codex_home: str | Path,
+    *,
+    platform_name: str | None = None,
+) -> str:
+    """Render the worker-delegation Skill with the safe selector CLI command."""
+
+    if template.count("<SELECTOR_COMMAND>") != 1:
+        raise InstallerError(
+            "SKILL_RENDER_FAILED", "delegate Skill must contain one selector placeholder"
+        )
+    selector_command, _ = _render_selector_commands(
+        codex_home, platform_name=platform_name
+    )
+    rendered = template.replace(
+        "<SELECTOR_COMMAND>", f"{selector_command} --workers"
+    )
+    if "<SELECTOR_COMMAND>" in rendered:
+        raise InstallerError("SKILL_RENDER_FAILED", "delegate Skill placeholder remains")
     return rendered
 
 
@@ -412,8 +556,79 @@ def _load_manifest(target: Path, *, required: bool = False) -> dict | None:
             raise InstallerError("MANIFEST_MISSING", "v4 install manifest is missing")
         return None
     manifest = _load_json(path, "MANIFEST_INVALID")
+    schema_version = manifest.get("schema_version")
+    if type(schema_version) is not int or schema_version not in (1, 2, 3):
+        raise InstallerError("MANIFEST_INVALID", "manifest schema is unsupported")
     if not isinstance(manifest.get("owned_files", {}), dict):
         raise InstallerError("MANIFEST_INVALID", "owned_files must be an object")
+    if not isinstance(manifest.get("owned_skill_files", {}), dict):
+        raise InstallerError("MANIFEST_INVALID", "owned_skill_files must be an object")
+    if schema_version == 1:
+        if manifest.get("owned_skill_files") or "skills_root" in manifest:
+            raise InstallerError(
+                "MANIFEST_INVALID", "schema 1 cannot own user Skill files"
+            )
+    elif (
+        not isinstance(manifest.get("skills_root"), str)
+        or not manifest["skills_root"].strip()
+        or not Path(manifest["skills_root"]).is_absolute()
+        or "owned_skill_files" not in manifest
+    ):
+        raise InstallerError(
+            "MANIFEST_INVALID", f"schema {schema_version} must record its Skill root and files"
+        )
+    if schema_version == 2:
+        expected_skills = {f"{name}/SKILL.md" for name in SCHEMA2_SKILL_FILES}
+        if set(manifest["owned_skill_files"]) != expected_skills or any(
+            re.fullmatch(r"[0-9a-f]{64}", _owned_skill_hash(manifest, relative) or "")
+            is None
+            for relative in expected_skills
+        ):
+            raise InstallerError(
+                "MANIFEST_INVALID", "schema 2 Skill ownership is incomplete or invalid"
+            )
+        for flag in ("skill_root_created", "skill_parent_created"):
+            if flag in manifest and not isinstance(manifest[flag], bool):
+                raise InstallerError(
+                    "MANIFEST_INVALID", "Skill directory ownership is invalid"
+                )
+    if schema_version == 3:
+        expected_skills = {f"{name}/SKILL.md" for name in SKILL_FILES}
+        expected_agents = {f"agents/{name}" for name in AGENT_FILES}
+        expected_files = expected_agents | {
+            "sol-luna-v4/selector.py",
+            "sol-luna-v4/worker_selector.py",
+        }
+        observed_agents = {
+            relative
+            for relative in manifest["owned_files"]
+            if isinstance(relative, str) and relative.startswith("agents/")
+        }
+        if observed_agents != expected_agents or set(manifest["owned_files"]) != expected_files:
+            raise InstallerError(
+                "MANIFEST_INVALID", "schema 3 file ownership is incomplete or invalid"
+            )
+        if set(manifest["owned_skill_files"]) != expected_skills or any(
+            re.fullmatch(r"[0-9a-f]{64}", _owned_skill_hash(manifest, relative) or "")
+            is None
+            for relative in expected_skills
+        ):
+            raise InstallerError(
+                "MANIFEST_INVALID", "schema 3 Skill ownership is incomplete or invalid"
+            )
+        if any(
+            re.fullmatch(r"[0-9a-f]{64}", _owned_hash(manifest, relative) or "")
+            is None
+            for relative in expected_files
+        ):
+            raise InstallerError(
+                "MANIFEST_INVALID", "schema 3 file ownership hash is invalid"
+            )
+        for flag in ("skill_root_created", "skill_parent_created"):
+            if not isinstance(manifest.get(flag), bool):
+                raise InstallerError(
+                    "MANIFEST_INVALID", "Skill directory ownership is invalid"
+                )
     cleanup = manifest.get("legacy_cleanup")
     if cleanup is not None and (
         not isinstance(cleanup, dict)
@@ -428,6 +643,18 @@ def _owned_hash(manifest: dict | None, relative: str) -> str | None:
     if not manifest:
         return None
     value = manifest.get("owned_files", {}).get(relative)
+    if isinstance(value, str):
+        return value
+    if isinstance(value, dict):
+        result = value.get("sha256")
+        return result if isinstance(result, str) else None
+    return None
+
+
+def _owned_skill_hash(manifest: dict | None, relative: str) -> str | None:
+    if not manifest:
+        return None
+    value = manifest.get("owned_skill_files", {}).get(relative)
     if isinstance(value, str):
         return value
     if isinstance(value, dict):
@@ -586,7 +813,7 @@ def _merge_config(
             "[agents]\n"
             if includes_header
             else ""
-        ) + "enabled = true\nmax_concurrent_threads_per_session = 3\n"
+        ) + f"enabled = true\nmax_concurrent_threads_per_session = {MAX_CONCURRENT_THREADS}\n"
         desired = f"{CONFIG_BEGIN}\n{body}{CONFIG_END}\n"
         merged = _replace_block(
             existing, CONFIG_BEGIN, CONFIG_END, desired, "CONFIG_MERGE_UNSAFE"
@@ -606,7 +833,7 @@ def _merge_config(
             desired = (
                 f"{CONFIG_BEGIN}\n"
                 "enabled = true\n"
-                "max_concurrent_threads_per_session = 3\n"
+                f"max_concurrent_threads_per_session = {MAX_CONCURRENT_THREADS}\n"
                 f"{CONFIG_END}\n"
             )
             merged = existing[: table[0]] + "\n" + desired + existing[table[0] :]
@@ -620,7 +847,7 @@ def _merge_config(
                 f"{CONFIG_BEGIN}\n"
                 "[agents]\n"
                 "enabled = true\n"
-                "max_concurrent_threads_per_session = 3\n"
+                f"max_concurrent_threads_per_session = {MAX_CONCURRENT_THREADS}\n"
                 f"{CONFIG_END}\n"
             )
             merged, added = _append_block(existing, desired)
@@ -798,26 +1025,58 @@ def _plan_owned_file(
     desired: bytes,
     manifest: dict | None,
     operations: dict[str, bytes | None],
+    *,
+    owned_hash: Callable[[dict | None, str], str | None] = _owned_hash,
 ) -> None:
     current = _read_effective(target, relative, operations)
     if current == desired:
         return
     if current is not None:
-        owned = _owned_hash(manifest, relative)
+        owned = owned_hash(manifest, relative)
         if owned is None or _sha256(current) != owned:
             raise InstallerError("OWNERSHIP_CONFLICT", f"{relative} is not installer-owned")
     operations[relative] = desired
 
 
-def _validate_v4_payloads(desired_files: dict[str, bytes], policy: str) -> None:
-    expected_efforts = {
-        "luna-low.toml": "low",
-        "luna-medium.toml": "medium",
-        "luna-high.toml": "high",
-        "luna-xhigh.toml": "xhigh",
-        "luna-max.toml": "max",
+def _validate_skill_payload(relative: str, data: bytes, expected_name: str) -> str:
+    try:
+        text = data.decode("utf-8")
+    except UnicodeError as exc:
+        raise InstallerError("PAYLOAD_INVALID", f"{relative} is not UTF-8") from exc
+    match = re.match(r"\A---\n(.*?)\n---\n", text, flags=re.DOTALL)
+    if match is None:
+        raise InstallerError("PAYLOAD_INVALID", f"{relative} lacks valid frontmatter")
+    fields = {}
+    for line in match.group(1).splitlines():
+        key, separator, value = line.partition(":")
+        if separator:
+            fields[key.strip()] = value.strip().strip('"\'')
+    if fields.get("name") != expected_name or not fields.get("description"):
+        raise InstallerError("PAYLOAD_INVALID", f"{relative} metadata is invalid")
+    if "TODO" in text or "<STATUS_COMMAND>" in text:
+        raise InstallerError("PAYLOAD_INVALID", f"{relative} rendering is incomplete")
+    return text
+
+
+def _validate_v4_payloads(
+    desired_files: dict[str, bytes],
+    desired_skill_files: dict[str, bytes],
+    policy: str,
+) -> None:
+    managed_policy = f"{AGENTS_BEGIN}\n{policy.rstrip()}\n{AGENTS_END}\n"
+    if len(managed_policy.encode("utf-8")) > GLOBAL_POLICY_MAX_BYTES:
+        raise InstallerError("PAYLOAD_INVALID", "global policy exceeds its byte budget")
+    expected_agents = {
+        **{
+            filename: ("gpt-5.6-luna", effort)
+            for filename, effort in zip(STABLE_AGENT_FILES, ("low", "medium", "high", "xhigh", "max"))
+        },
+        **{
+            filename: ("gpt-5.6-sol", effort)
+            for filename, effort in zip(SOL_AGENT_FILES, ("low", "medium", "high", "xhigh", "max"))
+        },
     }
-    for filename, effort in expected_efforts.items():
+    for filename, (model, effort) in expected_agents.items():
         relative = f"agents/{filename}"
         try:
             value = tomllib.loads(desired_files[relative].decode("utf-8"))
@@ -825,25 +1084,63 @@ def _validate_v4_payloads(desired_files: dict[str, bytes], policy: str) -> None:
             raise InstallerError("PAYLOAD_INVALID", f"{relative} is invalid") from exc
         agents = value.get("agents")
         if (
-            value.get("model") != "gpt-5.6-luna"
+            value.get("model") != model
             or value.get("model_reasoning_effort") != effort
             or not isinstance(agents, dict)
             or agents.get("enabled") is not False
+            or not isinstance(value.get("developer_instructions"), str)
+            or "parent Coordinator" not in value["developer_instructions"]
         ):
             raise InstallerError("PAYLOAD_INVALID", f"{relative} contract is invalid")
-    try:
-        compile(
-            desired_files["sol-luna-v4/selector.py"].decode("utf-8"),
-            "sol-luna-v4/selector.py",
-            "exec",
-        )
-    except (KeyError, UnicodeError, SyntaxError) as exc:
-        raise InstallerError("PAYLOAD_INVALID", "selector payload is invalid") from exc
+
+    for relative in (
+        "sol-luna-v4/selector.py",
+        "sol-luna-v4/worker_selector.py",
+    ):
+        try:
+            compile(desired_files[relative].decode("utf-8"), relative, "exec")
+        except (KeyError, UnicodeError, SyntaxError) as exc:
+            raise InstallerError("PAYLOAD_INVALID", f"{relative} is invalid") from exc
+
     if any(
         value in policy
-        for value in ("<CODEX_HOME>", "<SELECTOR_COMMAND>", "<STATUS_COMMAND>", ".var")
+        for value in (
+            "<SELECTOR_COMMAND>",
+            "<STATUS_COMMAND>",
+            ".var",
+            "--ensure-daily",
+            "--print-selection",
+        )
     ):
         raise InstallerError("PAYLOAD_INVALID", "global policy rendering is invalid")
+    if (
+        "Coordinator" not in policy
+        or "Sol is the sole" in policy
+        or "sol-luna-status" not in policy
+        or "sol-luna-upgrade" not in policy
+        or "sol-luna-delegate" not in policy
+        or "--status-json" in policy
+        or "TAG_MOVED" in policy
+    ):
+        raise InstallerError("PAYLOAD_INVALID", "global policy split is invalid")
+
+    expected_skills = {
+        "sol-luna-status/SKILL.md": "sol-luna-status",
+        "sol-luna-upgrade/SKILL.md": "sol-luna-upgrade",
+        "sol-luna-delegate/SKILL.md": "sol-luna-delegate",
+    }
+    if set(desired_skill_files) != set(expected_skills):
+        raise InstallerError("PAYLOAD_INVALID", "Skill payload inventory is invalid")
+    rendered_skills = {
+        relative: _validate_skill_payload(relative, desired_skill_files[relative], name)
+        for relative, name in expected_skills.items()
+    }
+    if "--status-json" not in rendered_skills["sol-luna-status/SKILL.md"]:
+        raise InstallerError("PAYLOAD_INVALID", "status Skill command is missing")
+    if "TAG_MOVED" not in rendered_skills["sol-luna-upgrade/SKILL.md"]:
+        raise InstallerError("PAYLOAD_INVALID", "upgrade Skill contract is incomplete")
+    if "--workers" not in rendered_skills["sol-luna-delegate/SKILL.md"]:
+        raise InstallerError("PAYLOAD_INVALID", "delegate Skill command is missing")
 
 
 def _effective_operations(
@@ -883,8 +1180,16 @@ def _choose_backup_root(target: Path, now: datetime) -> Path:
     return candidate
 
 
-def _create_backup(target: Path, relatives: list[str], root: Path) -> Path:
+def _create_backup(
+    target: Path,
+    relatives: list[str],
+    root: Path,
+    *,
+    skills_root: Path | None = None,
+    skill_relatives: list[str] | None = None,
+) -> Path:
     target_existed = target.exists()
+    skills_existed = skills_root.exists() if skills_root is not None else False
     try:
         root = _target_path(
             target,
@@ -893,20 +1198,34 @@ def _create_backup(target: Path, relatives: list[str], root: Path) -> Path:
         )
         root.mkdir(parents=True, exist_ok=False)
         entries = []
-        for relative in sorted(set(relatives)):
-            source = _target_path(target, relative)
-            existed = source.is_file()
-            entry = {"path": relative, "existed": existed}
-            if existed:
-                data = source.read_bytes()
-                entry["sha256"] = _sha256(data)
-                backup_file = root / "files" / Path(*PurePosixPath(relative).parts)
-                backup_file.parent.mkdir(parents=True, exist_ok=True)
-                backup_file.write_bytes(data)
-            entries.append(entry)
+        groups = [("codex_home", target, relatives)]
+        if skills_root is not None:
+            groups.append(("skills_root", skills_root, skill_relatives or []))
+        for root_name, managed_root, managed_relatives in groups:
+            for relative in sorted(set(managed_relatives)):
+                source = _target_path(managed_root, relative)
+                existed = source.is_file()
+                entry = {"root": root_name, "path": relative, "existed": existed}
+                if existed:
+                    data = source.read_bytes()
+                    entry["sha256"] = _sha256(data)
+                    backup_file = (
+                        root
+                        / "files"
+                        / root_name
+                        / Path(*PurePosixPath(relative).parts)
+                    )
+                    backup_file.parent.mkdir(parents=True, exist_ok=True)
+                    backup_file.write_bytes(data)
+                entries.append(entry)
         snapshot = {
-            "schema_version": 1,
+            "schema_version": 2,
             "target_existed": target_existed,
+            "skills_root": str(skills_root) if skills_root is not None else None,
+            "skills_root_existed": skills_existed,
+            "skills_parent_existed": (
+                skills_root.parent.exists() if skills_root is not None else True
+            ),
             "entries": entries,
         }
         (root / "snapshot.json").write_bytes(_json_bytes(snapshot))
@@ -917,18 +1236,36 @@ def _create_backup(target: Path, relatives: list[str], root: Path) -> Path:
     return root
 
 
-def _verify_backup(root: Path, relatives: list[str]) -> None:
+def _verify_backup(
+    root: Path,
+    relatives: list[str],
+    *,
+    skill_relatives: list[str] | None = None,
+) -> None:
     snapshot = _load_json(root / "snapshot.json", "BACKUP_FAILED")
     entries = snapshot.get("entries")
-    if not isinstance(entries, list) or {
-        entry.get("path") for entry in entries if isinstance(entry, dict)
-    } != set(relatives):
+    expected = {("codex_home", relative) for relative in relatives}
+    expected.update(
+        ("skills_root", relative) for relative in (skill_relatives or [])
+    )
+    observed = {
+        (entry.get("root", "codex_home"), entry.get("path"))
+        for entry in entries or []
+        if isinstance(entry, dict)
+    }
+    if not isinstance(entries, list) or observed != expected:
         raise InstallerError("BACKUP_FAILED", "backup inventory verification failed")
     for entry in entries:
         if not isinstance(entry, dict) or not isinstance(entry.get("path"), str):
             raise InstallerError("BACKUP_FAILED", "backup entry is invalid")
         if entry.get("existed"):
-            source = root / "files" / Path(*PurePosixPath(entry["path"]).parts)
+            root_name = entry.get("root", "codex_home")
+            source = (
+                root
+                / "files"
+                / root_name
+                / Path(*PurePosixPath(entry["path"]).parts)
+            )
             if not source.is_file() or entry.get("sha256") != _sha256(source.read_bytes()):
                 raise InstallerError("BACKUP_FAILED", "backup content verification failed")
 
@@ -983,7 +1320,10 @@ def _apply_operations(target: Path, operations: dict[str, bytes | None]) -> None
 
 
 def _validate_applied_operations(
-    target: Path, operations: dict[str, bytes | None]
+    target: Path,
+    operations: dict[str, bytes | None],
+    *,
+    validate_config: bool = True,
 ) -> None:
     for relative, desired in operations.items():
         path = _target_path(target, relative)
@@ -993,7 +1333,7 @@ def _validate_applied_operations(
         elif not path.is_file() or path.read_bytes() != desired:
             raise InstallerError("APPLY_FAILED", f"{relative} was not installed exactly")
     config = _target_path(target, "config.toml")
-    if config.is_file():
+    if validate_config and config.is_file():
         try:
             tomllib.loads(config.read_text(encoding="utf-8"))
         except (UnicodeError, tomllib.TOMLDecodeError) as exc:
@@ -1033,14 +1373,14 @@ def _complete_legacy_cleanup(
     return True
 
 
-def _ensure_target_writable(target: Path) -> None:
+def _ensure_target_writable(target: Path, *, label: str = "CODEX_HOME") -> None:
     if target.exists() and not target.is_dir():
-        raise InstallerError("TARGET_NOT_WRITABLE", "CODEX_HOME is not a directory")
+        raise InstallerError("TARGET_NOT_WRITABLE", f"{label} is not a directory")
     probe = target if target.exists() else target.parent
     while not probe.exists() and probe != probe.parent:
         probe = probe.parent
     if not probe.is_dir() or not os.access(probe, os.W_OK):
-        raise InstallerError("TARGET_NOT_WRITABLE", "CODEX_HOME is not writable")
+        raise InstallerError("TARGET_NOT_WRITABLE", f"{label} is not writable")
 
 
 def _backup_relative(target: Path, backup: Path) -> str:
@@ -1054,18 +1394,32 @@ def _backup_relative(target: Path, backup: Path) -> str:
 
 def _build_install_plan(
     target: Path,
+    skills_root: Path,
     project_root: Path,
     *,
     migrate_legacy: bool,
     now: datetime,
     source_commit: str | None = None,
-) -> tuple[dict[str, bytes | None], dict, dict]:
+) -> tuple[dict[str, bytes | None], dict[str, bytes | None], dict, dict]:
     manifest = _load_manifest(target)
     if manifest and _compare_project_semver(manifest.get("version"), VERSION) > 0:
         raise InstallerError(
             "CURRENT_VERSION_NEWER", "installed version is newer; automatic downgrade refused"
         )
+    recorded_skills_root = manifest.get("skills_root") if manifest else None
+    if manifest and manifest.get("schema_version") in {2, 3}:
+        try:
+            recorded = Path(recorded_skills_root).resolve(strict=False)
+        except (TypeError, OSError) as exc:
+            raise InstallerError("MANIFEST_INVALID", "recorded Skill root is invalid") from exc
+        if recorded != skills_root.resolve(strict=False):
+            raise InstallerError(
+                "SKILLS_ROOT_MISMATCH",
+                "explicit Skill root does not match the installed manifest",
+            )
+
     operations: dict[str, bytes | None] = {}
+    skill_operations: dict[str, bytes | None] = {}
     migration = manifest.get("legacy_migration") if manifest else None
     legacy_cleanup = manifest.get("legacy_cleanup") if manifest else None
     if migrate_legacy:
@@ -1091,21 +1445,51 @@ def _build_install_plan(
         )
 
     desired_files: dict[str, bytes] = {}
-    for filename in STABLE_AGENT_FILES:
+    for filename in AGENT_FILES:
         desired_files[f"agents/{filename}"] = (
             project_root / ".codex" / "agents" / filename
         ).read_bytes()
     desired_files["sol-luna-v4/selector.py"] = (
         project_root / "src" / "selector.py"
     ).read_bytes()
+    desired_files["sol-luna-v4/worker_selector.py"] = (
+        project_root / "src" / "worker_selector.py"
+    ).read_bytes()
     policy_template = (project_root / "templates" / "AGENTS.global.md").read_text(
         encoding="utf-8"
     )
     rendered_policy = render_global_policy(policy_template, target)
-    _validate_v4_payloads(desired_files, rendered_policy)
+    status_template = (
+        project_root / "payload" / "skills" / "sol-luna-status" / "SKILL.md"
+    ).read_text(encoding="utf-8")
+    delegate_template = (
+        project_root / "payload" / "skills" / "sol-luna-delegate" / "SKILL.md"
+    ).read_text(encoding="utf-8")
+    desired_skill_files = {
+        "sol-luna-status/SKILL.md": render_status_skill(
+            status_template, target
+        ).encode("utf-8"),
+        "sol-luna-upgrade/SKILL.md": (
+            project_root / "payload" / "skills" / "sol-luna-upgrade" / "SKILL.md"
+        ).read_bytes(),
+        "sol-luna-delegate/SKILL.md": render_delegate_skill(
+            delegate_template, target
+        ).encode("utf-8"),
+    }
+    _validate_v4_payloads(desired_files, desired_skill_files, rendered_policy)
 
     for relative, data in desired_files.items():
         _plan_owned_file(target, relative, data, manifest, operations)
+
+    for relative, data in desired_skill_files.items():
+        _plan_owned_file(
+            skills_root,
+            relative,
+            data,
+            manifest,
+            skill_operations,
+            owned_hash=_owned_skill_hash,
+        )
 
     desired_set = set(desired_files)
     if manifest:
@@ -1119,6 +1503,17 @@ def _build_install_plan(
             if owned is None or _sha256(path.read_bytes()) != owned:
                 raise InstallerError("OWNERSHIP_CONFLICT", f"{relative} was modified")
             operations[relative] = None
+
+        for relative in manifest.get("owned_skill_files", {}):
+            if relative in desired_skill_files:
+                continue
+            path = _target_path(skills_root, relative)
+            if not path.is_file():
+                continue
+            owned = _owned_skill_hash(manifest, relative)
+            if owned is None or _sha256(path.read_bytes()) != owned:
+                raise InstallerError("OWNERSHIP_CONFLICT", f"Skill {relative} was modified")
+            skill_operations[relative] = None
 
     agents_relative = "AGENTS.md"
     agents_current = _read_effective(target, agents_relative, operations)
@@ -1157,14 +1552,30 @@ def _build_install_plan(
         else now.astimezone(timezone.utc).isoformat()
     )
     desired_manifest = {
-        "schema_version": 1,
+        "schema_version": 3,
         "version": VERSION,
         "installed_at": installed_at,
         "updated_at": (
             manifest.get("updated_at", installed_at) if manifest else installed_at
         ),
         "owned_files": {
-            relative: _sha256(data) for relative, data in sorted(desired_files.items())
+            relative: _sha256(data)
+            for relative, data in sorted(desired_files.items())
+        },
+        "skills_root": str(skills_root),
+        "skill_root_created": (
+            manifest.get("skill_root_created", False)
+            if manifest and manifest.get("schema_version") in {2, 3}
+            else not skills_root.exists()
+        ),
+        "skill_parent_created": (
+            manifest.get("skill_parent_created", False)
+            if manifest and manifest.get("schema_version") in {2, 3}
+            else skills_root.parent.name == ".agents" and not skills_root.parent.exists()
+        ),
+        "owned_skill_files": {
+            relative: _sha256(data)
+            for relative, data in sorted(desired_skill_files.items())
         },
         "owned_blocks": {
             "AGENTS.md": agents_info,
@@ -1185,12 +1596,13 @@ def _build_install_plan(
     ):
         desired_manifest["source_commit"] = existing_source_commit
     context = {"existing_manifest": manifest, "desired_manifest": desired_manifest}
-    return operations, context, migration or {}
+    return operations, skill_operations, context, migration or {}
 
 
 def dry_run_install(
     target: Path,
     *,
+    skills_root: Path | None = None,
     project_root: Path = PROJECT_ROOT,
     migrate_legacy: bool = False,
     generated_at: datetime | None = None,
@@ -1201,21 +1613,32 @@ def dry_run_install(
 
     source_commit = _normalize_source_commit(source_commit)
     target = target.resolve(strict=False)
+    skills_root = resolve_skills_root(
+        None if skills_root is None else str(skills_root), target
+    )
     project_root = project_root.resolve(strict=False)
     validate_target(
         target,
         project_root,
         allow_validation_sandbox=allow_validation_sandbox,
     )
-    now = generated_at or _utc_now()
-    operations, context, migration = _build_install_plan(
+    validate_skills_root(
+        skills_root,
         target,
+        project_root,
+        allow_validation_sandbox=allow_validation_sandbox,
+    )
+    now = generated_at or _utc_now()
+    operations, skill_operations, context, migration = _build_install_plan(
+        target,
+        skills_root,
         project_root,
         migrate_legacy=migrate_legacy,
         now=now,
         source_commit=source_commit,
     )
     effective = _effective_operations(target, operations)
+    effective_skills = _effective_operations(skills_root, skill_operations)
     manifest_relative = MANIFEST_RELATIVE.as_posix()
     manifest_path = _target_path(target, manifest_relative)
     manifest_bytes = _json_bytes(context["desired_manifest"])
@@ -1226,22 +1649,35 @@ def dry_run_install(
         relative
         for relative, desired in effective.items()
         if desired is not None and not _target_path(target, relative).is_file()
+    ) + sorted(
+        f"skills:{relative}"
+        for relative, desired in effective_skills.items()
+        if desired is not None and not _target_path(skills_root, relative).is_file()
     )
     modified = sorted(
         relative
         for relative, desired in effective.items()
         if desired is not None and _target_path(target, relative).is_file()
+    ) + sorted(
+        f"skills:{relative}"
+        for relative, desired in effective_skills.items()
+        if desired is not None and _target_path(skills_root, relative).is_file()
     )
     removed = sorted(
         relative
         for relative, desired in effective.items()
         if desired is None and _target_path(target, relative).is_file()
+    ) + sorted(
+        f"skills:{relative}"
+        for relative, desired in effective_skills.items()
+        if desired is None and _target_path(skills_root, relative).is_file()
     )
+    has_changes = bool(effective or effective_skills)
     return {
-        "status": "IDEMPOTENT_PASS" if not effective else "DRY_RUN_PASS",
+        "status": "IDEMPOTENT_PASS" if not has_changes else "DRY_RUN_PASS",
         "mode": "dry-run",
         "will_modify": False,
-        "effective_changes": len(effective),
+        "effective_changes": len(effective) + len(effective_skills),
         "created": created,
         "modified": modified,
         "removed": removed,
@@ -1253,6 +1689,7 @@ def dry_run_install(
 def install(
     target: Path,
     *,
+    skills_root: Path | None = None,
     project_root: Path = PROJECT_ROOT,
     migrate_legacy: bool = False,
     generated_at: datetime | None = None,
@@ -1262,16 +1699,27 @@ def install(
 ) -> dict:
     source_commit = _normalize_source_commit(source_commit)
     target = target.resolve(strict=False)
+    skills_root = resolve_skills_root(
+        None if skills_root is None else str(skills_root), target
+    )
     project_root = project_root.resolve(strict=False)
     validate_target(
         target,
         project_root,
         allow_validation_sandbox=allow_validation_sandbox,
     )
-    _ensure_target_writable(target)
-    now = generated_at or _utc_now()
-    operations, context, migration = _build_install_plan(
+    validate_skills_root(
+        skills_root,
         target,
+        project_root,
+        allow_validation_sandbox=allow_validation_sandbox,
+    )
+    _ensure_target_writable(target)
+    _ensure_target_writable(skills_root, label="Skill root")
+    now = generated_at or _utc_now()
+    operations, skill_operations, context, migration = _build_install_plan(
+        target,
+        skills_root,
         project_root,
         migrate_legacy=migrate_legacy,
         now=now,
@@ -1282,12 +1730,13 @@ def install(
     desired_manifest = context["desired_manifest"]
 
     preliminary = _effective_operations(target, operations)
+    preliminary_skills = _effective_operations(skills_root, skill_operations)
     current_manifest_path = _target_path(target, manifest_relative)
     current_manifest_bytes = (
         current_manifest_path.read_bytes() if current_manifest_path.is_file() else None
     )
     preview_manifest = _json_bytes(desired_manifest)
-    if not preliminary and current_manifest_bytes == preview_manifest:
+    if not preliminary and not preliminary_skills and current_manifest_bytes == preview_manifest:
         cleanup = desired_manifest.get("legacy_cleanup")
         if isinstance(cleanup, dict) and cleanup.get("status") == "pending":
             cleanup_target_existed = _target_path(
@@ -1331,19 +1780,36 @@ def install(
     desired_manifest["updated_at"] = now.astimezone(timezone.utc).isoformat()
     desired_manifest["last_backup"] = _backup_relative(target, backup_root)
     effective = _effective_operations(target, operations)
+    effective_skills = _effective_operations(skills_root, skill_operations)
     manifest_bytes = _json_bytes(desired_manifest)
     tracked = set(effective)
+    tracked_skills = set(effective_skills)
     tracked.add(manifest_relative)
     cleanup = desired_manifest.get("legacy_cleanup")
     if isinstance(cleanup, dict) and cleanup.get("status") == "pending":
         tracked.add(LEGACY_MANIFEST_RELATIVE.as_posix())
     before = {relative: _target_path(target, relative).is_file() for relative in tracked}
-    _create_backup(target, sorted(tracked), backup_root)
+    before_skills = {
+        relative: _target_path(skills_root, relative).is_file()
+        for relative in tracked_skills
+    }
+    _create_backup(
+        target,
+        sorted(tracked),
+        backup_root,
+        skills_root=skills_root,
+        skill_relatives=sorted(tracked_skills),
+    )
     try:
-        _verify_backup(backup_root, sorted(tracked))
+        _verify_backup(
+            backup_root,
+            sorted(tracked),
+            skill_relatives=sorted(tracked_skills),
+        )
         install_relatives = {
-            *(f"agents/{filename}" for filename in STABLE_AGENT_FILES),
+            *(f"agents/{filename}" for filename in AGENT_FILES),
             "sol-luna-v4/selector.py",
+            "sol-luna-v4/worker_selector.py",
         }
         install_operations = {
             relative: desired
@@ -1370,6 +1836,8 @@ def install(
 
         _apply_operations(target, install_operations)
         _hit_failpoint(failpoint, "after_agent_install")
+        _apply_operations(skills_root, effective_skills)
+        _hit_failpoint(failpoint, "after_skill_install")
         _apply_operations(target, shared_operations)
         _hit_failpoint(failpoint, "after_config_merge")
         _apply_operations(target, hook_operations)
@@ -1377,6 +1845,9 @@ def install(
         _apply_operations(target, old_operations)
         _hit_failpoint(failpoint, "after_old_file_deletion")
         _validate_applied_operations(target, effective)
+        _validate_applied_operations(
+            skills_root, effective_skills, validate_config=False
+        )
         _hit_failpoint(failpoint, "before_v4_manifest_write")
         _atomic_write(_target_path(target, manifest_relative), manifest_bytes)
     except Exception as exc:
@@ -1384,8 +1855,10 @@ def install(
             rollback(
                 target,
                 backup_root,
+                skills_root=skills_root,
                 project_root=project_root,
                 allow_validation_sandbox=allow_validation_sandbox,
+                _transaction_recovery=True,
             )
         except InstallerError:
             pass
@@ -1397,6 +1870,7 @@ def install(
         target, desired_manifest, failpoint=failpoint
     )
     applied = dict(effective)
+    applied_skills = dict(effective_skills)
     applied[manifest_relative] = manifest_bytes
     if isinstance(cleanup, dict) and cleanup.get("status") == "pending" and cleanup_complete:
         applied[LEGACY_MANIFEST_RELATIVE.as_posix()] = None
@@ -1404,16 +1878,28 @@ def install(
         relative
         for relative, data in applied.items()
         if data is not None and not before.get(relative, False)
+    ) + sorted(
+        f"skills:{relative}"
+        for relative, data in applied_skills.items()
+        if data is not None and not before_skills.get(relative, False)
     )
     modified = sorted(
         relative
         for relative, data in applied.items()
         if data is not None and before.get(relative, False)
+    ) + sorted(
+        f"skills:{relative}"
+        for relative, data in applied_skills.items()
+        if data is not None and before_skills.get(relative, False)
     )
     removed = sorted(
         relative
         for relative, data in applied.items()
         if data is None and before.get(relative, False)
+    ) + sorted(
+        f"skills:{relative}"
+        for relative, data in applied_skills.items()
+        if data is None and before_skills.get(relative, False)
     )
     result_migration = dict(migration)
     if isinstance(cleanup, dict):
@@ -1428,7 +1914,7 @@ def install(
             and not cleanup_complete
             else ("UPGRADED" if existing_manifest else "INSTALLED")
         ),
-        "effective_changes": len(applied),
+        "effective_changes": len(applied) + len(applied_skills),
         "created": created,
         "modified": modified,
         "removed": removed,
@@ -1437,12 +1923,54 @@ def install(
     }
 
 
+def _verify_schema3_current_state(
+    target: Path,
+    skills_root: Path,
+    manifest: dict,
+) -> None:
+    """Reject schema-3 rollbacks from an incomplete or modified install."""
+
+    for relative in manifest["owned_files"]:
+        path = _target_path(target, relative)
+        owned = _owned_hash(manifest, relative)
+        if not path.is_file() or owned is None or _sha256(path.read_bytes()) != owned:
+            raise InstallerError("OWNERSHIP_CONFLICT", f"{relative} was modified")
+
+    for relative in manifest["owned_skill_files"]:
+        path = _target_path(skills_root, relative)
+        owned = _owned_skill_hash(manifest, relative)
+        if not path.is_file() or owned is None or _sha256(path.read_bytes()) != owned:
+            raise InstallerError(
+                "OWNERSHIP_CONFLICT", f"Skill {relative} was modified"
+            )
+
+    for filename, begin, end, reason in (
+        ("AGENTS.md", AGENTS_BEGIN, AGENTS_END, "AGENTS_MARKER_CORRUPT"),
+        ("config.toml", CONFIG_BEGIN, CONFIG_END, "CONFIG_MERGE_UNSAFE"),
+    ):
+        info = _block_info(manifest, filename)
+        if info is None:
+            raise InstallerError("MANIFEST_INVALID", "schema 3 owned block is missing")
+        path = _target_path(target, filename)
+        try:
+            text = path.read_bytes().decode("utf-8")
+        except (OSError, UnicodeError) as exc:
+            raise InstallerError(
+                "OWNERSHIP_CONFLICT", f"{filename} is unreadable"
+            ) from exc
+        block = _extract_block(text, begin, end, reason)
+        if block is None or info.get("sha256") != _sha256(block.encode("utf-8")):
+            raise InstallerError("OWNERSHIP_CONFLICT", f"{filename} was modified")
+
+
 def rollback(
     target: Path,
     backup_root: Path,
     *,
+    skills_root: Path | None = None,
     project_root: Path = PROJECT_ROOT,
     allow_validation_sandbox: bool = False,
+    _transaction_recovery: bool = False,
 ) -> dict:
     target = target.resolve(strict=False)
     validate_target(
@@ -1460,25 +1988,146 @@ def rollback(
         raise InstallerError("BACKUP_NOT_FOUND", "backup snapshot is missing")
     snapshot = _load_json(snapshot_path, "BACKUP_INVALID")
     entries = snapshot.get("entries")
-    if not isinstance(entries, list):
+    if (
+        type(snapshot.get("schema_version")) is not int
+        or snapshot["schema_version"] not in (1, 2)
+        or not isinstance(entries, list)
+    ):
         raise InstallerError("BACKUP_INVALID", "backup entries are invalid")
+    for flag in ("target_existed", "skills_root_existed", "skills_parent_existed"):
+        if flag in snapshot and not isinstance(snapshot[flag], bool):
+            raise InstallerError(
+                "BACKUP_INVALID", "backup directory ownership is invalid"
+            )
+    has_skill_entries = any(
+        isinstance(entry, dict) and entry.get("root") == "skills_root"
+        for entry in entries
+    )
+    resolved_skills_root = None
+    if has_skill_entries:
+        resolved_skills_root = resolve_skills_root(
+            None if skills_root is None else str(skills_root), target
+        )
+        recorded = snapshot.get("skills_root")
+        if not isinstance(recorded, str) or Path(recorded).resolve(
+            strict=False
+        ) != resolved_skills_root:
+            raise InstallerError(
+                "SKILLS_ROOT_MISMATCH",
+                "explicit Skill root does not match the backup snapshot",
+            )
+        validate_skills_root(
+            resolved_skills_root,
+            target,
+            project_root,
+            allow_validation_sandbox=allow_validation_sandbox,
+        )
+    manifest_path = _target_path(target, MANIFEST_RELATIVE)
+    current_manifest = _load_manifest(target) if manifest_path.is_file() else None
+    if (
+        not _transaction_recovery
+        and current_manifest
+        and current_manifest.get("schema_version") == 3
+    ):
+        recorded_root = Path(current_manifest["skills_root"]).resolve(strict=False)
+        if resolved_skills_root is None:
+            resolved_skills_root = resolve_skills_root(
+                str(skills_root) if skills_root is not None else str(recorded_root),
+                target,
+            )
+            validate_skills_root(
+                resolved_skills_root,
+                target,
+                project_root,
+                allow_validation_sandbox=allow_validation_sandbox,
+            )
+        if resolved_skills_root != recorded_root:
+            raise InstallerError(
+                "SKILLS_ROOT_MISMATCH",
+                "explicit Skill root does not match the installed manifest",
+            )
+        _verify_schema3_current_state(target, resolved_skills_root, current_manifest)
     try:
+        # Load and verify the entire restore plan before touching either root.
+        # Keep the verified bytes in memory instead of re-reading backup files
+        # after an earlier restore operation has already changed the target.
+        restore_operations = []
+        seen = set()
         for entry in entries:
+            if not isinstance(entry, dict) or not isinstance(entry.get("path"), str):
+                raise InstallerError("BACKUP_INVALID", "backup entry is invalid")
             relative = entry["path"]
-            destination = _target_path(target, relative)
+            relative_path = PurePosixPath(relative)
+            if (
+                not relative_path.parts
+                or relative_path.is_absolute()
+                or PureWindowsPath(relative).drive
+                or "\\" in relative
+                or ".." in relative_path.parts
+                or relative_path.as_posix() != relative
+                or not isinstance(entry.get("existed"), bool)
+            ):
+                raise InstallerError("BACKUP_INVALID", "backup entry identity is invalid")
+            root_name = entry.get("root", "codex_home")
+            if root_name == "codex_home":
+                managed_root = target
+            elif root_name == "skills_root" and resolved_skills_root is not None:
+                managed_root = resolved_skills_root
+            else:
+                raise InstallerError("BACKUP_INVALID", "backup root identity is invalid")
+            identity = (root_name, relative.casefold() if os.name == "nt" else relative)
+            if identity in seen:
+                raise InstallerError("BACKUP_INVALID", "duplicate backup entry")
+            seen.add(identity)
+            destination = _target_path(managed_root, relative)
+            if destination.exists() and not destination.is_file():
+                raise InstallerError("BACKUP_INVALID", "restore destination is not a file")
+            data = None
             if entry.get("existed"):
-                source = backup_root / "files" / Path(*PurePosixPath(relative).parts)
-                data = source.read_bytes()
+                if "root" in entry:
+                    source_relative = PurePosixPath("files") / root_name / relative_path
+                else:
+                    source_relative = PurePosixPath("files") / relative_path
+                source = _target_path(backup_root, source_relative)
+                try:
+                    data = source.read_bytes()
+                except OSError as exc:
+                    raise InstallerError(
+                        "BACKUP_INVALID", "backup content is unreadable"
+                    ) from exc
                 if entry.get("sha256") != _sha256(data):
                     raise InstallerError("BACKUP_INVALID", "backup hash mismatch")
+            restore_operations.append((managed_root, destination, data))
+
+        for managed_root, destination, data in restore_operations:
+            if data is not None:
                 _atomic_write(destination, data)
             elif destination.is_file():
                 destination.unlink()
-                _remove_empty_parents(destination, target)
+                _remove_empty_parents(destination, managed_root)
         shutil.rmtree(backup_root)
         _remove_empty_parents(backup_root, target)
-        if not snapshot.get("target_existed") and target.exists() and not any(target.iterdir()):
+        if (
+            snapshot.get("target_existed") is False
+            and target.exists()
+            and not any(target.iterdir())
+        ):
             target.rmdir()
+        if (
+            resolved_skills_root is not None
+            and snapshot.get("skills_root_existed") is False
+            and resolved_skills_root.exists()
+            and not any(resolved_skills_root.iterdir())
+        ):
+            resolved_skills_root.rmdir()
+            agents_root = resolved_skills_root.parent
+            if (
+                snapshot.get("skills_parent_existed") is False
+                and agents_root.name == ".agents"
+                and agents_root.exists()
+                and not any(agents_root.iterdir())
+            ):
+                agents_root.rmdir()
     except InstallerError:
         raise
     except (OSError, PermissionError) as exc:
@@ -1489,6 +2138,7 @@ def rollback(
 def uninstall(
     target: Path,
     *,
+    skills_root: Path | None = None,
     project_root: Path = PROJECT_ROOT,
     generated_at: datetime | None = None,
     allow_validation_sandbox: bool = False,
@@ -1501,7 +2151,28 @@ def uninstall(
     )
     _ensure_target_writable(target)
     manifest = _load_manifest(target, required=True)
+    requested_skills_root = (
+        str(skills_root)
+        if skills_root is not None
+        else manifest.get("skills_root")
+    )
+    skills_root = resolve_skills_root(requested_skills_root, target)
+    if manifest.get("schema_version") in {2, 3} and Path(
+        manifest["skills_root"]
+    ).resolve(strict=False) != skills_root:
+        raise InstallerError(
+            "SKILLS_ROOT_MISMATCH",
+            "explicit Skill root does not match the installed manifest",
+        )
+    validate_skills_root(
+        skills_root,
+        target,
+        project_root,
+        allow_validation_sandbox=allow_validation_sandbox,
+    )
+    _ensure_target_writable(skills_root, label="Skill root")
     operations: dict[str, bytes | None] = {}
+    skill_operations: dict[str, bytes | None] = {}
 
     for relative in manifest.get("owned_files", {}):
         path = _target_path(target, relative)
@@ -1513,6 +2184,17 @@ def uninstall(
         if owned is None or _sha256(path.read_bytes()) != owned:
             raise InstallerError("OWNERSHIP_CONFLICT", f"{relative} was modified")
         operations[relative] = None
+
+    for relative in manifest.get("owned_skill_files", {}):
+        path = _target_path(skills_root, relative)
+        if path.exists() and not path.is_file():
+            raise InstallerError("OWNERSHIP_CONFLICT", f"Skill {relative} is not a file")
+        if not path.is_file():
+            continue
+        owned = _owned_skill_hash(manifest, relative)
+        if owned is None or _sha256(path.read_bytes()) != owned:
+            raise InstallerError("OWNERSHIP_CONFLICT", f"Skill {relative} was modified")
+        skill_operations[relative] = None
 
     for filename, begin, end, reason in (
         ("AGENTS.md", AGENTS_BEGIN, AGENTS_END, "AGENTS_MARKER_CORRUPT"),
@@ -1541,19 +2223,33 @@ def uninstall(
 
     operations[MANIFEST_RELATIVE.as_posix()] = None
     effective = _effective_operations(target, operations)
+    effective_skills = _effective_operations(skills_root, skill_operations)
     now = generated_at or _utc_now()
     backup_root = _choose_backup_root(target, now)
-    _create_backup(target, sorted(effective), backup_root)
+    _create_backup(
+        target,
+        sorted(effective),
+        backup_root,
+        skills_root=skills_root,
+        skill_relatives=sorted(effective_skills),
+    )
     try:
-        _verify_backup(backup_root, sorted(effective))
+        _verify_backup(
+            backup_root,
+            sorted(effective),
+            skill_relatives=sorted(effective_skills),
+        )
+        _apply_operations(skills_root, effective_skills)
         _apply_operations(target, effective)
     except Exception as exc:
         try:
             rollback(
                 target,
                 backup_root,
+                skills_root=skills_root,
                 project_root=project_root,
                 allow_validation_sandbox=allow_validation_sandbox,
+                _transaction_recovery=True,
             )
         except InstallerError:
             pass
@@ -1562,10 +2258,29 @@ def uninstall(
         raise InstallerError("APPLY_FAILED", "uninstall failed") from exc
     shutil.rmtree(backup_root)
     _remove_empty_parents(backup_root, target)
+    if (
+        manifest.get("skill_root_created") is True
+        and skills_root.exists()
+        and not any(skills_root.iterdir())
+    ):
+        skills_root.rmdir()
+        agents_root = skills_root.parent
+        if (
+            manifest.get("skill_parent_created") is True
+            and agents_root.name == ".agents"
+            and agents_root.exists()
+            and not any(agents_root.iterdir())
+        ):
+            agents_root.rmdir()
     return {
         "status": "UNINSTALLED",
-        "effective_changes": len(effective),
-        "removed": sorted(r for r, data in effective.items() if data is None),
+        "effective_changes": len(effective) + len(effective_skills),
+        "removed": sorted(r for r, data in effective.items() if data is None)
+        + sorted(
+            f"skills:{relative}"
+            for relative, data in effective_skills.items()
+            if data is None
+        ),
         "modified": sorted(r for r, data in effective.items() if data is not None),
     }
 
@@ -1591,6 +2306,10 @@ def main(argv: list[str] | None = None) -> int:
     modes.add_argument("--uninstall", action="store_true")
     modes.add_argument("--rollback", metavar="BACKUP_PATH")
     parser.add_argument("--codex-home", help="Explicit target CODEX_HOME")
+    parser.add_argument(
+        "--skills-root",
+        help="Explicit target user Skill root (normally <HOME>/.agents/skills)",
+    )
     parser.add_argument("--source-commit", help="Verified immutable 40-hex source commit")
     parser.add_argument("--migrate-v3", action="store_true")
     parser.add_argument(
@@ -1603,16 +2322,20 @@ def main(argv: list[str] | None = None) -> int:
     mutating = args.apply or args.uninstall or args.rollback
     if mutating and not args.codex_home:
         parser.error("mutating modes require --codex-home")
+    if mutating and not args.skills_root:
+        parser.error("mutating modes require --skills-root")
     if args.migrate_v3 and not args.apply:
         parser.error("--migrate-v3 requires --apply")
     if args.source_commit and (args.uninstall or args.rollback):
         parser.error("--source-commit is valid only for apply or dry-run")
     target = resolve_codex_home(args.codex_home)
+    skills_root = resolve_skills_root(args.skills_root, target)
 
     if args.apply:
         result, code = _result_or_error(
             lambda: install(
                 target,
+                skills_root=skills_root,
                 migrate_legacy=args.migrate_v3,
                 allow_validation_sandbox=args.validation_sandbox,
                 source_commit=args.source_commit,
@@ -1621,7 +2344,9 @@ def main(argv: list[str] | None = None) -> int:
     elif args.uninstall:
         result, code = _result_or_error(
             lambda: uninstall(
-                target, allow_validation_sandbox=args.validation_sandbox
+                target,
+                skills_root=skills_root,
+                allow_validation_sandbox=args.validation_sandbox,
             )
         )
     elif args.rollback:
@@ -1629,6 +2354,7 @@ def main(argv: list[str] | None = None) -> int:
             lambda: rollback(
                 target,
                 Path(args.rollback),
+                skills_root=skills_root,
                 allow_validation_sandbox=args.validation_sandbox,
             )
         )
@@ -1636,6 +2362,7 @@ def main(argv: list[str] | None = None) -> int:
         result, code = _result_or_error(
             lambda: dry_run_install(
                 target,
+                skills_root=skills_root,
                 allow_validation_sandbox=args.validation_sandbox,
                 source_commit=args.source_commit,
             )

@@ -5,53 +5,36 @@ from pathlib import Path
 POLICY = (Path(__file__).resolve().parents[1] / "AGENTS.md").read_text(
     encoding="utf-8"
 )
+NORMALIZED_POLICY = " ".join(POLICY.split())
 
 
 class PolicyTests(unittest.TestCase):
-    def test_sol_responsibilities(self):
-        for responsibility in (
-            "planner",
-            "architect",
-            "orchestrator",
-            "ambiguity resolver",
-            "final reviewer",
-        ):
-            self.assertIn(responsibility, POLICY)
-
-    def test_daily_role_authority_uses_inherited_global_selector(self):
-        for role in (
+    def test_repository_policy_is_a_development_only_delta(self):
+        self.assertIn("Repository development rules", POLICY)
+        self.assertIn("currently installed Global policy", POLICY)
+        self.assertIn("Codex Native Workers", POLICY)
+        self.assertIn("candidate concurrency is not runtime proof", NORMALIZED_POLICY)
+        self.assertIn("The Coordinator owns scope, architecture and final acceptance.", NORMALIZED_POLICY)
+        for deployment_detail in (
+            "sol-luna-delegate",
+            "--workers",
+            "sol_low",
             "luna_low",
-            "luna_medium",
-            "luna_high",
-            "luna_xhigh",
-            "luna_max",
         ):
-            self.assertIn(role, POLICY)
-        self.assertNotIn(".var/daily-profile.json", POLICY)
-        self.assertIn("inherited Global policy", POLICY)
-        self.assertIn("installed selector", POLICY)
-        self.assertIn("must not maintain a second Daily role authority", POLICY)
-        self.assertIn("development-only and non-authoritative", POLICY)
-        self.assertIn("Sol retains the work", POLICY)
-        self.assertIn("Do not guess an effort", POLICY)
-        self.assertIn("direct model or reasoning-effort override", POLICY)
-        self.assertIn("Never select `ultra`", POLICY)
+            with self.subTest(detail=deployment_detail):
+                self.assertNotIn(deployment_detail, NORMALIZED_POLICY)
 
-    def test_luna_scope_and_context_firewall(self):
-        self.assertIn("bounded execution workers", POLICY)
-        self.assertIn("Task Contract", POLICY)
-        self.assertIn("context firewall", POLICY)
-        self.assertIn("must not spawn", POLICY)
-
-    def test_acceptance_gate_and_parallel_limit(self):
-        self.assertIn("Sol alone declares", POLICY)
-        self.assertIn("at most three spawned threads", POLICY)
-
-    def test_no_hook_enforcement_requirement(self):
-        self.assertIn("Do not add Hook routing", POLICY)
-        self.assertNotIn("PreToolUse", POLICY)
-        self.assertNotIn("SubagentStart", POLICY)
-        self.assertNotIn("SubagentStop", POLICY)
+    def test_project_rules_preserve_protected_runtime_and_git_boundaries(self):
+        for boundary in (
+            "Real",
+            "explicit authorization",
+            "Git mutations",
+            "historical evidence",
+            "Keep implementation, tests and documentation inside this repository",
+            "full prevalidation of rollback",
+        ):
+            with self.subTest(boundary=boundary):
+                self.assertIn(boundary, NORMALIZED_POLICY)
 
 
 if __name__ == "__main__":

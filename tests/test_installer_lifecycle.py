@@ -11,13 +11,16 @@ from unittest.mock import patch
 
 import scripts.install as installer_module
 from scripts.install import (
+    AGENT_FILES,
     AGENTS_BEGIN,
     AGENTS_END,
     CONFIG_BEGIN,
     CONFIG_END,
     InstallerError,
     MANIFEST_RELATIVE,
+    SCHEMA2_SKILL_FILES,
     STABLE_AGENT_FILES,
+    SOL_AGENT_FILES,
     VERSION,
     dry_run_install,
     install,
@@ -54,12 +57,30 @@ def tree_hash(root: Path) -> str:
     return digest.hexdigest()
 
 
+def installation_hash(target: Path) -> str:
+    """Hash both managed roots, including whether either root exists."""
+
+    digest = hashlib.sha256()
+    roots = (
+        ("codex_home", target),
+        ("skills_root", target.parent / ".agents" / "skills"),
+    )
+    for label, root in roots:
+        digest.update(label.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(b"1" if root.exists() else b"0")
+        digest.update(b"\0")
+        digest.update(tree_hash(root).encode("ascii"))
+        digest.update(b"\0")
+    return digest.hexdigest()
+
+
 def simulate_rc1_managed_policy(target: Path) -> None:
     agents_path = target / "AGENTS.md"
     policy = agents_path.read_text(encoding="utf-8")
-    receipt_start = policy.index("## Delegation Receipt")
-    luna_start = policy.index("## Luna", receipt_start)
-    rc1_policy = policy[:receipt_start] + policy[luna_start:]
+    receipt_start = policy.index("## Receipts")
+    end_start = policy.index(AGENTS_END, receipt_start)
+    rc1_policy = policy[:receipt_start] + policy[end_start:]
     rc1_policy = rc1_policy.replace("- Never select `ultra` for Luna.\n", "")
     agents_path.write_bytes(rc1_policy.encode("utf-8"))
 
@@ -85,19 +106,15 @@ def simulate_rc1_managed_policy(target: Path) -> None:
 def simulate_rc3_managed_policy(target: Path) -> None:
     agents_path = target / "AGENTS.md"
     policy = agents_path.read_text(encoding="utf-8")
-    evidence_start = policy.index("- `LUNA_UNAVAILABLE` is evidence-gated.")
-    summary_start = policy.index(
-        "- The receipt is a user-facing execution summary", evidence_start
+    receipts_start = policy.index("## Receipts")
+    end_start = policy.index(AGENTS_END, receipts_start)
+    legacy_receipts = (
+        "## Receipts\n\n"
+        "- Use `LUNA_UNAVAILABLE` only after a current-task selector or capability failure.\n"
+        "- Build the final receipt only from facts already collected during the task.\n\n"
     )
     rc3_policy = (
-        policy[:evidence_start]
-        + "- Use `Sol/Luna: Sol-only · Luna unavailable` only when a reasonable "
-        "delegation opportunity existed but no valid selector role, required Luna "
-        "capability, discovered agent, or other fail-closed prerequisite was available.\n"
-        "- Generate the receipt only from facts already obtained during the task. "
-        "Do not invoke the selector, spawn or inspect a child, read files, call tools "
-        "or networks, write state, or add telemetry solely to produce it.\n"
-        + policy[summary_start:]
+        policy[:receipts_start] + legacy_receipts + policy[end_start:]
     )
     agents_path.write_bytes(rc3_policy.encode("utf-8"))
 
@@ -123,28 +140,12 @@ def simulate_rc3_managed_policy(target: Path) -> None:
 def simulate_rc4_managed_install(target: Path) -> None:
     agents_path = target / "AGENTS.md"
     policy = agents_path.read_text(encoding="utf-8")
-    policy = "\n".join(
-        line for line in policy.splitlines() if not line.startswith("- Status command:")
-    ) + "\n"
-    policy = policy.replace(
-        "- The selector returns receipt-safe selection JSON. Save that one result for "
-        "delegation and the final receipt; do not select again for reporting.\n",
-        "",
+    end_start = policy.index(AGENTS_END)
+    policy = (
+        policy[:end_start]
+        + "- Legacy RC4 receipt: record one selected role and observed outcome.\n"
+        + policy[end_start:]
     )
-    policy = policy.replace(
-        "- When `selected_role` is valid, delegate through that native custom agent type.\n",
-        "- When the selector returns a valid role, delegate through that native custom "
-        "agent type.\n",
-    )
-    suffix_start = policy.index("- A delegated receipt may append only")
-    suffix_end = policy.index(
-        "- If any Luna child actually ran", suffix_start
-    )
-    policy = policy[:suffix_start] + policy[suffix_end:]
-    status_start = policy.index("## Natural-language status and diagnostics")
-    luna_start = policy.index("## Luna", status_start)
-    policy = policy[:status_start] + policy[luna_start:]
-    policy = policy.replace("--print-selection", "--print-role")
     agents_path.write_bytes(policy.encode("utf-8"))
 
     block_start = policy.index(AGENTS_BEGIN)
@@ -166,6 +167,172 @@ def simulate_rc4_managed_install(target: Path) -> None:
     manifest["owned_blocks"]["AGENTS.md"]["sha256"] = hashlib.sha256(
         policy[block_start:block_finish].encode("utf-8")
     ).hexdigest()
+
+    manifest_path.write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+
+
+def simulate_schema2_local1(target: Path) -> None:
+    """Convert a fresh install to the exact two-Skill local.1 schema-2 layout."""
+
+    call_install(target)
+    manifest_path = target / MANIFEST_RELATIVE
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    skills_root = Path(manifest["skills_root"])
+    delegate_skill = skills_root / "sol-luna-delegate" / "SKILL.md"
+    if delegate_skill.is_file():
+        delegate_skill.unlink()
+        delegate_skill.parent.rmdir()
+    for filename in SOL_AGENT_FILES:
+        path = target / "agents" / filename
+        if path.is_file():
+            path.unlink()
+    worker_module = target / "sol-luna-v4" / "worker_selector.py"
+    if worker_module.is_file():
+        worker_module.unlink()
+
+    selector_relative = "sol-luna-v4/selector.py"
+    selector_path = target / selector_relative
+    selector = selector_path.read_bytes().replace(
+        f"codex-sol-luna-worker/{VERSION.removeprefix('v')}".encode("ascii"),
+        b"codex-sol-luna-worker/4.2.0-local.1",
+    )
+    selector_path.write_bytes(selector)
+    manifest["schema_version"] = 2
+    manifest["version"] = "v4.2.0-local.1"
+    manifest["owned_files"] = {
+        **{
+            f"agents/{filename}": hashlib.sha256(
+                (target / "agents" / filename).read_bytes()
+            ).hexdigest()
+            for filename in STABLE_AGENT_FILES
+        },
+        selector_relative: hashlib.sha256(selector).hexdigest(),
+    }
+
+    config_path = target / "config.toml"
+    config_bytes = config_path.read_bytes().replace(
+        b"max_concurrent_threads_per_session = 6",
+        b"max_concurrent_threads_per_session = 3",
+    )
+    config_path.write_bytes(config_bytes)
+    config = config_bytes.decode("utf-8")
+    config_start = config.index(CONFIG_BEGIN)
+    config_finish = config.index(CONFIG_END, config_start) + len(CONFIG_END)
+    if config_finish < len(config) and config[config_finish] == "\r":
+        config_finish += 1
+    if config_finish < len(config) and config[config_finish] == "\n":
+        config_finish += 1
+    manifest["owned_blocks"]["config.toml"]["sha256"] = hashlib.sha256(
+        config[config_start:config_finish].encode("utf-8")
+    ).hexdigest()
+    manifest["owned_skill_files"] = {
+        relative: digest
+        for relative, digest in manifest["owned_skill_files"].items()
+        if relative in {f"{name}/SKILL.md" for name in SCHEMA2_SKILL_FILES}
+    }
+    manifest_path.write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+
+
+def simulate_v414_managed_install(target: Path) -> None:
+    """Convert a current fake install into a manifest-owned v4.1.4 layout."""
+
+    agents_path = target / "AGENTS.md"
+    policy = agents_path.read_text(encoding="utf-8")
+    # Freeze a representative old owned policy instead of replacing phrases in
+    # the evolving current template (which can silently become a no-op).
+    payload_start = policy.index(AGENTS_BEGIN) + len(AGENTS_BEGIN)
+    payload_end = policy.index(AGENTS_END, payload_start)
+    policy = (
+        policy[:payload_start]
+        + "\n# Sol + Luna native delegation\n\n"
+        + "- Sol is the sole planner, orchestrator, ambiguity resolver, and final acceptance owner.\n"
+        + "- Luna executes bounded tasks and returns evidence to Sol.\n"
+        + policy[payload_end:]
+    )
+    agents_path.write_bytes(policy.encode("utf-8"))
+
+    manifest_path = target / MANIFEST_RELATIVE
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    for filename in STABLE_AGENT_FILES:
+        relative = f"agents/{filename}"
+        path = target / relative
+        payload = path.read_text(encoding="utf-8").replace(
+            "parent Coordinator", "parent Sol agent"
+        )
+        path.write_text(payload, encoding="utf-8")
+        manifest["owned_files"][relative] = hashlib.sha256(
+            path.read_bytes()
+        ).hexdigest()
+
+    selector_relative = "sol-luna-v4/selector.py"
+    selector_path = target / selector_relative
+    selector = selector_path.read_bytes().replace(
+        f"codex-sol-luna-worker/{VERSION.removeprefix('v')}".encode("ascii"),
+        b"codex-sol-luna-worker/4.1.4",
+    )
+    selector_path.write_bytes(selector)
+    manifest["owned_files"] = {
+        **{
+            f"agents/{filename}": hashlib.sha256(
+                (target / "agents" / filename).read_bytes()
+            ).hexdigest()
+            for filename in STABLE_AGENT_FILES
+        },
+        selector_relative: hashlib.sha256(selector).hexdigest(),
+    }
+
+    for filename in SOL_AGENT_FILES:
+        (target / "agents" / filename).unlink()
+    worker_module = target / "sol-luna-v4" / "worker_selector.py"
+    if worker_module.is_file():
+        worker_module.unlink()
+
+    block_start = policy.index(AGENTS_BEGIN)
+    block_finish = policy.index(AGENTS_END, block_start) + len(AGENTS_END)
+    if block_finish < len(policy) and policy[block_finish] == "\r":
+        block_finish += 1
+    if block_finish < len(policy) and policy[block_finish] == "\n":
+        block_finish += 1
+    manifest["owned_blocks"]["AGENTS.md"]["sha256"] = hashlib.sha256(
+        policy[block_start:block_finish].encode("utf-8")
+    ).hexdigest()
+    config_path = target / "config.toml"
+    config_bytes = config_path.read_bytes().replace(
+        b"max_concurrent_threads_per_session = 6",
+        b"max_concurrent_threads_per_session = 3",
+    )
+    config_path.write_bytes(config_bytes)
+    config = config_bytes.decode("utf-8")
+    config_start = config.index(CONFIG_BEGIN)
+    config_finish = config.index(CONFIG_END, config_start) + len(CONFIG_END)
+    if config_finish < len(config) and config[config_finish] == "\r":
+        config_finish += 1
+    if config_finish < len(config) and config[config_finish] == "\n":
+        config_finish += 1
+    manifest["owned_blocks"]["config.toml"]["sha256"] = hashlib.sha256(
+        config[config_start:config_finish].encode("utf-8")
+    ).hexdigest()
+
+    skills_root = target.parent / ".agents" / "skills"
+    for relative in manifest.get("owned_skill_files", {}):
+        path = skills_root.joinpath(*Path(relative).parts)
+        if path.is_file():
+            path.unlink()
+            path.parent.rmdir()
+    if skills_root.exists() and not any(skills_root.iterdir()):
+        skills_root.rmdir()
+    if skills_root.parent.exists() and not any(skills_root.parent.iterdir()):
+        skills_root.parent.rmdir()
+
+    manifest["schema_version"] = 1
+    manifest["version"] = "v4.1.4"
+    manifest["source_commit"] = "71894e2ef5007c9ba3e6f9d9efbf91cbdad302b4"
+    manifest.pop("skills_root", None)
+    manifest.pop("owned_skill_files", None)
     manifest_path.write_text(
         json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
@@ -242,6 +409,317 @@ def materialize_legacy_fixture(target: Path) -> dict:
 
 
 class InstallerLifecycleTests(unittest.TestCase):
+    def test_rollback_corrupt_late_backup_preserves_both_roots(self):
+        for backup_root_name in ("codex_home", "skills_root"):
+            for damage in ("hash", "missing"):
+                with self.subTest(root=backup_root_name, damage=damage), sandbox() as directory:
+                    target = Path(directory) / ".codex"
+                    write_text(target / "AGENTS.md", "user policy\n")
+                    write_text(target / "config.toml", 'user_setting = "keep"\n')
+                    installed = call_install(target)
+                    relative = "config.toml"
+                    if backup_root_name == "skills_root":
+                        relative = "sol-luna-upgrade/SKILL.md"
+                        skill = target.parent / ".agents" / "skills" / relative
+                        skill.write_bytes(skill.read_bytes() + b"\nprevious candidate\n")
+                        manifest_path = target / MANIFEST_RELATIVE
+                        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+                        manifest["owned_skill_files"][relative] = hashlib.sha256(
+                            skill.read_bytes()
+                        ).hexdigest()
+                        write_text(manifest_path, json.dumps(manifest))
+                        installed = call_install(target)
+                    backup = Path(installed["backup"])
+                    payload = backup / "files" / backup_root_name / relative
+                    if damage == "hash":
+                        payload.write_bytes(b"corrupt backup fixture\n")
+                    else:
+                        payload.unlink()
+                    before = installation_hash(target)
+                    with self.assertRaises(InstallerError) as raised:
+                        rollback(target, backup, project_root=ROOT, allow_validation_sandbox=True)
+                    self.assertEqual(raised.exception.reason_code, "BACKUP_INVALID")
+                    self.assertEqual(installation_hash(target), before)
+                    self.assertTrue(backup.is_dir())
+
+    def test_rollback_invalid_late_entry_preserves_both_roots(self):
+        for invalid_entry in (
+            {"root": "unknown", "path": "later", "existed": False},
+            {"root": "codex_home", "path": "../outside", "existed": False},
+            {"root": "codex_home", "path": "AGENTS.md", "existed": False},
+            {"root": "codex_home", "path": "later", "existed": "false"},
+            None,
+        ):
+            with self.subTest(entry=invalid_entry), sandbox() as directory:
+                target = Path(directory) / ".codex"
+                write_text(target / "AGENTS.md", "user policy\n")
+                installed = call_install(target)
+                backup = Path(installed["backup"])
+                snapshot_path = backup / "snapshot.json"
+                snapshot = json.loads(snapshot_path.read_text(encoding="utf-8"))
+                snapshot["entries"].append(invalid_entry)
+                write_text(snapshot_path, json.dumps(snapshot))
+                before = installation_hash(target)
+                with self.assertRaises(InstallerError) as raised:
+                    rollback(target, backup, project_root=ROOT, allow_validation_sandbox=True)
+                self.assertEqual(raised.exception.reason_code, "BACKUP_INVALID")
+                self.assertEqual(installation_hash(target), before)
+
+    def test_rollback_legacy_single_root_backup_remains_supported(self):
+        with sandbox() as directory:
+            target = Path(directory) / ".codex"
+            write_text(target / "AGENTS.md", "installed policy\n")
+            backup = target / "backups" / "sol-luna-v4" / "legacy-fixture"
+            original = b"original user policy\n"
+            (backup / "files").mkdir(parents=True)
+            (backup / "files" / "AGENTS.md").write_bytes(original)
+            write_text(backup / "snapshot.json", json.dumps({
+                "schema_version": 1,
+                "target_existed": True,
+                "entries": [{
+                    "path": "AGENTS.md",
+                    "existed": True,
+                    "sha256": hashlib.sha256(original).hexdigest(),
+                }],
+            }))
+            result = rollback(
+                target, backup, project_root=ROOT, allow_validation_sandbox=True
+            )
+            self.assertEqual(result["status"], "ROLLBACK_EXACT_PASS")
+            self.assertEqual((target / "AGENTS.md").read_bytes(), original)
+            self.assertFalse(backup.exists())
+
+    def test_schema3_invalid_skill_inventory_rejects_all_lifecycle_modes(self):
+        for damage in ("empty", "missing", "extra", "bad-hash"):
+            with self.subTest(damage=damage), sandbox() as directory:
+                target = Path(directory) / ".codex"
+                call_install(target)
+                manifest_path = target / MANIFEST_RELATIVE
+                manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+                owned = manifest["owned_skill_files"]
+                if damage == "empty":
+                    owned.clear()
+                elif damage == "missing":
+                    del owned["sol-luna-status/SKILL.md"]
+                elif damage == "extra":
+                    owned["user-skill/SKILL.md"] = "0" * 64
+                else:
+                    owned["sol-luna-status/SKILL.md"] = "invalid"
+                write_text(manifest_path, json.dumps(manifest))
+                before = installation_hash(target)
+                other_root = target.parent / "other-skills"
+                for action in (dry_run_install, install, uninstall):
+                    with self.subTest(action=action.__name__):
+                        with self.assertRaises(InstallerError) as raised:
+                            action(target, skills_root=other_root, project_root=ROOT,
+                                   allow_validation_sandbox=True)
+                        self.assertEqual(raised.exception.reason_code, "MANIFEST_INVALID")
+                        self.assertEqual(installation_hash(target), before)
+                        self.assertFalse(other_root.exists())
+
+    def test_schema2_keeps_exact_legacy_two_skill_inventory(self):
+        for damage in ("empty", "missing", "extra", "bad-hash"):
+            with self.subTest(damage=damage), sandbox() as directory:
+                target = Path(directory) / ".codex"
+                simulate_schema2_local1(target)
+                manifest_path = target / MANIFEST_RELATIVE
+                manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+                owned = manifest["owned_skill_files"]
+                if damage == "empty":
+                    owned.clear()
+                elif damage == "missing":
+                    del owned["sol-luna-status/SKILL.md"]
+                elif damage == "extra":
+                    owned["sol-luna-delegate/SKILL.md"] = "0" * 64
+                else:
+                    owned["sol-luna-status/SKILL.md"] = "invalid"
+                write_text(manifest_path, json.dumps(manifest))
+                before = installation_hash(target)
+                for action in (dry_run_install, install, uninstall):
+                    with self.subTest(action=action.__name__):
+                        with self.assertRaises(InstallerError) as raised:
+                            action(
+                                target,
+                                project_root=ROOT,
+                                allow_validation_sandbox=True,
+                            )
+                        self.assertEqual(
+                            raised.exception.reason_code, "MANIFEST_INVALID"
+                        )
+                        self.assertEqual(installation_hash(target), before)
+
+    def test_schema2_upgrade_preserves_daily_and_lkg_state_and_installs_v3(self):
+        with sandbox() as directory:
+            target = Path(directory) / ".codex"
+            simulate_schema2_local1(target)
+            state = target / "sol-luna-v4" / "state"
+            write_text(state / "daily-profile.json", '{"role":"luna_high"}\n')
+            write_text(state / "last-good-profile.json", '{"role":"luna_max"}\n')
+            state_before = {
+                path.name: path.read_bytes() for path in state.iterdir() if path.is_file()
+            }
+            old_manifest = json.loads(
+                (target / MANIFEST_RELATIVE).read_text(encoding="utf-8")
+            )
+            self.assertEqual(old_manifest["schema_version"], 2)
+            self.assertEqual(
+                set(old_manifest["owned_skill_files"]),
+                {f"{name}/SKILL.md" for name in SCHEMA2_SKILL_FILES},
+            )
+            before = installation_hash(target)
+            dry = dry_run_install(
+                target,
+                generated_at=FIXED_TIME + timedelta(days=1),
+                allow_validation_sandbox=True,
+            )
+            self.assertEqual(dry["status"], "DRY_RUN_PASS")
+            self.assertEqual(installation_hash(target), before)
+
+            upgraded = call_install(target, generated_at=FIXED_TIME + timedelta(days=1))
+            self.assertEqual(upgraded["status"], "UPGRADED")
+            manifest = json.loads(
+                (target / MANIFEST_RELATIVE).read_text(encoding="utf-8")
+            )
+            self.assertEqual(manifest["schema_version"], 3)
+            self.assertEqual(
+                {path for path in manifest["owned_files"] if path.startswith("agents/")},
+                {f"agents/{filename}" for filename in AGENT_FILES},
+            )
+            self.assertEqual(len(manifest["owned_skill_files"]), 3)
+            self.assertTrue((target / "sol-luna-v4" / "worker_selector.py").is_file())
+            self.assertTrue(
+                (target.parent / ".agents" / "skills" / "sol-luna-delegate" / "SKILL.md").is_file()
+            )
+            self.assertEqual(
+                {
+                    path.name: path.read_bytes()
+                    for path in state.iterdir()
+                    if path.is_file()
+                },
+                state_before,
+            )
+
+            rollback(
+                target,
+                Path(upgraded["backup"]),
+                project_root=ROOT,
+                allow_validation_sandbox=True,
+            )
+            restored = json.loads(
+                (target / MANIFEST_RELATIVE).read_text(encoding="utf-8")
+            )
+            self.assertEqual(restored["schema_version"], 2)
+            self.assertEqual(installation_hash(target), before)
+
+    def test_schema3_inventory_or_module_corruption_has_no_partial_mutation(self):
+        for damage in (
+            "missing-agent",
+            "extra-agent",
+            "missing-module",
+            "bad-agent-hash",
+            "missing-skill",
+            "modified-module",
+        ):
+            with self.subTest(damage=damage), sandbox() as directory:
+                target = Path(directory) / ".codex"
+                installed = call_install(target)
+                backup = Path(installed["backup"])
+                backup_before = tree_hash(backup)
+                manifest_path = target / MANIFEST_RELATIVE
+                manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+                expected_reason = "MANIFEST_INVALID"
+                if damage == "missing-agent":
+                    del manifest["owned_files"]["agents/sol-low.toml"]
+                elif damage == "extra-agent":
+                    manifest["owned_files"]["agents/user.toml"] = "0" * 64
+                elif damage == "missing-module":
+                    del manifest["owned_files"]["sol-luna-v4/worker_selector.py"]
+                elif damage == "bad-agent-hash":
+                    manifest["owned_files"]["agents/sol-low.toml"] = "invalid"
+                elif damage == "missing-skill":
+                    del manifest["owned_skill_files"]["sol-luna-delegate/SKILL.md"]
+                else:
+                    expected_reason = "OWNERSHIP_CONFLICT"
+                    module = target / "sol-luna-v4" / "worker_selector.py"
+                    module.write_bytes(module.read_bytes() + b"\n# altered\n")
+                if damage != "modified-module":
+                    write_text(manifest_path, json.dumps(manifest))
+                before = installation_hash(target)
+                for action in (dry_run_install, install, uninstall, rollback):
+                    with self.subTest(action=action.__name__):
+                        with self.assertRaises(InstallerError) as raised:
+                            if action is rollback:
+                                action(
+                                    target,
+                                    backup,
+                                    project_root=ROOT,
+                                    allow_validation_sandbox=True,
+                                )
+                            else:
+                                action(
+                                    target,
+                                    project_root=ROOT,
+                                    allow_validation_sandbox=True,
+                                )
+                        self.assertEqual(raised.exception.reason_code, expected_reason)
+                        self.assertEqual(installation_hash(target), before)
+                        self.assertEqual(tree_hash(backup), backup_before)
+
+    def test_skill_root_and_parent_creation_ownership_survives_lifecycle(self):
+        for root_existed, parent_existed in ((False, False), (False, True), (True, True)):
+            for action in ("rollback", "uninstall"):
+                with self.subTest(root=root_existed, parent=parent_existed, action=action), sandbox() as directory:
+                    target = Path(directory) / ".codex"
+                    skills_root = target.parent / ".agents" / "skills"
+                    if parent_existed:
+                        skills_root.parent.mkdir()
+                    if root_existed:
+                        skills_root.mkdir()
+                    installed = call_install(target)
+                    self.assertEqual(call_install(target)["status"], "IDEMPOTENT_PASS")
+                    if action == "rollback":
+                        rollback(target, Path(installed["backup"]), project_root=ROOT,
+                                 allow_validation_sandbox=True)
+                    else:
+                        uninstall(target, project_root=ROOT, allow_validation_sandbox=True)
+                    self.assertEqual(skills_root.exists(), root_existed)
+                    self.assertEqual(skills_root.parent.exists(), parent_existed)
+
+    def test_older_schema2_without_directory_ownership_preserves_empty_roots(self):
+        with sandbox() as directory:
+            target = Path(directory) / ".codex"
+            simulate_schema2_local1(target)
+            manifest_path = target / MANIFEST_RELATIVE
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest.pop("skill_root_created", None)
+            manifest.pop("skill_parent_created", None)
+            write_text(manifest_path, json.dumps(manifest))
+            call_install(target)
+            uninstall(target, project_root=ROOT, allow_validation_sandbox=True)
+            self.assertTrue((target.parent / ".agents" / "skills").is_dir())
+
+    def test_uninstall_codex_phase_failure_restores_completed_skill_phase(self):
+        with sandbox() as directory:
+            target = Path(directory) / ".codex"
+            call_install(target)
+            before = installation_hash(target)
+            original = installer_module._apply_operations
+            skills_root = target.parent / ".agents" / "skills"
+            observed = []
+
+            def fail_codex_phase(managed_root, operations):
+                if managed_root == target:
+                    observed.append(not any(skills_root.rglob("SKILL.md")))
+                    raise InstallerError("OWNERSHIP_CONFLICT", "forced codex phase failure")
+                original(managed_root, operations)
+
+            with patch("scripts.install._apply_operations", side_effect=fail_codex_phase):
+                with self.assertRaises(InstallerError) as raised:
+                    uninstall(target, project_root=ROOT, allow_validation_sandbox=True)
+            self.assertEqual(observed, [True])
+            self.assertEqual(raised.exception.reason_code, "OWNERSHIP_CONFLICT")
+            self.assertEqual(installation_hash(target), before)
+
     def test_clean_install_installs_only_native_v4_artifacts(self):
         with sandbox() as directory:
             target = Path(directory) / ".codex"
@@ -252,31 +730,54 @@ class InstallerLifecycleTests(unittest.TestCase):
             self.assertGreater(result["effective_changes"], 0)
             self.assertEqual(
                 {path.name for path in (target / "agents").glob("*.toml")},
-                set(STABLE_AGENT_FILES),
+                set(AGENT_FILES),
             )
             for path in (target / "agents").glob("*.toml"):
                 with path.open("rb") as handle:
                     agent = tomllib.load(handle)
-                self.assertEqual(agent["model"], "gpt-5.6-luna")
+                self.assertEqual(
+                    agent["model"],
+                    "gpt-5.6-sol" if path.name.startswith("sol-") else "gpt-5.6-luna",
+                )
                 self.assertFalse(agent["agents"]["enabled"])
             installed_policy = (target / "AGENTS.md").read_text(encoding="utf-8")
+            skills_root = target.parent / ".agents" / "skills"
+            status_skill = (skills_root / "sol-luna-status" / "SKILL.md").read_text(
+                encoding="utf-8"
+            )
             self.assertIn(AGENTS_BEGIN, installed_policy)
-            self.assertIn(str(target.resolve()), installed_policy)
-            self.assertIn("--ensure-daily --print-selection", installed_policy)
-            self.assertIn("--status-json", installed_policy)
-            self.assertNotIn("<CODEX_HOME>", installed_policy)
+            self.assertNotIn(str(target.resolve()), installed_policy)
+            self.assertIn("sol-luna-delegate", installed_policy)
+            self.assertNotIn("--ensure-daily", installed_policy)
+            self.assertNotIn("--print-selection", installed_policy)
+            self.assertNotIn("--status-json", installed_policy)
+            self.assertIn("--status-json", status_skill)
+            self.assertNotIn("<STATUS_COMMAND>", status_skill)
+            delegate_skill = (
+                skills_root / "sol-luna-delegate" / "SKILL.md"
+            ).read_text(encoding="utf-8")
+            self.assertIn("--workers", delegate_skill)
+            self.assertIn(str(target.resolve()), delegate_skill)
+            self.assertNotIn("<SELECTOR_COMMAND>", delegate_skill)
             self.assertNotIn(".var", installed_policy)
             self.assertIn(
                 CONFIG_BEGIN, (target / "config.toml").read_text(encoding="utf-8")
             )
             self.assertTrue((target / "sol-luna-v4" / "selector.py").is_file())
+            self.assertTrue((target / "sol-luna-v4" / "worker_selector.py").is_file())
             self.assertTrue((target / MANIFEST_RELATIVE).is_file())
             manifest = json.loads(
                 (target / MANIFEST_RELATIVE).read_text(encoding="utf-8")
             )
-            self.assertEqual(manifest["schema_version"], 1)
+            self.assertEqual(manifest["schema_version"], 3)
             self.assertEqual(manifest["version"], VERSION)
-            self.assertEqual(len(manifest["owned_files"]), 6)
+            self.assertEqual(len(manifest["owned_files"]), 12)
+            self.assertEqual(
+                {path for path in manifest["owned_files"] if path.startswith("agents/")},
+                {f"agents/{filename}" for filename in AGENT_FILES},
+            )
+            self.assertEqual(len(manifest["owned_skill_files"]), 3)
+            self.assertEqual(Path(manifest["skills_root"]), skills_root.resolve())
             self.assertEqual(set(manifest["owned_blocks"]), {"AGENTS.md", "config.toml"})
             self.assertNotIn("installation_id", manifest)
             self.assertTrue(Path(result["backup"]).is_dir())
@@ -311,7 +812,7 @@ class InstallerLifecycleTests(unittest.TestCase):
             self.assertEqual(config["mcp_servers"]["user"]["command"], "user-tool")
             self.assertEqual(config["agents"]["user_option"], "keep")
             self.assertTrue(config["agents"]["enabled"])
-            self.assertEqual(config["agents"]["max_concurrent_threads_per_session"], 3)
+            self.assertEqual(config["agents"]["max_concurrent_threads_per_session"], 6)
             self.assertTrue(
                 (target / "AGENTS.md")
                 .read_text(encoding="utf-8")
@@ -339,13 +840,13 @@ class InstallerLifecycleTests(unittest.TestCase):
             target = Path(directory) / ".codex"
             target.mkdir()
             call_install(target)
-            before = tree_hash(target)
+            before = installation_hash(target)
             backups_before = list((target / "backups" / "sol-luna-v4").iterdir())
             second = call_install(target)
             self.assertEqual(second["status"], "IDEMPOTENT_PASS")
             self.assertEqual(second["effective_changes"], 0)
             self.assertEqual(second["backup"], None)
-            self.assertEqual(tree_hash(target), before)
+            self.assertEqual(installation_hash(target), before)
             self.assertEqual(
                 len(list((target / "backups" / "sol-luna-v4").iterdir())),
                 len(backups_before),
@@ -386,6 +887,43 @@ class InstallerLifecycleTests(unittest.TestCase):
             call_install(target)
             manifest_path = target / MANIFEST_RELATIVE
             manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            skills_root = Path(manifest["skills_root"])
+            for relative in manifest["owned_skill_files"]:
+                skill = skills_root.joinpath(*Path(relative).parts)
+                skill.unlink()
+                skill.parent.rmdir()
+            if skills_root.exists() and not any(skills_root.iterdir()):
+                skills_root.rmdir()
+            if skills_root.parent.exists() and not any(skills_root.parent.iterdir()):
+                skills_root.parent.rmdir()
+            for filename in SOL_AGENT_FILES:
+                (target / "agents" / filename).unlink()
+            worker_module = target / "sol-luna-v4" / "worker_selector.py"
+            worker_module.unlink()
+            selector_relative = "sol-luna-v4/selector.py"
+            selector_path = target / selector_relative
+            selector = (
+                b"# simulated manifest-owned v4.0 payload\n"
+                + selector_path.read_bytes()
+            )
+            selector_path.write_bytes(selector)
+            manifest["schema_version"] = 1
+            manifest["owned_files"] = {
+                **{
+                    f"agents/{filename}": hashlib.sha256(
+                        (target / "agents" / filename).read_bytes()
+                    ).hexdigest()
+                    for filename in STABLE_AGENT_FILES
+                },
+                selector_relative: hashlib.sha256(selector).hexdigest(),
+            }
+            for key in (
+                "owned_skill_files",
+                "skills_root",
+                "skill_root_created",
+                "skill_parent_created",
+            ):
+                manifest.pop(key, None)
             for filename in STABLE_AGENT_FILES:
                 path = target / "agents" / filename
                 prototype = path.read_text(encoding="utf-8").replace(
@@ -563,7 +1101,7 @@ class InstallerLifecycleTests(unittest.TestCase):
                 (target / MANIFEST_RELATIVE).read_text(encoding="utf-8")
             )
             self.assertEqual(manifest["version"], VERSION)
-            self.assertEqual(manifest["schema_version"], 1)
+            self.assertEqual(manifest["schema_version"], 3)
             self.assertEqual(manifest["source_commit"], "b" * 40)
             self.assertEqual(
                 {
@@ -765,35 +1303,34 @@ class InstallerLifecycleTests(unittest.TestCase):
             self.assertEqual(tree_hash(target), before)
             self.assertEqual(manifest_path.read_bytes(), rc6_manifest_before)
 
-    def test_v413_to_v414_candidate_upgrades_selector_and_manifest(self):
+    def test_v414_to_v420_local2_adds_workers_skills_module_and_policy(self):
         with sandbox() as directory:
             target = Path(directory) / ".codex"
             target.mkdir()
             call_install(target)
+            simulate_v414_managed_install(target)
 
             manifest_path = target / MANIFEST_RELATIVE
             selector_relative = "sol-luna-v4/selector.py"
             selector_path = target / selector_relative
             v414_selector = selector_path.read_bytes()
-            v413_selector = v414_selector.replace(
-                b"codex-sol-luna-worker/4.1.4",
-                b"codex-sol-luna-worker/4.1.3",
-            )
-            self.assertNotEqual(v413_selector, v414_selector)
-            selector_path.write_bytes(v413_selector)
-
-            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-            manifest["version"] = "v4.1.3"
-            manifest["source_commit"] = "71894e2ef5007c9ba3e6f9d9efbf91cbdad302b4"
-            manifest["owned_files"][selector_relative] = hashlib.sha256(
-                v413_selector
-            ).hexdigest()
-            manifest_path.write_text(
-                json.dumps(manifest, indent=2, sort_keys=True) + "\n",
-                encoding="utf-8",
-            )
-            v413_manifest_before = manifest_path.read_bytes()
-            before = tree_hash(target)
+            v414_manifest_before = manifest_path.read_bytes()
+            before = installation_hash(target)
+            skill_paths = {
+                "skills:sol-luna-status/SKILL.md",
+                "skills:sol-luna-upgrade/SKILL.md",
+                "skills:sol-luna-delegate/SKILL.md",
+            }
+            modified_paths = {
+                "AGENTS.md",
+                "config.toml",
+                MANIFEST_RELATIVE.as_posix(),
+                selector_relative,
+            } | {f"agents/{filename}" for filename in STABLE_AGENT_FILES}
+            created_paths = skill_paths | {
+                "sol-luna-v4/worker_selector.py",
+                *(f"agents/{filename}" for filename in SOL_AGENT_FILES),
+            }
 
             dry = dry_run_install(
                 target,
@@ -803,15 +1340,12 @@ class InstallerLifecycleTests(unittest.TestCase):
                 source_commit="2" * 40,
             )
             self.assertEqual(dry["status"], "DRY_RUN_PASS")
-            self.assertEqual(dry["effective_changes"], 2)
-            self.assertEqual(dry["created"], [])
-            self.assertEqual(
-                set(dry["modified"]),
-                {MANIFEST_RELATIVE.as_posix(), selector_relative},
-            )
+            self.assertEqual(dry["effective_changes"], 18)
+            self.assertEqual(set(dry["created"]), created_paths)
+            self.assertEqual(set(dry["modified"]), modified_paths)
             self.assertEqual(dry["removed"], [])
             self.assertIsNone(dry["backup"])
-            self.assertEqual(tree_hash(target), before)
+            self.assertEqual(installation_hash(target), before)
 
             upgraded = call_install(
                 target,
@@ -819,27 +1353,43 @@ class InstallerLifecycleTests(unittest.TestCase):
                 source_commit="2" * 40,
             )
             self.assertEqual(upgraded["status"], "UPGRADED")
-            self.assertEqual(upgraded["effective_changes"], 2)
-            self.assertEqual(upgraded["created"], [])
-            self.assertEqual(
-                set(upgraded["modified"]),
-                {MANIFEST_RELATIVE.as_posix(), selector_relative},
-            )
+            self.assertEqual(upgraded["effective_changes"], 18)
+            self.assertEqual(set(upgraded["created"]), created_paths)
+            self.assertEqual(set(upgraded["modified"]), modified_paths)
             self.assertEqual(upgraded["removed"], [])
             backup = Path(upgraded["backup"])
+            expected_entries = {
+                ("codex_home", path)
+                for path in (
+                    modified_paths
+                    | {
+                        path
+                        for path in created_paths
+                        if not path.startswith("skills:")
+                    }
+                )
+            } | {
+                ("skills_root", path.removeprefix("skills:"))
+                for path in skill_paths
+            }
             self.assertEqual(
                 {
-                    entry["path"]
+                    (entry["root"], entry["path"])
                     for entry in json.loads(
                         (backup / "snapshot.json").read_text(encoding="utf-8")
                     )["entries"]
                 },
-                {MANIFEST_RELATIVE.as_posix(), selector_relative},
+                expected_entries,
             )
             installed = json.loads(manifest_path.read_text(encoding="utf-8"))
             self.assertEqual(installed["version"], VERSION)
+            self.assertEqual(installed["schema_version"], 3)
             self.assertEqual(installed["source_commit"], "2" * 40)
-            self.assertEqual(selector_path.read_bytes(), v414_selector)
+            self.assertNotEqual(selector_path.read_bytes(), v414_selector)
+            self.assertIn(
+                f"codex-sol-luna-worker/{VERSION.removeprefix('v')}".encode("ascii"),
+                selector_path.read_bytes(),
+            )
 
             second = call_install(
                 target, generated_at=FIXED_TIME + timedelta(days=2)
@@ -855,37 +1405,20 @@ class InstallerLifecycleTests(unittest.TestCase):
                 allow_validation_sandbox=True,
             )
             self.assertEqual(rolled_back["status"], "ROLLBACK_EXACT_PASS")
-            self.assertEqual(tree_hash(target), before)
-            self.assertEqual(manifest_path.read_bytes(), v413_manifest_before)
-            self.assertEqual(selector_path.read_bytes(), v413_selector)
+            self.assertEqual(installation_hash(target), before)
+            self.assertEqual(manifest_path.read_bytes(), v414_manifest_before)
+            self.assertEqual(selector_path.read_bytes(), v414_selector)
 
-    def test_v413_modified_selector_blocks_v414_upgrade_without_changes(self):
+    def test_v414_modified_selector_blocks_v420_upgrade_without_changes(self):
         with sandbox() as directory:
             target = Path(directory) / ".codex"
             target.mkdir()
             call_install(target)
+            simulate_v414_managed_install(target)
 
-            manifest_path = target / MANIFEST_RELATIVE
-            selector_relative = "sol-luna-v4/selector.py"
-            selector_path = target / selector_relative
-            v413_selector = selector_path.read_bytes().replace(
-                b"codex-sol-luna-worker/4.1.4",
-                b"codex-sol-luna-worker/4.1.3",
-            )
-            selector_path.write_bytes(v413_selector)
-            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-            manifest["version"] = "v4.1.3"
-            manifest["source_commit"] = "71894e2ef5007c9ba3e6f9d9efbf91cbdad302b4"
-            manifest["owned_files"][selector_relative] = hashlib.sha256(
-                v413_selector
-            ).hexdigest()
-            manifest_path.write_text(
-                json.dumps(manifest, indent=2, sort_keys=True) + "\n",
-                encoding="utf-8",
-            )
-
-            selector_path.write_bytes(v413_selector + b"\n# user change\n")
-            before = tree_hash(target)
+            selector_path = target / "sol-luna-v4" / "selector.py"
+            selector_path.write_bytes(selector_path.read_bytes() + b"\n# user change\n")
+            before = installation_hash(target)
             for action in ("dry-run", "apply"):
                 with self.subTest(action=action):
                     with self.assertRaises(InstallerError) as raised:
@@ -905,7 +1438,7 @@ class InstallerLifecycleTests(unittest.TestCase):
                         raised.exception.reason_code,
                         "OWNERSHIP_CONFLICT",
                     )
-                    self.assertEqual(tree_hash(target), before)
+                    self.assertEqual(installation_hash(target), before)
 
     def test_rc6_modified_owned_file_blocks_stable_upgrade_without_changes(self):
         with sandbox() as directory:
@@ -970,7 +1503,7 @@ class InstallerLifecycleTests(unittest.TestCase):
             policy = target / "AGENTS.md"
             policy.write_text(
                 policy.read_text(encoding="utf-8").replace(
-                    "Sol is the sole planner", "User changed the owned policy"
+                    "Legacy RC4 receipt:", "User changed the Legacy RC4 receipt:"
                 ),
                 encoding="utf-8",
             )
@@ -1025,7 +1558,7 @@ class InstallerLifecycleTests(unittest.TestCase):
 
             upgraded_policy = (target / "AGENTS.md").read_text(encoding="utf-8")
             self.assertTrue(upgraded_policy.startswith("User policy remains.\n"))
-            self.assertIn("## Delegation Receipt", upgraded_policy)
+            self.assertIn("## Receipts", upgraded_policy)
             self.assertEqual(
                 json.loads(
                     (target / MANIFEST_RELATIVE).read_text(encoding="utf-8")
@@ -1081,8 +1614,8 @@ class InstallerLifecycleTests(unittest.TestCase):
             agents_path = target / "AGENTS.md"
             agents_path.write_text(
                 agents_path.read_text(encoding="utf-8").replace(
-                    "Sol is the sole planner",
-                    "User changed the owned policy; Sol is the sole planner",
+                    "- The root `Coordinator` is model-agnostic",
+                    "- User changed the owned policy; the root `Coordinator` is model-agnostic",
                 ),
                 encoding="utf-8",
             )
@@ -1138,15 +1671,15 @@ class InstallerLifecycleTests(unittest.TestCase):
             self.assertIn(MANIFEST_RELATIVE.as_posix(), backed)
 
             upgraded_policy = (target / "AGENTS.md").read_text(encoding="utf-8")
-            self.assertIn("`LUNA_UNAVAILABLE` is evidence-gated", upgraded_policy)
             self.assertIn(
-                "current-task parent-visible availability failure evidence",
+                "only after current-task selection/agent/spawn failure",
                 upgraded_policy,
             )
+            self.assertIn("No derived savings", upgraded_policy)
             manifest = json.loads(
                 (target / MANIFEST_RELATIVE).read_text(encoding="utf-8")
             )
-            self.assertEqual(manifest["schema_version"], 1)
+            self.assertEqual(manifest["schema_version"], 3)
             self.assertEqual(manifest["version"], VERSION)
             self.assertEqual(
                 (target / "sol-luna-v4" / "selector.py").read_bytes(),
@@ -1197,8 +1730,8 @@ class InstallerLifecycleTests(unittest.TestCase):
             agents_path = target / "AGENTS.md"
             agents_path.write_text(
                 agents_path.read_text(encoding="utf-8").replace(
-                    "Sol is the sole planner",
-                    "User changed the owned policy; Sol is the sole planner",
+                    "- The root `Coordinator` is model-agnostic",
+                    "- User changed the owned policy; the root `Coordinator` is model-agnostic",
                 ),
                 encoding="utf-8",
             )
@@ -1309,6 +1842,7 @@ class InstallerLifecycleTests(unittest.TestCase):
     def test_precommit_failpoints_restore_exact_tree(self):
         points = (
             "after_agent_install",
+            "after_skill_install",
             "after_config_merge",
             "after_hook_removal",
             "after_old_file_deletion",
@@ -1322,7 +1856,7 @@ class InstallerLifecycleTests(unittest.TestCase):
                     target / "sol-luna-router" / "audit-bundles" / "evidence.txt",
                     "preserve\n",
                 )
-                before = tree_hash(target)
+                before = installation_hash(target)
 
                 def failpoint(name, expected=point):
                     if name == expected:
@@ -1332,7 +1866,7 @@ class InstallerLifecycleTests(unittest.TestCase):
                 with self.assertRaises(InstallerError) as raised:
                     call_install(target, migrate_legacy=True, failpoint=failpoint)
                 self.assertEqual(raised.exception.reason_code, "APPLY_FAILED")
-                self.assertEqual(tree_hash(target), before)
+                self.assertEqual(installation_hash(target), before)
 
     def test_manifest_is_last_then_legacy_cleanup_is_postcommit(self):
         with sandbox() as directory:
@@ -1356,6 +1890,7 @@ class InstallerLifecycleTests(unittest.TestCase):
                 observed,
                 [
                     "after_agent_install",
+                    "after_skill_install",
                     "after_config_merge",
                     "after_hook_removal",
                     "after_old_file_deletion",
@@ -1415,6 +1950,38 @@ class InstallerLifecycleTests(unittest.TestCase):
             self.assertEqual(raised.exception.reason_code, "OWNERSHIP_CONFLICT")
             self.assertEqual(tree_hash(target), before)
 
+    def test_new_agent_module_and_third_skill_collisions_do_not_write(self):
+        for collision in ("sol-agent", "worker-module", "delegate-skill"):
+            with self.subTest(collision=collision), sandbox() as directory:
+                target = Path(directory) / ".codex"
+                skills_root = target.parent / ".agents" / "skills"
+                if collision == "sol-agent":
+                    write_text(target / "agents" / "sol-low.toml", "user agent\n")
+                elif collision == "worker-module":
+                    write_text(
+                        target / "sol-luna-v4" / "worker_selector.py",
+                        "user module\n",
+                    )
+                else:
+                    write_text(
+                        skills_root / "sol-luna-delegate" / "SKILL.md",
+                        "user skill\n",
+                    )
+                before = installation_hash(target)
+                for action in (dry_run_install, install):
+                    with self.subTest(action=action.__name__):
+                        with self.assertRaises(InstallerError) as raised:
+                            action(
+                                target,
+                                project_root=ROOT,
+                                allow_validation_sandbox=True,
+                            )
+                        self.assertEqual(
+                            raised.exception.reason_code, "OWNERSHIP_CONFLICT"
+                        )
+                        self.assertEqual(installation_hash(target), before)
+                        self.assertFalse((target / "backups").exists())
+
     def test_corrupt_agents_marker_fails_closed(self):
         with sandbox() as directory:
             target = Path(directory) / ".codex"
@@ -1434,6 +2001,40 @@ class InstallerLifecycleTests(unittest.TestCase):
                 call_install(target)
             self.assertEqual(raised.exception.reason_code, "CONFIG_MERGE_UNSAFE")
             self.assertEqual(tree_hash(target), before)
+
+    def test_unsupported_manifest_schema_fails_closed_without_changes(self):
+        with sandbox() as directory:
+            target = Path(directory) / ".codex"
+            target.mkdir()
+            call_install(target)
+            manifest_path = target / MANIFEST_RELATIVE
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest["schema_version"] = 99
+            manifest_path.write_text(
+                json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
+            before = installation_hash(target)
+
+            actions = (
+                lambda: dry_run_install(
+                    target,
+                    project_root=ROOT,
+                    allow_validation_sandbox=True,
+                ),
+                lambda: call_install(target),
+                lambda: uninstall(
+                    target,
+                    project_root=ROOT,
+                    allow_validation_sandbox=True,
+                ),
+            )
+            for action in actions:
+                with self.subTest(action=action):
+                    with self.assertRaises(InstallerError) as raised:
+                        action()
+                    self.assertEqual(raised.exception.reason_code, "MANIFEST_INVALID")
+                    self.assertEqual(installation_hash(target), before)
 
     def test_missing_manifest_blocks_uninstall(self):
         with sandbox() as directory:
@@ -1466,7 +2067,9 @@ class InstallerLifecycleTests(unittest.TestCase):
         with sandbox() as directory:
             target = Path(directory) / ".codex"
             write_text(target / "user" / "state.txt", "preserve exactly\n")
-            before = tree_hash(target)
+            user_skill = target.parent / ".agents" / "skills" / "user-skill" / "SKILL.md"
+            write_text(user_skill, "user skill stays\n")
+            before = installation_hash(target)
             installed = call_install(target)
             restored = rollback(
                 target,
@@ -1475,7 +2078,8 @@ class InstallerLifecycleTests(unittest.TestCase):
                 allow_validation_sandbox=True,
             )
             self.assertEqual(restored["status"], "ROLLBACK_EXACT_PASS")
-            self.assertEqual(tree_hash(target), before)
+            self.assertEqual(installation_hash(target), before)
+            self.assertEqual(user_skill.read_text(encoding="utf-8"), "user skill stays\n")
 
     def test_uninstall_removes_owned_content_and_preserves_user_content(self):
         with sandbox() as directory:
@@ -1486,6 +2090,8 @@ class InstallerLifecycleTests(unittest.TestCase):
             write_text(target / "AGENTS.md", original_agents)
             write_text(target / "agents" / "user-agent.toml", 'name = "user_agent"\n')
             write_text(target / "runtime" / "user-state.json", "{}\n")
+            user_skill = target.parent / ".agents" / "skills" / "user-skill" / "SKILL.md"
+            write_text(user_skill, "user skill stays\n")
             call_install(target)
 
             result = uninstall(
@@ -1495,9 +2101,10 @@ class InstallerLifecycleTests(unittest.TestCase):
                 allow_validation_sandbox=True,
             )
             self.assertEqual(result["status"], "UNINSTALLED")
-            for filename in STABLE_AGENT_FILES:
+            for filename in AGENT_FILES:
                 self.assertFalse((target / "agents" / filename).exists())
             self.assertFalse((target / "sol-luna-v4" / "selector.py").exists())
+            self.assertFalse((target / "sol-luna-v4" / "worker_selector.py").exists())
             self.assertFalse((target / MANIFEST_RELATIVE).exists())
             self.assertEqual(
                 (target / "config.toml").read_text(encoding="utf-8"), original_config
@@ -1507,6 +2114,80 @@ class InstallerLifecycleTests(unittest.TestCase):
             )
             self.assertTrue((target / "agents" / "user-agent.toml").is_file())
             self.assertTrue((target / "runtime" / "user-state.json").is_file())
+            self.assertEqual(user_skill.read_text(encoding="utf-8"), "user skill stays\n")
+            self.assertFalse(
+                (user_skill.parents[1] / "sol-luna-status" / "SKILL.md").exists()
+            )
+            self.assertFalse(
+                (user_skill.parents[1] / "sol-luna-upgrade" / "SKILL.md").exists()
+            )
+            self.assertFalse(
+                (user_skill.parents[1] / "sol-luna-delegate" / "SKILL.md").exists()
+            )
+
+    def test_modified_managed_skill_blocks_upgrade_and_uninstall(self):
+        with sandbox() as directory:
+            target = Path(directory) / ".codex"
+            target.mkdir()
+            call_install(target)
+            skill = (
+                target.parent
+                / ".agents"
+                / "skills"
+                / "sol-luna-status"
+                / "SKILL.md"
+            )
+            skill.write_bytes(skill.read_bytes() + b"\nuser change\n")
+            before = installation_hash(target)
+
+            actions = (
+                lambda: dry_run_install(
+                    target,
+                    project_root=ROOT,
+                    allow_validation_sandbox=True,
+                ),
+                lambda: call_install(target),
+                lambda: uninstall(
+                    target,
+                    project_root=ROOT,
+                    allow_validation_sandbox=True,
+                ),
+            )
+            for action in actions:
+                with self.subTest(action=action):
+                    with self.assertRaises(InstallerError) as raised:
+                        action()
+                    self.assertEqual(raised.exception.reason_code, "OWNERSHIP_CONFLICT")
+                    self.assertEqual(installation_hash(target), before)
+
+    def test_recorded_skill_root_mismatch_fails_closed(self):
+        with sandbox() as directory:
+            target = Path(directory) / ".codex"
+            target.mkdir()
+            call_install(target)
+            wrong_root = target.parent / ".agents-other" / "skills"
+            before = installation_hash(target)
+
+            actions = (
+                lambda: dry_run_install(
+                    target,
+                    skills_root=wrong_root,
+                    project_root=ROOT,
+                    allow_validation_sandbox=True,
+                ),
+                lambda: uninstall(
+                    target,
+                    skills_root=wrong_root,
+                    project_root=ROOT,
+                    allow_validation_sandbox=True,
+                ),
+            )
+            for action in actions:
+                with self.subTest(action=action):
+                    with self.assertRaises(InstallerError) as raised:
+                        action()
+                    self.assertEqual(raised.exception.reason_code, "SKILLS_ROOT_MISMATCH")
+                    self.assertEqual(installation_hash(target), before)
 
     def test_uninstall_preserves_modified_owned_file_by_failing_closed(self):
         with sandbox() as directory:
@@ -1524,7 +2205,7 @@ class InstallerLifecycleTests(unittest.TestCase):
             target = Path(directory) / ".codex"
             target.mkdir()
             call_install(target)
-            before = tree_hash(target)
+            before = installation_hash(target)
 
             with patch(
                 "scripts.install._verify_backup",
@@ -1534,14 +2215,14 @@ class InstallerLifecycleTests(unittest.TestCase):
                     uninstall(target, project_root=ROOT, allow_validation_sandbox=True)
 
             self.assertEqual(raised.exception.reason_code, "BACKUP_FAILED")
-            self.assertEqual(tree_hash(target), before)
+            self.assertEqual(installation_hash(target), before)
 
     def test_uninstall_installer_error_after_partial_apply_rolls_back_exact_tree(self):
         with sandbox() as directory:
             target = Path(directory) / ".codex"
             target.mkdir()
             call_install(target)
-            before = tree_hash(target)
+            before = installation_hash(target)
             original_apply_operations = installer_module._apply_operations
             failed = False
 
@@ -1561,17 +2242,20 @@ class InstallerLifecycleTests(unittest.TestCase):
 
             self.assertTrue(failed)
             self.assertEqual(raised.exception.reason_code, "OWNERSHIP_CONFLICT")
-            self.assertEqual(tree_hash(target), before)
+            self.assertEqual(installation_hash(target), before)
 
     def test_cli_apply_and_second_run_use_validation_sandbox_only(self):
         with sandbox() as directory:
             target = Path(directory) / ".codex"
+            skills_root = target.parent / ".agents" / "skills"
             command = [
                 sys.executable,
                 str(ROOT / "scripts" / "install.py"),
                 "--apply",
                 "--codex-home",
                 str(target),
+                "--skills-root",
+                str(skills_root),
                 "--validation-sandbox",
             ]
             first = subprocess.run(command, cwd=ROOT, capture_output=True, text=True)
@@ -1586,6 +2270,7 @@ class InstallerLifecycleTests(unittest.TestCase):
     def test_cli_migrates_fake_legacy_32_without_creating_state(self):
         with sandbox() as directory:
             target = Path(directory) / ".codex"
+            skills_root = target.parent / ".agents" / "skills"
             materialize_legacy_fixture(target)
             command = [
                 sys.executable,
@@ -1594,6 +2279,8 @@ class InstallerLifecycleTests(unittest.TestCase):
                 "--migrate-v3",
                 "--codex-home",
                 str(target),
+                "--skills-root",
+                str(skills_root),
                 "--validation-sandbox",
             ]
             completed = subprocess.run(

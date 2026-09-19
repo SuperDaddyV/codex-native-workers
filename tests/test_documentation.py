@@ -6,6 +6,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 README = ROOT / "README.md"
 README_ZH = ROOT / "README.zh-CN.md"
+PREVIEW = ROOT / "NATIVE_WORKERS_PREVIEW.md"
 ASSIST = ROOT / "CODEX_SOL_LUNA_INSTALL_ASSIST.md"
 ASSIST_ZH = ROOT / "CODEX_SOL_LUNA_INSTALL_ASSIST.zh-CN.md"
 SETUP = ROOT / "CODEX_SOL_LUNA_SETUP.md"
@@ -31,6 +32,7 @@ ISSUE_FORMS = {
 PUBLIC_DOCS = (
     README,
     README_ZH,
+    PREVIEW,
     ASSIST,
     ASSIST_ZH,
     SETUP,
@@ -127,10 +129,11 @@ class DocumentationTests(unittest.TestCase):
                 README,
                 (
                     "What it is",
-                    "How Sol and Luna work together",
+                    "v4.2.0-rc1 preview",
+                    "How Coordinator and workers collaborate",
                     "Core value",
                     "Requirements",
-                    "Install with Codex",
+                    "Stable installation (default)",
                     "Daily use",
                     "Confirm it is working",
                     "Upgrade, rollback, and uninstall",
@@ -143,10 +146,11 @@ class DocumentationTests(unittest.TestCase):
                 README_ZH,
                 (
                     "这是什么",
-                    "Sol 与 Luna 如何协作",
+                    "v4.2.0-rc1 预览版",
+                    "Coordinator 与 worker 如何协作",
                     "核心价值",
                     "系统要求",
-                    "使用 Codex 安装",
+                    "Stable 安装（默认）",
                     "日常使用",
                     "如何确认生效",
                     "升级、回滚与卸载",
@@ -165,50 +169,183 @@ class DocumentationTests(unittest.TestCase):
                 re.findall(r"(?m)^## (.+)$", content),
                 list(headings),
             )
-            self.assertGreaterEqual(len(content.splitlines()), 120)
-            self.assertLessEqual(len(content.splitlines()), 180)
+            self.assertGreaterEqual(len(content.splitlines()), 180)
+            self.assertLessEqual(len(content.splitlines()), 260)
             self.assertEqual(content.count("> [!WARNING]"), 1)
             self.assertNotIn("historical_preview", content)
 
-    def test_readmes_explain_delegation_parallelism_and_user_receipts(self):
+    def test_readmes_explain_native_worker_routing_parallelism_and_receipts(self):
         english = text(README)
         chinese = text(README_ZH)
 
         for content in (english, chinese):
+            self.assertTrue(content.startswith("# Codex Native Workers\n"))
             self.assertEqual(content.count("```mermaid"), 1)
             self.assertIn("flowchart TD", content)
             self.assertIn("Task Contract", content)
             self.assertIn("Daily Selector", content)
             self.assertIn("`ultra`", content)
-            self.assertIn("Sol/Luna: delegated · luna_high ×2 · parallel", content)
-            self.assertIn("Sol/Luna: Sol-only · task too small", content)
             self.assertIn(
-                "Sol/Luna: Sol-only · no independent bounded work", content
+                "Coordinator/Workers: delegated · sol_high ×1", content
             )
+            self.assertIn(
+                "Coordinator/Workers: delegated · luna_high ×2 · parallel",
+                content,
+            )
+            self.assertIn(
+                "Coordinator/Workers: Coordinator-only · too small", content
+            )
+            self.assertIn(
+                "Coordinator/Workers: Coordinator-only · no independent work",
+                content,
+            )
+            self.assertNotIn("Sol/Luna: delegated", content)
+            self.assertNotIn("Sol/Luna: Sol-only", content)
+            self.assertIn("[agents] enabled = false", content)
+            self.assertIn("0–3", content)
+            self.assertIn("4–6", content)
 
         for phrase in (
-            "Luna does not take over the whole task",
+            "user-selected **Coordinator**",
+            "Astra is one Coordinator example",
+            "Sol handles difficult bounded execution",
+            "Luna handles clear bounded execution",
+            "independent bounded task is worthwhile",
+            "There is no fixed Sol quota",
             "**Parallel:**",
             "**Sequential:**",
-            "**Sol-only:**",
-            "There is no magic keyword",
-            "which Luna effort to use today",
+            "**Coordinator-only:**",
             "share the current workspace",
-            "cannot create more subagents",
-            "Luna never uses `ultra`",
+            "configuration alone is not runtime enforcement",
+            "do not use `ultra`",
         ):
             self.assertIn(phrase, english)
 
         for phrase in (
-            "Luna 不会接管整个任务",
+            "用户选择的 **Coordinator**",
+            "Astra 只是 Coordinator 的一个示例",
+            "Sol 执行复杂的边界任务",
+            "Luna 执行清楚的边界任务",
+            "值得执行的独立边界任务",
+            "Sol 没有固定配额",
             "**并行：**",
             "**串行：**",
-            "**Sol-only：**",
-            "没有必须使用的“魔法关键词”",
-            "今天使用哪一档 Luna effort",
+            "**Coordinator-only：**",
             "共享当前工作区",
-            "不能继续创建子代理",
-            "Luna 永远不使用 `ultra`",
+            "配置本身不等于 runtime enforcement",
+            "不使用 `ultra`",
+        ):
+            self.assertIn(phrase, chinese)
+
+    def test_rc1_preview_contract_is_prominent_bilingual_and_fail_closed(self):
+        english = text(README)
+        chinese = text(README_ZH)
+        preview = text(PREVIEW)
+        release_url = (
+            "https://github.com/SuperDaddyV/codex-sol-luna-worker/"
+            "releases/tag/v4.2.0-rc1"
+        )
+
+        for content in (english, chinese):
+            self.assertIn("Preview target", content)
+            self.assertIn(release_url, content)
+            self.assertGreaterEqual(content.count("NATIVE_WORKERS_PREVIEW.md"), 3)
+            self.assertIn("40-hex commit", content)
+            self.assertIn("detached checkout", content)
+            self.assertIn("sol-luna-upgrade", content)
+            self.assertNotIn("<PREVIEW", content)
+            self.assertNotIn("<RC1", content)
+
+        for phrase in (
+            "non-draft GitHub Prerelease",
+            "published Release",
+            "read the remote tag again",
+            "moving branch",
+            "Strong recursive isolation therefore remains unsupported",
+            "does not claim that the preview Release is already published",
+        ):
+            self.assertIn(phrase, english)
+        for phrase in (
+            "已发布、非 draft 的 GitHub Prerelease",
+            "再次读取远端 tag",
+            "可变分支",
+            "宿主强制阻止 worker 递归委派",
+            "不声称预览版 Release 已经发布",
+        ):
+            self.assertIn(phrase, chinese)
+
+        for content, start, end in (
+            (
+                english,
+                "## v4.2.0-rc1 preview",
+                "## How Coordinator and workers collaborate",
+            ),
+            (
+                chinese,
+                "## v4.2.0-rc1 预览版",
+                "## Coordinator 与 worker 如何协作",
+            ),
+        ):
+            section = content[content.index(start) : content.index(end)]
+            self.assertNotRegex(section, r"\b[0-9a-f]{40}\b")
+            self.assertNotRegex(section, r"\b20\d{2}-\d{2}-\d{2}\b")
+            self.assertNotRegex(section, r"<[^>]*(?:SHA|COMMIT|DATE)[^>]*>")
+
+        for content in (
+            preview,
+            text(ROOT / "ARCHITECTURE.md"),
+            text(ROOT / "CHANGELOG.md"),
+            text(ROOT / "RUNTIME_TESTS.md"),
+        ):
+            self.assertIn("v4.2.0-rc1", content)
+        security = text(ROOT / "SECURITY.md")
+        self.assertIn("Codex Native Workers v4.2 preview scope", security)
+        self.assertIn("Strict recursive isolation is unsupported", security)
+        self.assertIn("published, non-draft GitHub", preview)
+        self.assertIn("TAG_MOVED", preview)
+        self.assertIn("Strong prevention of recursive worker delegation", preview)
+
+    def test_readmes_bound_preview_capabilities_and_reference_claims(self):
+        english = text(README)
+        chinese = text(README_ZH)
+
+        for content in (english, chinese):
+            self.assertIn("0.155.0-alpha.9.2", content)
+            self.assertIn("[agents] enabled = false", content)
+            self.assertIn("benchmark reference data", content)
+            self.assertIn("reference_only", content)
+            self.assertIn("quality-only", content)
+            self.assertIn("**FAIL**", content)
+            self.assertIn("**UNKNOWN**", content)
+            self.assertIn("**NOT RUN**", content)
+            self.assertIn("2 KiB", content)
+            for skill_name in (
+                "sol-luna-delegate",
+                "sol-luna-status",
+                "sol-luna-upgrade",
+            ):
+                self.assertIn(skill_name, content)
+
+        for phrase in (
+            "Three-worker overlap has been observed",
+            "configured maximum of six is unverified",
+            "recorded before an rc1 installation",
+            "FAIL** for Sol tool visibility",
+            "UNKNOWN** for the Luna tool report",
+            "NOT RUN** for nested invocation",
+            "without a Hook Router or custom orchestration engine",
+            "never a billing or quota-savings claim",
+        ):
+            self.assertIn(phrase, english)
+        for phrase in (
+            "已观察到三个 worker 重叠执行",
+            "配置上限六个尚未验证",
+            "记录于 rc1 安装前",
+            "Sol tool visibility 为 **FAIL**",
+            "Luna tool report 为 **UNKNOWN**",
+            "nested invocation 为 **NOT RUN**",
+            "不需要 Hook Router 或自建编排引擎",
+            "绝不据此声称实际账单或额度节省",
         ):
             self.assertIn(phrase, chinese)
 
@@ -940,10 +1077,19 @@ class DocumentationTests(unittest.TestCase):
         self.assertEqual(chinese.count("检查 Sol/Luna 状态"), 1)
         for content in (english, chinese):
             self.assertIn("Status Healthy", content)
+            self.assertIn("diagnostic schema 4", content)
+            self.assertIn("Agents 10/10 Ready", content)
+            self.assertIn("Skills 3/3 Ready", content)
             self.assertIn("Agents 5/5 Ready", content)
-            self.assertIn("Native leaf Ready", content)
+            self.assertNotIn("Native leaf Ready", content)
+            self.assertIn("leaf_config Ready", content)
+            self.assertIn("tool isolation", content)
+            self.assertIn("invocation", content)
+            self.assertIn("Luna-only", content)
             self.assertIn("RUNTIME_TESTS.md", content)
-        self.assertIn("Receipt text is not runtime attestation", architecture)
+        self.assertIn("Diagnostic schema 4", architecture)
+        self.assertIn("native_tool_isolation", architecture)
+        self.assertIn("leaf_config=Ready", security)
         self.assertIn("adds no selector or network call", security)
 
     def test_setup_execution_urls_are_coordinated_and_immutable_when_pinned(self):
@@ -986,7 +1132,14 @@ class DocumentationTests(unittest.TestCase):
         )
 
     def test_all_local_documentation_links_exist(self):
-        for document in (README, README_ZH, ASSIST, SETUP, ROOT / "SECURITY.md"):
+        for document in (
+            README,
+            README_ZH,
+            PREVIEW,
+            ASSIST,
+            SETUP,
+            ROOT / "SECURITY.md",
+        ):
             for target in local_markdown_targets(text(document)):
                 with self.subTest(document=document.name, target=target):
                     self.assertTrue((document.parent / target).exists())

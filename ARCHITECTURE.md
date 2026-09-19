@@ -1,4 +1,45 @@
-# v4.1.4 Stable Architecture Note
+# Codex Native Workers Architecture
+
+## v4.2.0-rc1 preview contract
+
+Codex Native Workers manages native Sol/Luna profiles, task routing, daily
+reference selection and safe installation. The user selects the Coordinator;
+Astra is one supported usage, not an installer-owned setting. The old repository
+slug, runtime directories, Skill names and managed markers remain compatibility
+identifiers. This package is not a custom orchestration engine or a security
+boundary around the Codex host.
+
+After planning, the Coordinator delegates worthwhile independent bounded work:
+Sol for difficult diagnosis or cross-module execution, Luna for clear routine
+work. Scope, ambiguity, architecture and final acceptance remain with the
+Coordinator. Workers must not delegate. Profiles continue to request
+`agents.enabled=false`; this is configuration intent, not verified enforcement.
+
+The preview's core release checks cover source/lifecycle integrity, validated
+selection, exact model/effort, useful direct Sol/Luna work, disjoint mixed work
+and Coordinator verification. Tool visibility, invocation guards and maximum
+observed concurrency are separate host capabilities. Strict prevention of
+recursive delegation is unsupported until independently verified. The prior
+leaf FAIL remains a failure; changing the product scope does not resolve it.
+
+Diagnostic schema 4 reports `leaf_config` separately from `native_delegation`,
+`native_tool_isolation`, `native_delegation_guard` and `runtime_max_parallel`.
+The read-only status reader has no native evidence collector: these runtime
+fields stay `Not checked`, even when configuration is Ready. Observations in
+RUNTIME_TESTS.md are scenario-specific and are not silently cached as current
+runtime facts. Historical schemas keep their interpretation and integrity checks.
+
+Normal delegation uses 0–3 workers; up to six is configured, not certified. More
+workers require independent scopes and actual host capacity. Daily selection,
+reference-route validation, quality/cost rules and strict transaction/rollback
+ownership remain unchanged from local.2. The Global managed block stays within
+2 KiB; conditional behavior lives in the three Skills.
+
+See [preview installation](NATIVE_WORKERS_PREVIEW.md) and
+[runtime acceptance](RUNTIME_TESTS.md). The following Stable and local-candidate
+sections retain their historical scope; they do not override this preview contract.
+
+## v4.1.4 Stable Architecture Note (historical baseline)
 
 `v4.1.4` is the current Stable release and default installation target.
 Stable runtime Source Commit A is
@@ -30,6 +71,101 @@ an older historical Preview.
 Status: `v4.1.4 — CURRENT STABLE RELEASE / DEFAULT INSTALLATION TARGET`; `v4.1.3 — PREVIOUS IMMUTABLE STABLE`
 
 The documented-environment RC5 O1-O10 record remains bounded historical evidence; its Final O4/O9 re-certification was not obtained due to `CODEX_ROLLOUT_EVIDENCE_COMPATIBILITY`, with no confirmed product-runtime regression. RC6 independently passed its recorded real Global upgrade, fresh-task O1-O10 acceptance, Final O4/O9 re-certification, and Runtime Cases A/B/C/D in one native Windows Codex environment before the Stable transition. The v4.1.2 transaction then upgraded that baseline while preserving the accepted selector, policy, agent, and configuration content outside the declared installer-owned changes. After explicit Daily selection initialization, an independent one-run fresh-task compatibility smoke passed all seven recorded checks and final Compatibility against the observed installed product runtime. This evidence remains environment- and scenario-bounded. RC4 remains historical release evidence for Receipt reason evidence-gating.
+
+## Active unpublished local.2 integration
+
+`v4.2.0-local.2` combines the local.1 repairs with two Worker families. The root
+remains user-selected (Astra in the approved usage); no installer or daily selector
+changes its model or effort. Five `sol_*` and five `luna_*` native profiles pin
+model/effort and disable child delegation. The desired capacity is six direct
+Workers, normally zero to three; actual host capacity and independent ready work
+limit execution. No Sol quota or recursive delegation tree is introduced.
+
+The Global block is a short trigger/authority/receipt policy, budgeted at 2 KiB.
+`sol-luna-delegate` contains selection, task-contract and concurrency procedures;
+status and upgrade remain separate, conditional Skills. Skill metadata and agent
+descriptions still consume discovery context; byte reduction is not measured
+quota savings. The repository AGENTS file contains development deltas only.
+
+`selector.py --workers --ensure-daily --print-selection` shares a public JSON
+refresh and returns schema-2 Worker choices in `worker-profile.json`, caching
+validated family snapshots in `worker-last-good.json`. Legacy daily/LKG files and
+the Luna-only CLI are preserved. One failed family does not disable the other.
+Each workflow pins its selection; valid same-day results avoid per-child fetches.
+
+Sol evaluates five efforts using a versioned two-point quality band. Complete,
+comparable cost chooses the minimum within that band; missing cost selects by
+quality instead. Overall, backend, frontend and reasoning views retain separate
+source identities. Never combine an axis score with an unrelated aggregate cost.
+The `reasoning` view uses the published `knowledgeScore` as a proxy; it is not a
+separately measured reasoning benchmark or evidence of architecture competence.
+Luna's existing backend winner and lower-effort tie break are unchanged. Neither
+score nor increased reasoning effort proves task acceptance.
+
+Reference policy version 1 separates public benchmark identity from native
+execution identity. The Worker entry point accepts only the explicit benchmark
+pairs `codex/official_login` and `cloudflare-reference/custom_endpoint`, preserves
+the actual pair, and labels published evidence `reference_only`. It chooses one
+coherent pair per family and never combines efforts across routes. Native profiles
+still pin the Sol/Luna model and effort; public scores do not attest native runtime
+availability, equivalent performance, local billing or quota.
+
+Complete backend data is resolved through the publication index for the API's
+exact batch, matching protocol, pricing, hash, row count and scores. A missing
+archive or mismatch leaves valid API scores in quality-only mode. Per-result
+evidence IDs remain distinct; shared batch/protocol establishes comparison scope.
+Other views require their own valid axis evidence. Cached cost metadata is
+revalidated, and each family has its own LKG. The legacy Luna-only CLI retains its
+strict official-route adapter and selection algorithm; it does not silently opt
+into reference-route selection. Earlier Worker daily caches without the current
+reference policy version are reselected.
+
+Manifest schema 3 owns ten agents, three Skills and the shared selection module.
+Schema 2 retains its strict historical two-Skill contract during upgrade and
+rollback; backup schema and Worker-profile schema are separate version domains.
+Native model/leaf/mixed/six-child verification is a separate acceptance gate.
+The legacy compatibility smoke must not pass the new architecture solely because
+one Luna child ran. No release or installed-runtime claim accompanies this source.
+
+## Historical unpublished local.1 candidate
+
+The working tree contains an unpublished `v4.2.0-local.1` candidate. Its root
+role is the model-agnostic `Coordinator`; `Sol` remains only the current product
+and receipt compatibility name, so a future coordinator model does not require
+another architecture rewrite. Luna remains the bounded native-leaf Worker.
+
+Low-frequency status/diagnostic and release-upgrade procedures move from the
+always-loaded Global policy into the user Skills `sol-luna-status` and
+`sol-luna-upgrade`. The installer owns those two `SKILL.md` files through a
+manifest-schema-2, two-root transaction spanning `CODEX_HOME` and the explicit
+user Skill root. Unrelated Skills remain outside ownership. The published
+v4.1.4 evidence and release boundary below remain historical and unchanged;
+the repaired candidate has no GitHub publication, real Global apply, or
+post-repair fresh-task runtime claim.
+
+The 2026-09-07 local repairs retain manifest schema 2. Its Skill ownership must
+contain exactly the two expected files with valid hashes, and its recorded root
+must match the explicit root. `skill_root_created` and `skill_parent_created`
+record directory creation ownership across repeated installs and upgrades;
+older schema-2 manifests without those flags conservatively preserve empty
+roots. Backup snapshots also record whether the Skill parent existed.
+
+Rollback accepts legacy single-root and current two-root backups, but validates
+every entry, root, destination, and payload hash before changing either root.
+Validated payload bytes are retained for restoration. Invalid or unreadable
+backup content therefore leaves both target roots unchanged.
+
+Compatibility smoke continues accepting diagnostic schema 1. Schema 2 can
+pass only with a complete, well-typed `Skills 2/2 Ready` inventory, including
+otherwise accepted degradation or project override states. The status Skill
+preserves the reader's health when today's selection is not initialized;
+uninitialized selection alone must not mask an installation error.
+
+```text
+Current root model -> Coordinator role -> Daily Selector
+  -> native Luna Worker / selected effort -> native leaf
+  -> Coordinator acceptance -> Sol/Luna compatibility receipt
+```
 
 ## v4.1.4 Stable boundary
 

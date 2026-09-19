@@ -36,6 +36,26 @@ HEALTHY_SELECTOR = {
     "selected_effort": "max",
 }
 
+SCHEMA4_SELECTOR = {
+    "diagnostic_schema_version": 4,
+    "health": "Healthy",
+    "reason_codes": ["OK"],
+    "selection_initialized": True,
+    "selected_role": "luna_max",
+    "selected_effort": "max",
+    "skills_ready": 3,
+    "skills_expected": 3,
+    "skills_status": "Ready",
+    "agents_ready": 10,
+    "agents_expected": 10,
+    "max_parallel": 6,
+    "leaf_config": "Ready",
+    "native_delegation": "Not checked",
+    "native_tool_isolation": "Not checked",
+    "native_delegation_guard": "Not checked",
+    "runtime_max_parallel": "Not checked",
+}
+
 
 class CompatibilitySmokeTests(unittest.TestCase):
     def run_report(
@@ -134,6 +154,38 @@ class CompatibilitySmokeTests(unittest.TestCase):
         self.assertEqual(report.compatibility, smoke.REVIEW)
         self.assertEqual(report.capability.status, smoke.REVIEW)
         self.assertIn("unsupported efforts: xhigh", report.render())
+
+    def test_schema4_core_preview_does_not_infer_or_require_host_capabilities(self):
+        report = self.run_report(
+            selector=smoke.SelectorObservation(
+                smoke.CheckResult(smoke.PASS), dict(SCHEMA4_SELECTOR)
+            ),
+            capability=smoke.CheckResult(
+                smoke.REVIEW,
+                reason="Direct CLI capability is unmeasured",
+                evidence=("not native Worker evidence",),
+            ),
+            delegation=smoke.CheckResult(
+                smoke.REVIEW,
+                reason="Native delegation is not checked",
+                evidence=("no host isolation claim",),
+            ),
+        )
+
+        self.assertTrue(report.preview_core)
+        self.assertEqual(report.compatibility, smoke.PASS)
+        self.assertEqual(report.capability.status, smoke.REVIEW)
+        self.assertEqual(report.delegation.status, smoke.REVIEW)
+        rendered = report.render()
+        self.assertIn(
+            "Scope: schema-4 core configuration/integrity; host capability "
+            "checks are reported separately",
+            rendered,
+        )
+        self.assertIn("Legacy Luna-only delegation: REVIEW REQUIRED", rendered)
+        self.assertIn("Core preview compatibility:\nPASS", rendered)
+        self.assertNotIn("mixed-family: PASS", rendered)
+        self.assertNotIn("tool isolation: PASS", rendered)
 
     def test_selector_failure_requires_review(self):
         report = self.run_report(
@@ -295,6 +347,156 @@ class CompatibilitySmokeTests(unittest.TestCase):
 
         self.assertEqual(observation.result.status, smoke.PASS)
         self.assertEqual(observation.payload, payload)
+
+    def test_schema3_inventory_is_strict_and_not_native_attestation(self):
+        payload = {
+            "diagnostic_schema_version": 3, "health": "Healthy", "reason_codes": ["OK"],
+            "selection_initialized": True, "selected_role": "luna_max", "selected_effort": "max",
+            "skills_ready": 3, "skills_expected": 3, "skills_status": "Ready",
+            "agents_ready": 10, "agents_expected": 10, "max_parallel": 6, "native_leaf": "Ready",
+        }
+        self.assertEqual(self.selector_observation(payload).result.status, smoke.PASS)
+        for key, wrong in (("agents_ready", 5), ("skills_expected", 2), ("max_parallel", 3), ("agents_expected", True)):
+            changed = dict(payload)
+            changed[key] = wrong
+            self.assertEqual(self.selector_observation(changed).result.status, smoke.REVIEW)
+        result = smoke._check_delegation(codex_command="unused", codex_home=Path("unused"), selector_payload=payload, timeout=1)
+        self.assertEqual(result.status, smoke.REVIEW)
+        self.assertIn("native", result.reason)
+
+    def test_schema4_configuration_is_strict_and_runtime_stays_unmeasured(self):
+        observation = self.selector_observation(dict(SCHEMA4_SELECTOR))
+        self.assertEqual(observation.result.status, smoke.PASS)
+
+        for field in (
+            "leaf_config",
+            "native_delegation",
+            "native_tool_isolation",
+            "native_delegation_guard",
+            "runtime_max_parallel",
+        ):
+            with self.subTest(missing=field):
+                payload = dict(SCHEMA4_SELECTOR)
+                del payload[field]
+                self.assertEqual(
+                    self.selector_observation(payload).result.status, smoke.REVIEW
+                )
+
+        invalid = {
+            "leaf_config": ["Ready"],
+            "native_delegation": "Ready",
+            "native_tool_isolation": False,
+            "native_delegation_guard": "FAIL",
+            "runtime_max_parallel": 6,
+            "max_parallel": True,
+        }
+        for field, value in invalid.items():
+            with self.subTest(field=field, value=value):
+                payload = {**SCHEMA4_SELECTOR, field: value}
+                self.assertEqual(
+                    self.selector_observation(payload).result.status, smoke.REVIEW
+                )
+
+        for legacy_field in ("native_leaf", "native_runtime"):
+            with self.subTest(legacy_field=legacy_field):
+                payload = {**SCHEMA4_SELECTOR, legacy_field: "Ready"}
+                self.assertEqual(
+                    self.selector_observation(payload).result.status, smoke.REVIEW
+                )
+
+        result = smoke._check_delegation(
+            codex_command="unused",
+            codex_home=Path("unused"),
+            selector_payload=SCHEMA4_SELECTOR,
+            timeout=1,
+        )
+        self.assertEqual(result.status, smoke.REVIEW)
+        self.assertIn("does not prove Sol", result.evidence[0])
+        self.assertIn("host capacity", result.evidence[0])
+
+    def test_unsupported_diagnostic_schema_fails_closed(self):
+        for value in (5, True, "4", [4], None):
+            with self.subTest(value=value):
+                payload = {**SCHEMA4_SELECTOR, "diagnostic_schema_version": value}
+                self.assertEqual(
+                    self.selector_observation(payload).result.status, smoke.REVIEW
+                )
+
+    def test_selector_schema2_requires_skill_inventory(self):
+        payload = {
+            "diagnostic_schema_version": 2,
+            "health": "Healthy",
+            "reason_codes": ["OK"],
+            "selection_initialized": True,
+            "selected_role": "luna_max",
+            "selected_effort": "max",
+            "skills_ready": 2,
+            "skills_expected": 2,
+            "skills_status": "Ready",
+        }
+        self.assertEqual(self.selector_observation(payload).result.status, smoke.PASS)
+
+        payload.pop("skills_status")
+        observation = self.selector_observation(payload)
+        self.assertEqual(observation.result.status, smoke.REVIEW)
+        self.assertEqual(observation.result.targeted_review, "selector status")
+
+    def test_selector_schema2_missing_skills_cannot_pass_healthy_status(self):
+        payload = {
+            "diagnostic_schema_version": 2,
+            "health": "Healthy",
+            "reason_codes": ["OK"],
+            "selection_initialized": True,
+            "selected_role": "luna_max",
+            "selected_effort": "max",
+            "skills_ready": 0,
+            "skills_expected": 2,
+            "skills_status": "Missing",
+        }
+
+        observation = self.selector_observation(payload)
+
+        self.assertEqual(observation.result.status, smoke.REVIEW)
+        self.assertEqual(observation.result.targeted_review, "selector status")
+
+    def test_schema2_skill_inventory_consistency_for_each_accepted_health(self):
+        for health, reasons, initialized in (
+            ("Healthy", ["OK"], True),
+            ("Healthy", ["TODAY_SELECTION_NOT_INITIALIZED"], False),
+            ("Degraded", ["LKG_FALLBACK_ACTIVE"], True),
+            ("Misconfigured", ["PROJECT_OVERRIDE_PRESENT"], True),
+        ):
+            valid = {
+                "diagnostic_schema_version": 2,
+                "health": health,
+                "reason_codes": reasons,
+                "selection_initialized": initialized,
+                "selected_role": "luna_max",
+                "selected_effort": "max",
+                "skills_ready": 2,
+                "skills_expected": 2,
+                "skills_status": "Ready",
+            }
+            with self.subTest(health=health, initialized=initialized):
+                self.assertEqual(self.selector_observation(valid).result.status, smoke.PASS)
+            for field, values in (
+                ("skills_ready", (-1, 0, 1, 3, True, 2.0, "2", None)),
+                ("skills_expected", (0, 1, 3, True, 2.0, "2", None)),
+                ("skills_status", ("Missing", "Invalid", "Ownership mismatch",
+                                   ["Ready"], {"value": "Ready"}, True, None)),
+            ):
+                for value in values:
+                    with self.subTest(health=health, field=field, value=value):
+                        payload = {**valid, field: value}
+                        self.assertEqual(
+                            self.selector_observation(payload).result.status, smoke.REVIEW
+                        )
+                with self.subTest(health=health, missing=field):
+                    payload = dict(valid)
+                    del payload[field]
+                    self.assertEqual(
+                        self.selector_observation(payload).result.status, smoke.REVIEW
+                    )
 
     def test_selector_process_uses_minimal_local_environment(self):
         payload = {
@@ -466,6 +668,20 @@ class CompatibilitySmokeTests(unittest.TestCase):
         )
         self.assertNotIn("UNRELATED_SENTINEL_SECRET", environment)
 
+    def test_legacy_delegation_prompt_has_bounded_non_attestation_scope(self):
+        prompt = smoke._delegation_prompt(
+            "luna_max",
+            "max",
+            "Legacy Luna-only smoke: delegated · luna_max ×1",
+        )
+
+        self.assertIn("exactly one direct Luna child", prompt)
+        self.assertIn("does not attest Sol", prompt)
+        self.assertIn("mixed-family execution", prompt)
+        self.assertIn("tool isolation", prompt)
+        self.assertIn("delegation guards", prompt)
+        self.assertIn("host capacity", prompt)
+
     def test_delegation_invalid_child_configuration_requires_review(self):
         with tempfile.TemporaryDirectory() as temporary:
             codex_home = Path(temporary)
@@ -552,7 +768,7 @@ class CompatibilitySmokeTests(unittest.TestCase):
                 before_rollouts=set(),
                 expected_role="luna_max",
                 expected_effort="max",
-                expected_receipt="Sol/Luna: delegated · luna_max ×1",
+                expected_receipt="Legacy Luna-only smoke: delegated · luna_max ×1",
                 timeout=20,
             )
 
@@ -602,12 +818,16 @@ class CompatibilitySmokeTests(unittest.TestCase):
             lines,
             [
                 "Sol/Luna Compatibility Smoke",
+                (
+                    "Scope: bounded legacy Luna checks; no Sol, mixed-family, "
+                    "tool-isolation, delegation-guard, or host-capacity attestation"
+                ),
                 "Codex Desktop: desktop fixture",
                 "Codex CLI: codex-cli fixture",
                 "CLI: PASS",
-                "Luna capability: PASS",
+                "Legacy direct Luna CLI capability: PASS",
                 "Selector: PASS",
-                "Delegation: PASS",
+                "Legacy Luna-only delegation: PASS",
                 "Protected state: PASS",
                 "Runtime contract: PASS",
                 "Compatibility:",
@@ -631,17 +851,19 @@ class CompatibilitySmokeTests(unittest.TestCase):
         self.assertIn("--codex-home", command)
         self.assertIn("--state-dir", command)
 
-    def test_documentation_prioritizes_smoke_after_codex_update(self):
+    def test_documentation_bounds_legacy_smoke_and_routes_preview_to_runtime_checks(self):
         english = (ROOT / "README.md").read_text(encoding="utf-8")
         chinese = (ROOT / "README.zh-CN.md").read_text(encoding="utf-8")
 
         for content in (english, chinese):
-            self.assertIn("Codex Compatibility Smoke", content)
-            self.assertIn("scripts/compatibility_smoke.py", content)
-            self.assertIn("REVIEW REQUIRED", content)
+            self.assertIn("RUNTIME_TESTS.md", content)
             self.assertNotIn("O1–O10", content)
-        self.assertIn("no project change", english)
-        self.assertIn("无需修改项目", chinese)
+        self.assertIn(
+            "historical compatibility smoke exercises Luna-only behavior", english
+        )
+        self.assertIn("not acceptance of the two-family v4.2 preview", english)
+        self.assertIn("历史 compatibility smoke 只覆盖 Luna-only 行为", chinese)
+        self.assertIn("不是双 family v4.2 预览版的验收", chinese)
 
 
 if __name__ == "__main__":

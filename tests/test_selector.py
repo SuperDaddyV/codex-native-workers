@@ -76,7 +76,9 @@ DIAGNOSTIC_KEYS = {
     "selector_status",
     "agents_ready",
     "agents_expected",
-    "native_leaf",
+    "skills_ready",
+    "skills_expected",
+    "skills_status",
     "config_status",
     "max_parallel",
     "today_bjt",
@@ -433,7 +435,7 @@ class ModelDialFullSnapshotCostTests(unittest.TestCase):
 
 class SelectorTests(unittest.TestCase):
     def test_modeldial_request_uses_current_user_agent(self):
-        self.assertEqual(USER_AGENT, "codex-sol-luna-worker/4.1.4")
+        self.assertEqual(USER_AGENT, "codex-sol-luna-worker/4.2.0-rc1")
         response = MagicMock()
         response.__enter__.return_value = response
         response.__exit__.return_value = None
@@ -1103,6 +1105,25 @@ class StatusAndDiagnosticTests(unittest.TestCase):
                 (ROOT / "src" / "selector.py").read_text(encoding="utf-8"),
             )
 
+    def test_status_uninitialized_preserves_misconfigured_health(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / ".codex"
+            materialize_fake_global(target)
+            skill = (
+                target.parent
+                / ".agents"
+                / "skills"
+                / "sol-luna-status"
+                / "SKILL.md"
+            )
+            skill.unlink()
+
+            status = self.status(target)
+
+            self.assertFalse(status["selection_initialized"])
+            self.assertEqual(status["health"], "Misconfigured")
+            self.assertIn("SKILL_SET_INCOMPLETE", status["reason_codes"])
+
     def test_status_healthy_is_read_only(self):
         with tempfile.TemporaryDirectory() as directory:
             target = Path(directory) / ".codex"
@@ -1123,7 +1144,52 @@ class StatusAndDiagnosticTests(unittest.TestCase):
             self.assertEqual(status["health"], "Healthy")
             self.assertEqual(status["reason_codes"], ["OK"])
             self.assertTrue(status["selection_initialized"])
+            self.assertEqual(status["skills_ready"], 3)
+            self.assertEqual(status["skills_expected"], 3)
+            self.assertEqual(status["skills_status"], "Ready")
             self.assertEqual(tree_inventory(target), before)
+
+    def test_status_missing_managed_skill_is_misconfigured(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / ".codex"
+            materialize_fake_global(target)
+            skill = (
+                target.parent
+                / ".agents"
+                / "skills"
+                / "sol-luna-status"
+                / "SKILL.md"
+            )
+            skill.unlink()
+
+            status = self.status(target)
+
+            self.assertEqual(status["health"], "Misconfigured")
+            self.assertIn("SKILL_SET_INCOMPLETE", status["reason_codes"])
+            self.assertEqual(status["skills_ready"], 2)
+            self.assertEqual(status["skills_expected"], 3)
+            self.assertEqual(status["skills_status"], "Missing")
+
+    def test_status_modified_managed_skill_is_misconfigured(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / ".codex"
+            materialize_fake_global(target)
+            skill = (
+                target.parent
+                / ".agents"
+                / "skills"
+                / "sol-luna-upgrade"
+                / "SKILL.md"
+            )
+            skill.write_bytes(skill.read_bytes() + b"\nuser change\n")
+
+            status = self.status(target)
+
+            self.assertEqual(status["health"], "Misconfigured")
+            self.assertIn("SKILL_OWNERSHIP_MISMATCH", status["reason_codes"])
+            self.assertEqual(status["skills_ready"], 2)
+            self.assertEqual(status["skills_expected"], 3)
+            self.assertEqual(status["skills_status"], "Ownership mismatch")
 
     def test_status_invalid_today_profile_is_unavailable(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -1286,6 +1352,10 @@ class StatusAndDiagnosticTests(unittest.TestCase):
             status = self.status(target, state)
             self.assertEqual(status["health"], "Misconfigured")
             self.assertEqual(status["reason_codes"][0], "MANIFEST_MISSING")
+            self.assertEqual(status["diagnostic_schema_version"], 2)
+            self.assertIn("native_leaf", status)
+            self.assertNotIn("leaf_config", status)
+            self.assertNotIn("native_delegation", status)
 
     def test_status_reader_failure_is_isolated(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -1301,7 +1371,28 @@ class StatusAndDiagnosticTests(unittest.TestCase):
             target = Path(directory) / ".codex"
             materialize_fake_global(target)
             status = self.status(target)
-            self.assertEqual(set(status), DIAGNOSTIC_KEYS)
+            self.assertEqual(
+                set(status),
+                DIAGNOSTIC_KEYS
+                | {
+                    "coordinator_model",
+                    "leaf_config",
+                    "native_delegation",
+                    "native_tool_isolation",
+                    "native_delegation_guard",
+                    "runtime_max_parallel",
+                    "workers",
+                },
+            )
+            self.assertEqual(status["diagnostic_schema_version"], 4)
+            self.assertEqual(status["leaf_config"], "Ready")
+            self.assertEqual(status["native_delegation"], "Not checked")
+            self.assertEqual(status["native_tool_isolation"], "Not checked")
+            self.assertEqual(status["native_delegation_guard"], "Not checked")
+            self.assertEqual(status["runtime_max_parallel"], "Not checked")
+            self.assertEqual(status["max_parallel"], 6)
+            self.assertNotIn("native_leaf", status)
+            self.assertNotIn("native_runtime", status)
             self.assertEqual(
                 set(status["locations"]),
                 {"codex_home", "state_dir", "project_root"},
@@ -1309,6 +1400,30 @@ class StatusAndDiagnosticTests(unittest.TestCase):
             self.assertEqual(status["locations"]["codex_home"], "<CODEX_HOME>")
             self.assertEqual(status["locations"]["state_dir"], "<STATE_DIR>")
             self.assertEqual(status["locations"]["project_root"], "Not checked")
+
+    def test_leaf_toml_only_changes_configuration_diagnostic(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / ".codex"
+            materialize_fake_global(target)
+            agent = target / "agents" / "luna-max.toml"
+            agent.write_text(
+                agent.read_text(encoding="utf-8").replace(
+                    "enabled = false", "enabled = true"
+                ),
+                encoding="utf-8",
+            )
+
+            status = self.status(target)
+
+            self.assertEqual(status["diagnostic_schema_version"], 4)
+            self.assertEqual(status["leaf_config"], "Invalid")
+            self.assertIn("AGENT_PAYLOAD_INVALID", status["reason_codes"])
+            self.assertIn("LEAF_CONFIG_INVALID", status["reason_codes"])
+            self.assertNotIn("NATIVE_LEAF_INVALID", status["reason_codes"])
+            self.assertEqual(status["native_delegation"], "Not checked")
+            self.assertEqual(status["native_tool_isolation"], "Not checked")
+            self.assertEqual(status["native_delegation_guard"], "Not checked")
+            self.assertEqual(status["runtime_max_parallel"], "Not checked")
 
     def test_diagnostic_sanitizer_redacts_canaries(self):
         with tempfile.TemporaryDirectory() as directory:

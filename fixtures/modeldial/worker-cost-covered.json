@@ -1,0 +1,22 @@
+{
+  "_fixtureNote": "Synthetic offline full-snapshot companion to worker-api-v1.1.json. All rows, scores, costs, and provenance identifiers are test data.",
+  "kind": "first_party_snapshot",
+  "status": "complete",
+  "batch_id": "worker-backend-batch-001",
+  "published_at": "2026-09-12T08:00:00Z",
+  "question_pack_id": "worker-pack-id-v1",
+  "question_pack_version": "worker-pack-v1",
+  "grader_version": "worker-grader-v1",
+  "evaluation_profile": "full",
+  "score_baseline_id": "worker-baseline-v1",
+  "batch_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "pricing_snapshot_id": "worker-pricing-v1",
+  "provenance": {"public_official_snapshot": true},
+  "entries": [
+    {"id": "cloudflare-reference:sol-low", "model_configuration": {"provider_id": "codex", "canonical_model_id": "gpt-5.6-sol", "reasoning_effort": "low", "route_type": "official_login"}, "advisor_eligible": true, "score_integrity": "first_party_controlled", "route_identity": "first_party_controlled", "cost_coverage": "complete", "estimated_api_cost_usd": 0.5, "score": 70, "elapsed_ms": 200, "source_evidence_group_id": "worker-cost-evidence-001"},
+    {"id": "cloudflare-reference:sol-medium", "model_configuration": {"provider_id": "codex", "canonical_model_id": "gpt-5.6-sol", "reasoning_effort": "medium", "route_type": "official_login"}, "advisor_eligible": true, "score_integrity": "first_party_controlled", "route_identity": "first_party_controlled", "cost_coverage": "complete", "estimated_api_cost_usd": 0.7, "score": 85, "elapsed_ms": 250, "source_evidence_group_id": "worker-cost-evidence-001"},
+    {"id": "cloudflare-reference:sol-high", "model_configuration": {"provider_id": "codex", "canonical_model_id": "gpt-5.6-sol", "reasoning_effort": "high", "route_type": "official_login"}, "advisor_eligible": true, "score_integrity": "first_party_controlled", "route_identity": "first_party_controlled", "cost_coverage": "complete", "estimated_api_cost_usd": 1.0, "score": 93, "elapsed_ms": 400, "source_evidence_group_id": "worker-cost-evidence-001"},
+    {"id": "cloudflare-reference:sol-xhigh", "model_configuration": {"provider_id": "codex", "canonical_model_id": "gpt-5.6-sol", "reasoning_effort": "xhigh", "route_type": "official_login"}, "advisor_eligible": true, "score_integrity": "first_party_controlled", "route_identity": "first_party_controlled", "cost_coverage": "complete", "estimated_api_cost_usd": 0.8, "score": 92, "elapsed_ms": 300, "source_evidence_group_id": "worker-cost-evidence-001"},
+    {"id": "cloudflare-reference:sol-max", "model_configuration": {"provider_id": "codex", "canonical_model_id": "gpt-5.6-sol", "reasoning_effort": "max", "route_type": "official_login"}, "advisor_eligible": true, "score_integrity": "first_party_controlled", "route_identity": "first_party_controlled", "cost_coverage": "complete", "estimated_api_cost_usd": 2.0, "score": 95, "elapsed_ms": 500, "source_evidence_group_id": "worker-cost-evidence-001"}
+  ]
+}
