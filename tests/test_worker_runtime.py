@@ -42,6 +42,23 @@ class WorkerRuntimeTests(unittest.TestCase):
             self.assertEqual(first, second)
             self.assertEqual(fetch.call_count, 1)
 
+    def test_explicit_recovery_replaces_unavailable_daily_once_then_reuses(self):
+        with tempfile.TemporaryDirectory() as directory:
+            failed = selector.ensure_worker_profile({}, state_dir=directory, now=self.now)
+            self.assertEqual(failed["luna"]["status"], "unavailable")
+            fetch = Mock(return_value={"luna_snapshot": self.luna})
+            cached = selector.ensure_worker_profile(state_dir=directory, now=self.now, live_fetcher=fetch)
+            self.assertEqual(cached, failed)
+            fetch.assert_not_called()
+            recovered = selector.ensure_worker_profile(state_dir=directory, now=self.now, live_fetcher=fetch, refresh=True)
+            self.assertEqual(recovered["luna"]["status"], "ready")
+            self.assertFalse(recovered["luna"]["fallback"])
+            before = {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in Path(directory).rglob("*.json")}
+            reused = selector.ensure_worker_profile(state_dir=directory, now=self.now, live_fetcher=fetch)
+            self.assertEqual(reused, recovered)
+            self.assertEqual(fetch.call_count, 1)
+            self.assertEqual(before, {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in before})
+
     def test_invalid_daily_role_is_not_reused(self):
         with tempfile.TemporaryDirectory() as directory:
             profile = selector.ensure_worker_profile({"luna_snapshot": self.luna}, state_dir=directory, now=self.now)

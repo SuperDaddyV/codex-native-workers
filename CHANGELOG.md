@@ -5,6 +5,7 @@
 - Isolate generation-bound caches with explicit model/axis/policy validation; preserve GPT-5.6 state and historical fixtures for rollback.
 - Keep exact batch-index/full-snapshot matching, quality-only selection without complete comparable cost, and strict transactional ownership/rollback checks.
 - Update three compatible Skills, bilingual setup/help and diagnostics; distinguish Desktop role loading from shell CLI support.
+- Document a single explicit recovery selection after user-confirmed outage recovery, preserving failed-cache evidence without changing validation or the daily selection algorithm.
 - Required native GPT-6 acceptance, exact-commit CI and immutable publication are recorded only when actually complete.
 
 # Changelog

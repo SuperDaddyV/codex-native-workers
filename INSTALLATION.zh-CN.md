@@ -2,6 +2,8 @@
 
 [English](INSTALLATION.md) · [选择版本](README.zh-CN.md#选择版本)
 
+**候选说明：** v4.3.0 正待验收，尚未发布。下述公开安装流程以已核验正式 Release 为前提；当前已发布正式版仍是 v4.2.0。
+
 请复制 README 中的完整安装提示词。本页解释前置检查和恢复步骤，不是替代安装器，也不授权从 `master` 安装。
 当前安装以 [v4.3.0 正式版合同](NATIVE_WORKERS_SETUP.md)为准，执行经核验 Release commit 中的那份。历史版本保留自己的不可变合同，不要用 v4.1.4 合同安装 v4.3.0 源码。
 
@@ -82,7 +84,7 @@ diagnostic schema 4 有意把原生委派、工具隔离、调用防护和最大
 
 只在用户要求时执行 rollback 或 uninstall。使用已核验版本的安装器；回滚使用该次安装返回的精确事务备份，恢复使用同一组显式根目录。v4.3.0 恢复必须提供两个根目录，不接受 `--source-commit`；旧 v4.1.4 使用其 setup 合同中的单根目录命令。成功回滚会消耗该备份。两种流程都会验证所有权并保留无关内容。遵循对应不可变版本合同，不要随意换源码压缩包、手动删除角色或移除 manifest 来重置所有权。恢复后重载客户端。
 
-[v4.3.0 验证记录](https://github.com/SuperDaddyV/codex-native-workers/releases/download/v4.3.0/native-workers-v4.2.0-validation.json)把正式版各项检查绑定到精确发布源码。历史 [rc1 验证记录](https://github.com/SuperDaddyV/codex-native-workers/releases/download/v4.2.0-rc1/native-workers-rc1-validation.json)包含 Windows、Ubuntu、macOS 源码 CI 和一组 Windows 已安装／原生运行场景。rc1 发布时每个平台发现 430 项测试：Windows 全部通过；Ubuntu／macOS 跳过 13 项 Windows junction 测试，其余通过。这不等于所有平台都完成原生安装验收，也不是用户安装成功率统计。强递归隔离、六 worker 容量、实际账单／额度节省仍不受支持或未验证；各项检查见[运行证据](RUNTIME_TESTS.md)。
+历史 [v4.2.0 验证记录](https://github.com/SuperDaddyV/codex-native-workers/releases/download/v4.2.0/native-workers-v4.2.0-validation.json)绑定该版本的精确发布源码；v4.3.0 在验收与发布前仅提供候选证据。历史 [rc1 验证记录](https://github.com/SuperDaddyV/codex-native-workers/releases/download/v4.2.0-rc1/native-workers-rc1-validation.json)包含 Windows、Ubuntu、macOS 源码 CI 和一组 Windows 已安装／原生运行场景。rc1 发布时每个平台发现 430 项测试：Windows 全部通过；Ubuntu／macOS 跳过 13 项 Windows junction 测试，其余通过。这不等于所有平台都完成原生安装验收，也不是用户安装成功率统计。强递归隔离、六 worker 容量、实际账单／额度节省仍不受支持或未验证；各项检查见[运行证据](RUNTIME_TESTS.md)。
 
 ## GPT-6 升级与状态
 
@@ -91,3 +93,5 @@ diagnostic schema 4 有意把原生委派、工具隔离、调用防护和最大
 新状态写入现有 state 目录下的 `gpt6-v3`，绑定精确模型、评分轴、五档 effort 和选择策略版本 2。旧 GPT-5.6 Daily／LKG 原样保留，不能自动回退使用。缺少有效 GPT-6 数据与同代缓存时，由 Coordinator 接手。缺少完整可比成本证据时明确使用 `quality_only`，不声称本机账单或额度收益。
 
 升级后，磁盘角色正确不等于桌面宿主已加载。若任务仍显示 GPT-5.6 自定义角色，请完全退出并重启 Codex Desktop，再回到原任务继续原生验收；不要覆盖模型参数或调用旧 worker。shell CLI 与桌面宿主能力分别核对。事务备份路径以安装回执为准；旧状态不删除，回滚仍执行全部所有权及双根目录预验证。
+
+如果今天失败的流程已缓存两家族均 unavailable，普通 Daily 调用会保留该结果。用户确认阻断条件恢复后，已安装委派 Skill 允许启动一次显式恢复流程：先保留失败缓存原文及 hash，再给唯一的选择命令追加 `--refresh-workers`。所有 child 共用该结果；不要同时运行普通选择与刷新选择，也不要拿源码 checkout 的缓存替换已安装状态。

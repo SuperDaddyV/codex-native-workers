@@ -11,6 +11,8 @@ This product is named Codex Native Workers; the legacy Sol/Luna wording and `sol
 
 Run the rendered `<SELECTOR_COMMAND>` exactly once for the whole delegation workflow, before spawning the first worker. It runs `selector.py --ensure-daily --print-selection --workers`. Reuse that result for every child; do not reselect, fetch per child, or make a separate network request. If the command fails, the date is not today's Beijing date, or the data is invalid, retain the work and report the failure.
 
+For a new recovery workflow explicitly requested by the user after an earlier workflow failed with both families unavailable, first preserve the existing `gpt6-v3/worker-profile.json` and `worker-last-good.json` bytes with their SHA-256 hashes in the task's evidence directory. If the user reports that the blocking condition has changed, append `--refresh-workers` to the single rendered invocation above. This replaces the normal invocation; do not run both. Reuse its one result for all children. Never refresh to chase another effort, retry within a failed workflow, bypass an invalid source, or import repository-local caches into installed authority. All generation, publication and hash checks still apply.
+
 The receipt-safe worker profile has this shape:
 
 ```json

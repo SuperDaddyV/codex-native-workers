@@ -25,6 +25,8 @@ fake-home, installed, native, tool visibility, invocation guard and concurrency.
 If host reload is unavailable, stop native/release gates and record a precise resume
 point; continue independent work. Never infer native PASS from configuration.
 
+2026-09-24 recovery: user reports ModelDial connectivity restored. Preserve the earlier failed Daily/cache evidence. Complete the installed Skill's explicit recovery workflow once, then useful native GPT-6 acceptance; publication remains held for user acceptance.
+
 Initial live evidence: clean b00b769; installed rc1/527b174, ten GPT-5.6 roles and
 LKG_FALLBACK_ACTIVE. Desktop runtime 0.155.0-alpha.16; PATH CLI 0.146.0. Radar API
 has five GPT-6 rows per family; the matching archive returns 404. Historical

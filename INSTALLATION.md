@@ -2,6 +2,8 @@
 
 [简体中文](INSTALLATION.zh-CN.md) · [Choose a version](README.md#choose-your-version)
 
+**Candidate notice:** v4.3.0 is awaiting acceptance and is not published. Public release installation below is conditional on a verified Stable Release; the current published version remains v4.2.0.
+
 Use the complete installation prompt in the README. This guide explains checks
 and recovery; it is not a replacement installer or permission to run from `master`.
 The [v4.3.0 Stable contract](NATIVE_WORKERS_SETUP.md) governs current installation.
@@ -118,8 +120,8 @@ backup. Both flows validate ownership and preserve unrelated content. Follow the
 immutable version's contract; do not substitute a source archive, delete role files
 by hand, or remove the manifest to reset ownership. Reload after recovery.
 
-The [v4.3.0 validation record](https://github.com/SuperDaddyV/codex-native-workers/releases/download/v4.3.0/native-workers-v4.2.0-validation.json)
-binds Stable checks to the exact published source. The historical [rc1 validation record](https://github.com/SuperDaddyV/codex-native-workers/releases/download/v4.2.0-rc1/native-workers-rc1-validation.json)
+The historical [v4.2.0 validation record](https://github.com/SuperDaddyV/codex-native-workers/releases/download/v4.2.0/native-workers-v4.2.0-validation.json)
+binds that Stable release to its exact published source. v4.3.0 evidence remains candidate evidence until acceptance and publication. The historical [rc1 validation record](https://github.com/SuperDaddyV/codex-native-workers/releases/download/v4.2.0-rc1/native-workers-rc1-validation.json)
 records source CI on Windows, Ubuntu and macOS and one Windows installed/native
 scenario. The rc1 release suite discovered 430 tests per platform: Windows passed all
 430; Ubuntu/macOS skipped 13 Windows junction tests and passed the remainder.
@@ -135,3 +137,5 @@ Active roles pin `gpt-6-sol` / `gpt-6-luna`; all five efforts, four Sol views an
 State is isolated in `gpt6-v3` under the existing state directory, bound to exact models, score axes, efforts and selection policy 2. Old GPT-5.6 Daily/LKG files remain untouched and cannot become GPT-6 fallbacks. Missing valid GPT-6 data and same-generation cache means Coordinator ownership. Missing complete comparable cost evidence means explicit `quality_only`, never a claim of local billing or quota savings.
 
 Disk configuration does not prove Desktop role loading. If a task still advertises GPT-5.6 custom roles, fully quit and restart Codex Desktop, then resume that task's native acceptance. Do not override model parameters or call old workers. Report shell CLI and Desktop capabilities separately. Preserve the transaction backup path from the installer receipt; old state is retained and rollback still prevalidates both roots and all ownership hashes.
+
+If a failed workflow cached both families as unavailable today, the normal Daily call preserves that result. After the user reports recovery of the blocking condition, the installed delegation Skill permits one explicit recovery workflow: preserve the failed cache bytes and hashes, then append `--refresh-workers` to its single selection command. Reuse the result for all children; never run both normal and refresh selection or replace installed state with source-checkout caches.
