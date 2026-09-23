@@ -1,3 +1,47 @@
+# GPT-6 v4.3.0 acceptance candidate — 2026-09-24
+
+User requested a stop before final Stable publication for acceptance. No new
+Release or tag has been created. Initial installed runtime was v4.2.0-rc1 on
+Desktop 0.155.0-alpha.16; PATH CLI was separately 0.146.0. The active task initially
+advertised only GPT-5.6 custom roles, so initial preparation was Coordinator-owned.
+At the resumed pre-commit checkpoint the host advertises GPT-6 custom roles, but
+native execution has not yet run. Final installed/native/CI results belong to the
+separate exact-commit candidate evidence; historical results below keep their labels.
+
+Official sources rechecked: [GPT-6 Sol](https://developers.openai.com/api/docs/models/gpt-6-sol),
+[GPT-6 Luna](https://developers.openai.com/api/docs/models/gpt-6-luna),
+[model migration](https://developers.openai.com/api/docs/guides/latest-model),
+[Codex custom agents](https://learn.chatgpt.com/docs/agent-configuration/subagents).
+Model/effort availability in a catalogue is not proof of custom-agent loading.
+
+ModelDial [Radar](https://modeldial.com/radar), [OpenAPI contract](https://modeldial.com/openapi-v1.json),
+[publication index](https://modeldial.com/api/v1/radar/index.json) and
+[data licence](https://modeldial.com/data-license) were checked. The API carried
+all five GPT-6 efforts for each family. The exact indexed full archive returned
+404; its older latest alias was not joined to the API. The final transport rejects
+all live choices unless the exact indexed full archive passes its content hash;
+only a qualified GPT-6 cache may then supply fallback. Full JSON content hashes are
+recomputed using the publisher's [canonical algorithm](https://github.com/tianwdong/modeldial/blob/062dd79ab3894db9a419f35b63b64d3cd10f7376/scanner/reference_snapshot.py#L575).
+It was independently reproduced against a downloaded public full snapshot.
+Data source: ModelDial Radar, CC BY 4.0; synthetic regression fixtures are modified
+artificial data, not measured GPT-6 evidence or endorsement.
+
+A fresh source-only fetch on 2026-09-24 matched the current index and complete
+archive (batch evaluation-90c639ed7259e54f2e9e3a079b861db79f8deb6fdc3deec371e29050818afafd).
+It selected Luna/xhigh and Sol/xhigh in all four views. Sol backend had complete
+matching reference cost coverage; other views and Luna were quality-only. No LKG
+fallback was used. This supersedes the earlier 404 only for this later fetch.
+It is public reference selection, not native execution or local billing evidence.
+
+Local source regression after strict archive acquisition and cache integrity changes:
+448 standard-library tests PASS in 100.895 seconds, including fresh/rc1/Stable
+upgrade, cross-generation rejection, qualified fallback, idempotence, preservation,
+conflict zero-write and exact rollback gates. Exact-commit CI and installed/native
+results are recorded separately after they actually complete. Earlier PASS values
+below are historical.
+
+---
+
 # Native Runtime Test Protocol
 
 Status: `v4.2.0 — CURRENT STABLE TARGET`; installation requires its published Stable Release. Earlier records below retain their original versions and scope.

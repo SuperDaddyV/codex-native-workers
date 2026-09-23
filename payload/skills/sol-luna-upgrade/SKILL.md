@@ -30,3 +30,5 @@ The request "upgrade Codex Native Workers" or "upgrade Sol/Luna to the latest ve
 - Never install from `master`, `target_commitish`, another mutable branch, or an unverified tag.
 - If the installed version is already the target, perform zero writes and zero backups. If the installed version is newer by SemVer precedence, never downgrade automatically.
 - Apply only through the transaction-aware installer after all checks and the prerelease notice have passed. Preserve unrelated user configuration; any ownership mismatch or unexpected change is a stop condition, not permission to overwrite.
+
+GPT-6 migration uses manifest schema 4 with a pinned model contract and unchanged ten-file agent inventory. Preserve old Daily/LKG files; new state lives under `gpt6-v3`. Transaction backups cover both managed roots. A verified exact candidate may be installed before publication only with explicit candidate authorization; final Release/tag/source identity must be checked afterward. If the Desktop still exposes GPT-5.6 custom roles, stop native acceptance and publication until reload; never substitute the shell CLI or direct model override as native proof.

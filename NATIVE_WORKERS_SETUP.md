@@ -1,6 +1,6 @@
-# Codex Native Workers — v4.2.0 Stable installation contract
+# Codex Native Workers — v4.3.0 Stable installation contract
 
-This contract applies only to the published, non-draft, non-prerelease `v4.2.0`
+This contract applies only to the published, non-draft, non-prerelease `v4.3.0`
 Release in `SuperDaddyV/codex-native-workers`. This document or a tag alone is not
 publication evidence. The renamed repository retains the project's history;
 installed paths, managed markers and `sol-luna-*` Skill names remain compatible.
@@ -31,8 +31,8 @@ python -c "import sys, tomllib; assert sys.version_info >= (3, 11); print(sys.ve
 `codex` must be a normally resolvable executable, not only a shell alias or the
 Desktop application. Installed selector commands require the actual `python`
 command; having only `python3` or `py` is insufficient. Confirm the client supports
-native custom agents/subagents and the account can use `gpt-5.6-sol` and
-`gpt-5.6-luna` at the five configured efforts (`low` through `max`). The capability
+native custom agents/subagents and the account can use `gpt-6-sol` and
+`gpt-6-luna` at the five configured efforts (`low` through `max`). The capability
 probe in this exact source can verify direct CLI requests; those requests are not
 proof of native delegation. Never copy authentication or private configuration
 into a test home. GitHub HTTPS is required for source identity; first Daily
@@ -46,19 +46,19 @@ valid; no repeated confirmation is required for already authorized operations.
 
 ## 2. Resolve the published immutable source
 
-1. Read `/repos/SuperDaddyV/codex-native-workers/releases/tags/v4.2.0`. Require
+1. Read `/repos/SuperDaddyV/codex-native-workers/releases/tags/v4.3.0`. Require
    `draft=false`, `prerelease=false`, and non-null `published_at`. Do not substitute
    an unpublished candidate, the newest prerelease, or `target_commitish`.
-2. Resolve the remote `v4.2.0` tag and peel an annotated/lightweight tag to one exact
+2. Resolve the remote `v4.3.0` tag and peel an annotated/lightweight tag to one exact
    40-hex commit. Acquire a clean detached checkout at that commit, then read the
    remote tag again. A change is `TAG_MOVED`: stop without installation writes.
 3. Read this contract from that exact commit. Require detached `HEAD`, the verified
    tag commit and the installer's `--source-commit` to match; require installer
-   `VERSION == "v4.2.0"`. Do not install from `master`, another moving branch or an
+   `VERSION == "v4.3.0"`. Do not install from `master`, another moving branch or an
    unverified tag. A later README/documentation commit is not the runtime source.
 4. The source and contract share the verified release commit, so no file is
    required to embed its own SHA. Do not use the old v4.1.4 setup/assisted contract
-   to apply v4.2.0 or substitute current source into an older pinned contract.
+   to apply v4.3.0 or substitute current source into an older pinned contract.
 
 ## 3. Apply one two-root transaction
 
@@ -126,3 +126,11 @@ preserve unrelated content. Successful rollback consumes its backup; uninstall
 removes only verified owned content and is not equivalent to rollback. An invalid
 backup or ownership mismatch stops the operation. Never delete user files or
 rewrite immutable tags to recover. Reload after recovery.
+
+## GPT-6 migration and diagnostics
+
+Active roles pin `gpt-6-sol` / `gpt-6-luna`; all five efforts, four Sol views and one Luna Daily remain dynamic. The Coordinator remains user-selected. `src/worker_selector.py` centralizes the model contract; the installer writes manifest schema 4 with the same strict inventory and two-root rollback checks.
+
+State is isolated in `gpt6-v3` under the existing state directory, bound to exact models, score axes, efforts and selection policy 2. Old GPT-5.6 Daily/LKG files remain untouched and cannot become GPT-6 fallbacks. Missing valid GPT-6 data and same-generation cache means Coordinator ownership. Missing complete comparable cost evidence means explicit `quality_only`, never a claim of local billing or quota savings.
+
+Disk configuration does not prove Desktop role loading. If a task still advertises GPT-5.6 custom roles, fully quit and restart Codex Desktop, then resume that task's native acceptance. Do not override model parameters or call old workers. Report shell CLI and Desktop capabilities separately. Preserve the transaction backup path from the installer receipt; old state is retained and rollback still prevalidates both roots and all ownership hashes.

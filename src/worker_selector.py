@@ -8,13 +8,23 @@ when the normalized input carries explicit, complete coverage metadata.
 from __future__ import annotations
 
 import math
+import hashlib
+import json
 import re
 from collections.abc import Iterable, Mapping
 from datetime import datetime
 from typing import Any
 
 
-SOL_MODEL = "gpt-5.6-sol"
+# Single active model/effort contract, shared by both selectors, installer and
+# CLI capability probe. Historical fixtures and rollback payloads stay pinned.
+VERSION = "v4.3.0"
+SOL_MODEL = "gpt-6-sol"
+LUNA_MODEL = "gpt-6-luna"
+MODEL_BY_FAMILY = {"sol": SOL_MODEL, "luna": LUNA_MODEL}
+WORKER_PROFILE_SCHEMA_VERSION = 3
+REFERENCE_POLICY_VERSION = 2
+CACHE_NAMESPACE = "gpt6-v3"
 SOL_PROVIDER = "codex"
 SOL_ROUTE = "official_login"
 REFERENCE_PROVIDER = "cloudflare-reference"
@@ -34,6 +44,30 @@ _SCORE_FIELDS = {
     "frontend": ("overallRankings", "frontendScore"),
     "reasoning": ("overallRankings", "knowledgeScore"),
 }
+
+
+def cache_identity() -> dict[str, Any]:
+    """Return a fresh, exact generation/axis/selection-policy cache binding."""
+    return {
+        "models": dict(MODEL_BY_FAMILY),
+        "efforts": list(EFFORTS),
+        "policy_version": REFERENCE_POLICY_VERSION,
+        "luna_axis": ["rankings", "score", "backend"],
+        "sol_axes": {key: list(value) for key, value in _SCORE_FIELDS.items()},
+        "sol_quality_gap": 2.0,
+    }
+
+
+def full_snapshot_hash(payload: Mapping[str, Any]) -> str:
+    """ModelDial's published canonical JSON hash (excluding batch_sha256)."""
+    body = {key: value for key, value in payload.items() if key != "batch_sha256"}
+    encoded = json.dumps(body, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8")
+    return "sha256:" + hashlib.sha256(encoded).hexdigest()
+
+
+def require_full_snapshot_hash(payload: Mapping[str, Any]) -> None:
+    if not isinstance(payload, Mapping) or payload.get("batch_sha256") != full_snapshot_hash(payload):
+        raise ValueError("ModelDial full snapshot content hash mismatch")
 
 
 def _text(value: Any) -> bool:
@@ -523,6 +557,7 @@ def adapt_sol_api(payload: Mapping[str, Any]) -> dict[str, Any]:
 def _full_snapshot_context(payload: Any) -> dict[str, Any]:
     if not isinstance(payload, Mapping):
         raise ValueError("ModelDial full snapshot must be an object")
+    require_full_snapshot_hash(payload)
     if payload.get("kind") != "first_party_snapshot" or payload.get("status") != "complete":
         raise ValueError("ModelDial full snapshot is not a complete first-party publication")
     provenance = payload.get("provenance")

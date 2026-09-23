@@ -1,3 +1,12 @@
+# v4.3.0 — GPT-6 migration (release gates pending)
+
+- Pin ten active worker profiles to GPT-6 Sol/Luna; preserve user-selected Coordinator and five dynamic efforts.
+- Centralize model/effort contracts across selectors, installer and capability probe.
+- Isolate generation-bound caches with explicit model/axis/policy validation; preserve GPT-5.6 state and historical fixtures for rollback.
+- Keep exact batch-index/full-snapshot matching, quality-only selection without complete comparable cost, and strict transactional ownership/rollback checks.
+- Update three compatible Skills, bilingual setup/help and diagnostics; distinguish Desktop role loading from shell CLI support.
+- Required native GPT-6 acceptance, exact-commit CI and immutable publication are recorded only when actually complete.
+
 # Changelog
 
 ## v4.2.0 (Codex Native Workers Stable)

@@ -28,7 +28,7 @@ from scripts.child_environment import build_child_environment  # noqa: E402
 
 
 SUPPORTED_PLATFORMS = {"Windows", "Linux", "Darwin"}
-VERSION = "v4.2.0"
+from src.worker_selector import VERSION, SOL_MODEL, LUNA_MODEL, EFFORTS, cache_identity  # noqa: E402
 MANIFEST_RELATIVE = PurePosixPath("sol-luna-v4/install-manifest.json")
 LEGACY_MANIFEST_RELATIVE = PurePosixPath("sol-luna-router/install-manifest.json")
 LEGACY_HOOKS_RELATIVE = ".".join(("hooks", "json"))
@@ -557,7 +557,7 @@ def _load_manifest(target: Path, *, required: bool = False) -> dict | None:
         return None
     manifest = _load_json(path, "MANIFEST_INVALID")
     schema_version = manifest.get("schema_version")
-    if type(schema_version) is not int or schema_version not in (1, 2, 3):
+    if type(schema_version) is not int or schema_version not in (1, 2, 3, 4):
         raise InstallerError("MANIFEST_INVALID", "manifest schema is unsupported")
     if not isinstance(manifest.get("owned_files", {}), dict):
         raise InstallerError("MANIFEST_INVALID", "owned_files must be an object")
@@ -592,7 +592,7 @@ def _load_manifest(target: Path, *, required: bool = False) -> dict | None:
                 raise InstallerError(
                     "MANIFEST_INVALID", "Skill directory ownership is invalid"
                 )
-    if schema_version == 3:
+    if schema_version in (3, 4):
         expected_skills = {f"{name}/SKILL.md" for name in SKILL_FILES}
         expected_agents = {f"agents/{name}" for name in AGENT_FILES}
         expected_files = expected_agents | {
@@ -629,6 +629,8 @@ def _load_manifest(target: Path, *, required: bool = False) -> dict | None:
                 raise InstallerError(
                     "MANIFEST_INVALID", "Skill directory ownership is invalid"
                 )
+    if schema_version == 4 and (manifest.get("model_contract") != cache_identity()):
+        raise InstallerError("MANIFEST_INVALID", "schema 4 model/version contract is invalid")
     cleanup = manifest.get("legacy_cleanup")
     if cleanup is not None and (
         not isinstance(cleanup, dict)
@@ -1068,12 +1070,12 @@ def _validate_v4_payloads(
         raise InstallerError("PAYLOAD_INVALID", "global policy exceeds its byte budget")
     expected_agents = {
         **{
-            filename: ("gpt-5.6-luna", effort)
-            for filename, effort in zip(STABLE_AGENT_FILES, ("low", "medium", "high", "xhigh", "max"))
+            filename: (LUNA_MODEL, effort)
+            for filename, effort in zip(STABLE_AGENT_FILES, EFFORTS)
         },
         **{
-            filename: ("gpt-5.6-sol", effort)
-            for filename, effort in zip(SOL_AGENT_FILES, ("low", "medium", "high", "xhigh", "max"))
+            filename: (SOL_MODEL, effort)
+            for filename, effort in zip(SOL_AGENT_FILES, EFFORTS)
         },
     }
     for filename, (model, effort) in expected_agents.items():
@@ -1407,7 +1409,7 @@ def _build_install_plan(
             "CURRENT_VERSION_NEWER", "installed version is newer; automatic downgrade refused"
         )
     recorded_skills_root = manifest.get("skills_root") if manifest else None
-    if manifest and manifest.get("schema_version") in {2, 3}:
+    if manifest and manifest.get("schema_version") in {2, 3, 4}:
         try:
             recorded = Path(recorded_skills_root).resolve(strict=False)
         except (TypeError, OSError) as exc:
@@ -1552,7 +1554,8 @@ def _build_install_plan(
         else now.astimezone(timezone.utc).isoformat()
     )
     desired_manifest = {
-        "schema_version": 3,
+        "schema_version": 4,
+        "model_contract": cache_identity(),
         "version": VERSION,
         "installed_at": installed_at,
         "updated_at": (
@@ -1565,12 +1568,12 @@ def _build_install_plan(
         "skills_root": str(skills_root),
         "skill_root_created": (
             manifest.get("skill_root_created", False)
-            if manifest and manifest.get("schema_version") in {2, 3}
+            if manifest and manifest.get("schema_version") in {2, 3, 4}
             else not skills_root.exists()
         ),
         "skill_parent_created": (
             manifest.get("skill_parent_created", False)
-            if manifest and manifest.get("schema_version") in {2, 3}
+            if manifest and manifest.get("schema_version") in {2, 3, 4}
             else skills_root.parent.name == ".agents" and not skills_root.parent.exists()
         ),
         "owned_skill_files": {
@@ -2027,7 +2030,7 @@ def rollback(
     if (
         not _transaction_recovery
         and current_manifest
-        and current_manifest.get("schema_version") == 3
+        and current_manifest.get("schema_version") in (3, 4)
     ):
         recorded_root = Path(current_manifest["skills_root"]).resolve(strict=False)
         if resolved_skills_root is None:
@@ -2157,7 +2160,7 @@ def uninstall(
         else manifest.get("skills_root")
     )
     skills_root = resolve_skills_root(requested_skills_root, target)
-    if manifest.get("schema_version") in {2, 3} and Path(
+    if manifest.get("schema_version") in {2, 3, 4} and Path(
         manifest["skills_root"]
     ).resolve(strict=False) != skills_root:
         raise InstallerError(

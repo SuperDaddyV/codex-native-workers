@@ -1,10 +1,12 @@
 # Codex Native Workers
 
-Keep the Coordinator you choose in charge while native GPT-5.6 Sol and Luna workers execute worthwhile, bounded tasks.
+This branch is the **v4.3.0 acceptance candidate**, not yet published. The current published Stable remains [v4.2.0](https://github.com/SuperDaddyV/codex-native-workers/releases/tag/v4.2.0). The v4.3.0 installation prompt below becomes executable only after its Stable Release is published.
+
+Keep the Coordinator you choose in charge while native GPT-6 Sol and Luna workers execute worthwhile, bounded tasks.
 
 [简体中文](README.zh-CN.md)
 
-[![Stable: v4.2.0](https://img.shields.io/badge/stable-v4.2.0-blue)](https://github.com/SuperDaddyV/codex-native-workers/releases/tag/v4.2.0)
+[![Target: v4.3.0](https://img.shields.io/badge/candidate-v4.3.0-blue)](https://github.com/SuperDaddyV/codex-native-workers/releases/tag/v4.3.0)
 [![Previous preview: v4.2.0-rc1](https://img.shields.io/badge/preview-v4.2.0--rc1-orange)](https://github.com/SuperDaddyV/codex-native-workers/releases/tag/v4.2.0-rc1)
 [![Validation](https://github.com/SuperDaddyV/codex-native-workers/actions/workflows/validate.yml/badge.svg?branch=master)](https://github.com/SuperDaddyV/codex-native-workers/actions/workflows/validate.yml)
 [![License](https://img.shields.io/github/license/SuperDaddyV/codex-native-workers)](LICENSE)
@@ -14,7 +16,7 @@ Keep the Coordinator you choose in charge while native GPT-5.6 Sol and Luna work
 
 ## What it is
 
-Codex Native Workers v4.2 separates the user-selected **Coordinator** from two direct native worker families:
+Codex Native Workers v4.3 separates the user-selected **Coordinator** from two direct native worker families:
 
 - **The Coordinator owns the task.** It keeps requirements, scope, architecture, ambiguity resolution, routing, integration, final acceptance, and the final answer. Astra is one Coordinator example; the package does not select or install the Coordinator model.
 - **Sol handles difficult bounded execution.** Use it for diagnosis, synthesis, cross-module reasoning, and other complex work with a clear boundary.
@@ -28,21 +30,21 @@ This is a configuration and routing package for local Codex clients. It does not
 
 | Version | Status | What it installs |
 | --- | --- | --- |
-| **v4.2.0** | **Stable / default installation** | Five Sol and five Luna worker profiles, three Skills; keeps your Coordinator choice. |
-| v4.2.0-rc1 | Previous preview | The preceding two-family preview; existing users can upgrade to v4.2.0. |
+| **v4.3.0** | **Acceptance candidate / unpublished** | Five Sol and five Luna worker profiles, three Skills; keeps your Coordinator choice. |
+| v4.2.0-rc1 | Previous preview | The preceding two-family preview; existing users can upgrade to v4.3.0. |
 | v4.1.4 | Previous legacy Stable | Sol planner + five Luna workers; no Sol worker profiles or three-Skill workflow. |
 
-New and existing users should use the single **v4.2.0** prompt below. Do not install old versions first. GitHub's **Latest** release is the Stable target. [Installation help and troubleshooting](INSTALLATION.md) covers prerequisites, verification and recovery.
+After publication, new and existing users can use the single **v4.3.0** prompt below. Until then, use the published [v4.2.0 instructions](https://github.com/SuperDaddyV/codex-native-workers/blob/v4.2.0/README.md). GitHub's **Latest** release is the Stable target. [Installation help and troubleshooting](INSTALLATION.md) covers prerequisites, verification and recovery.
 
 ## Stable installation (default)
 
-Target: [Codex Native Workers v4.2.0](https://github.com/SuperDaddyV/codex-native-workers/releases/tag/v4.2.0). Start a local Codex task with shell access and paste this complete prompt. The task must verify that the Stable Release exists before installing anything.
+Target: [Codex Native Workers v4.3.0](https://github.com/SuperDaddyV/codex-native-workers/releases/tag/v4.3.0). Start a local Codex task with shell access and paste this complete prompt. The task must verify that the Stable Release exists before installing anything.
 
 ```text
-Install or upgrade to Codex Native Workers v4.2.0 Stable from
+Install or upgrade to Codex Native Workers v4.3.0 Stable from
 https://github.com/SuperDaddyV/codex-native-workers
 
-Read https://api.github.com/repos/SuperDaddyV/codex-native-workers/releases/tags/v4.2.0.
+Read https://api.github.com/repos/SuperDaddyV/codex-native-workers/releases/tags/v4.3.0.
 Require a published, non-draft, non-prerelease Release. Resolve its remote tag
 to one exact 40-hex commit, acquire a clean detached checkout, then read the
 remote tag again; stop if it moved. Read NATIVE_WORKERS_SETUP.md from that
@@ -122,7 +124,7 @@ A receipt summarizes observed task facts; it is not runtime attestation and make
 
 - Codex Desktop or another current Codex client with custom-agent and subagent support.
 - A working `codex` command in the task environment. Codex Desktop alone is not sufficient if `codex --version` cannot run.
-- Access to the user-selected Coordinator model and GPT-5.6 Sol and GPT-5.6 Luna at the required effort levels.
+- Access to the user-selected Coordinator model and GPT-6 Sol and GPT-6 Luna at the required effort levels.
 - Python 3.11 or newer with `tomllib`, plus Git for the required immutable exact-commit checkout. Installed policy and Skill selector commands invoke **`python`**; having only `python3` or `py` is insufficient until `python` works in Codex's execution environment.
 - Read-only HTTPS access to GitHub and ModelDial's public reference data for first-time daily selection. Model availability comes from your Codex account, not the benchmark website.
 - Windows, Ubuntu/Linux, or macOS. Treat WSL as a separate Linux environment.
@@ -131,7 +133,7 @@ A receipt summarizes observed task facts; it is not runtime attestation and make
 
 The immutable [v4.2.0-rc1 contract](https://github.com/SuperDaddyV/codex-native-workers/blob/527b174df13643a38bfe29652208eaa00f63fbf7/NATIVE_WORKERS_PREVIEW.md) and its [validation record](https://github.com/SuperDaddyV/codex-native-workers/releases/download/v4.2.0-rc1/native-workers-rc1-validation.json) remain historical evidence.
 
-For deliberate use of legacy v4.1.4, the original [assisted contract](https://github.com/SuperDaddyV/codex-sol-luna-worker/blob/7494d47574ac751e76a231033a0ed91686899a07/CODEX_SOL_LUNA_INSTALL_ASSIST.md) pins its [setup contract](https://github.com/SuperDaddyV/codex-sol-luna-worker/blob/bf01c438eae66f5ef9a27d401c6ee845f89d5d59/CODEX_SOL_LUNA_SETUP.md) and source `6a537b445ad6f17a9600c05e655f51a2844bfcc8`. The [Chinese translation](CODEX_SOL_LUNA_INSTALL_ASSIST.zh-CN.md) is review-only. These are previous-version contracts, not the v4.2.0 installation entry. Never substitute current source into them or downgrade automatically.
+For deliberate use of legacy v4.1.4, the original [assisted contract](https://github.com/SuperDaddyV/codex-sol-luna-worker/blob/7494d47574ac751e76a231033a0ed91686899a07/CODEX_SOL_LUNA_INSTALL_ASSIST.md) pins its [setup contract](https://github.com/SuperDaddyV/codex-sol-luna-worker/blob/bf01c438eae66f5ef9a27d401c6ee845f89d5d59/CODEX_SOL_LUNA_SETUP.md) and source `6a537b445ad6f17a9600c05e655f51a2844bfcc8`. The [Chinese translation](CODEX_SOL_LUNA_INSTALL_ASSIST.zh-CN.md) is review-only. These are previous-version contracts, not the v4.3.0 installation entry. Never substitute current source into them or downgrade automatically.
 
 ## Daily use
 
@@ -162,7 +164,7 @@ In a fresh Codex task, run this read-only status command:
 Check Sol/Luna status.
 ```
 
-For `v4.2.0`, diagnostic schema 4 separates installation/configuration from native runtime evidence. `Status Healthy`, `Agents 10/10 Ready`, `Skills 3/3 Ready`, and `leaf_config Ready` describe configuration only. Actual native delegation, tool isolation, invocation-guard behavior, and observed maximum parallelism require separate runtime checks. A configured limit of six is not measured capacity.
+For `v4.3.0`, diagnostic schema 4 separates installation/configuration from native runtime evidence. `Status Healthy`, `Agents 10/10 Ready`, `Skills 3/3 Ready`, and `leaf_config Ready` describe configuration only. Actual native delegation, tool isolation, invocation-guard behavior, and observed maximum parallelism require separate runtime checks. A configured limit of six is not measured capacity.
 
 The v4.1.4 Stable status shape may instead show `Agents 5/5 Ready`. Its historical compatibility smoke exercises Luna-only behavior and is not acceptance of the two-family v4.2 product.
 
@@ -172,7 +174,7 @@ For deeper checks after installation or a Codex update, follow [Runtime checks](
 
 ## Upgrade, rollback, and uninstall
 
-- **Upgrade:** an existing installation can ask `Upgrade Sol/Luna to the latest version`. This **includes prereleases**; use the version-specific prompt above to pin v4.2.0 Stable, or explicitly request Stable-only if that is what you want. The installed `sol-luna-upgrade` Skill applies only a verified immutable target.
+- **Upgrade:** an existing installation can ask `Upgrade Sol/Luna to the latest version`. This **includes prereleases**; use the version-specific prompt above to pin v4.3.0 Stable, or explicitly request Stable-only if that is what you want. The installed `sol-luna-upgrade` Skill applies only a verified immutable target.
 - **Rollback:** use the exact transaction backup returned by the installer. A successful rollback restores the verified pre-change state.
 - **Uninstall:** use the installer's manifest-owned uninstall flow; do not hand-edit managed TOML, Skill, or agent files.
 
@@ -181,7 +183,7 @@ Reload Codex and start a new task after an upgrade, rollback, or uninstall. Use 
 ## Technical documentation
 
 - [Installation help and troubleshooting](INSTALLATION.md)
-- [v4.2.0 Stable installation, upgrade, rollback and uninstall](NATIVE_WORKERS_SETUP.md)
+- [v4.3.0 Stable installation, upgrade, rollback and uninstall](NATIVE_WORKERS_SETUP.md)
 - [Historical v4.2.0-rc1 preview contract](NATIVE_WORKERS_PREVIEW.md)
 - [Architecture](ARCHITECTURE.md)
 - [Runtime evidence](RUNTIME_TESTS.md)
@@ -202,3 +204,11 @@ Before submitting, remove secrets and private information, share only the minimu
 [MIT](LICENSE)
 
 ModelDial-derived test data under `fixtures/modeldial/` is attributed separately in [its fixture notice](fixtures/modeldial/README.md) under CC BY 4.0; this does not change the source-code license.
+
+## GPT-6 migration and diagnostics
+
+Active roles pin `gpt-6-sol` / `gpt-6-luna`; all five efforts, four Sol views and one Luna Daily remain dynamic. The Coordinator remains user-selected. `src/worker_selector.py` centralizes the model contract; the installer writes manifest schema 4 with the same strict inventory and two-root rollback checks.
+
+State is isolated in `gpt6-v3` under the existing state directory, bound to exact models, score axes, efforts and selection policy 2. Old GPT-5.6 Daily/LKG files remain untouched and cannot become GPT-6 fallbacks. Missing valid GPT-6 data and same-generation cache means Coordinator ownership. Missing complete comparable cost evidence means explicit `quality_only`, never a claim of local billing or quota savings.
+
+Disk configuration does not prove Desktop role loading. If a task still advertises GPT-5.6 custom roles, fully quit and restart Codex Desktop, then resume that task's native acceptance. Do not override model parameters or call old workers. Report shell CLI and Desktop capabilities separately. Preserve the transaction backup path from the installer receipt; old state is retained and rollback still prevalidates both roots and all ownership hashes.

@@ -19,13 +19,19 @@ from pathlib import Path
 from typing import Any, Callable, Iterable, Mapping
 
 
-REFERENCE_MODEL = "gpt-5.6-sol"
-LUNA_MODEL = "gpt-5.6-luna"
-EFFORTS = ("low", "medium", "high", "xhigh", "max")
-METADATA_SCHEMA_VERSION = 1
+if __package__:
+    from .worker_selector import (SOL_MODEL as REFERENCE_MODEL, LUNA_MODEL, EFFORTS, VERSION,
+                                  WORKER_PROFILE_SCHEMA_VERSION, REFERENCE_POLICY_VERSION,
+                                  CACHE_NAMESPACE, cache_identity)
+else:
+    from worker_selector import (SOL_MODEL as REFERENCE_MODEL, LUNA_MODEL, EFFORTS, VERSION,
+                                 WORKER_PROFILE_SCHEMA_VERSION, REFERENCE_POLICY_VERSION,
+                                 CACHE_NAMESPACE, cache_identity)
+
+METADATA_SCHEMA_VERSION = 2
 STATUS_SCHEMA_VERSION = 2
 REFERENCE_COST_METRIC = "modeldial_estimated_reference_cost_usd"
-USER_AGENT = "codex-native-workers/4.2.0"
+USER_AGENT = "codex-native-workers/4.3.0"
 ROLE_BY_EFFORT = {effort: f"luna_{effort}" for effort in EFFORTS}
 BJT = timezone(timedelta(hours=8), name="BJT")
 UTC = timezone.utc
@@ -49,8 +55,6 @@ STABLE_SKILL_FILES = (
 )
 WORKER_AGENT_FILES = STABLE_AGENT_FILES + tuple(f"sol-{effort}.toml" for effort in EFFORTS)
 WORKER_SKILL_FILES = STABLE_SKILL_FILES + ("sol-luna-delegate/SKILL.md",)
-WORKER_PROFILE_SCHEMA_VERSION = 2
-REFERENCE_POLICY_VERSION = 1
 BENCHMARK_PAIRS = (("codex", "official_login"), ("cloudflare-reference", "custom_endpoint"))
 
 
@@ -61,6 +65,22 @@ def _sol_module():
     else:
         import worker_selector
     return worker_selector
+
+
+def _seal_cache(value: Mapping[str, Any]) -> dict[str, Any]:
+    result = {key: item for key, item in value.items() if key != "content_sha256"}
+    encoded = json.dumps(result, sort_keys=True, ensure_ascii=True, separators=(",", ":"), allow_nan=False).encode("utf-8")
+    result["content_sha256"] = hashlib.sha256(encoded).hexdigest()
+    return result
+
+
+def _cache_digest_valid(value: Any) -> bool:
+    if not isinstance(value, Mapping):
+        return False
+    try:
+        return value.get("content_sha256") == _seal_cache(value)["content_sha256"]
+    except (ValueError, TypeError):
+        return False
 
 
 def _matching_snapshot_record(api: Mapping[str, Any], index: Any) -> Mapping[str, Any]:
@@ -82,53 +102,54 @@ def _matching_snapshot_record(api: Mapping[str, Any], index: Any) -> Mapping[str
 
 
 def _require_matching_full(record: Mapping[str, Any], payload: Any) -> None:
+    try:
+        _sol_module().require_full_snapshot_hash(payload)
+    except (TypeError, ValueError) as exc:
+        raise SnapshotInvalid("complete snapshot content hash mismatch") from exc
     fields = {"batchId": "batch_id", "publishedAt": "published_at", "questionPackVersion": "question_pack_version", "graderVersion": "grader_version", "evaluationProfile": "evaluation_profile", "scoreBaselineId": "score_baseline_id", "pricingSnapshotId": "pricing_snapshot_id", "sha256": "batch_sha256"}
     if not isinstance(payload, Mapping) or any(payload.get(dest) != record[key] for key, dest in fields.items()):
         raise SnapshotInvalid("complete snapshot metadata mismatch")
     if not isinstance(payload.get("entries"), list) or len(payload["entries"]) != record["entryCount"]:
         raise SnapshotInvalid("complete snapshot count mismatch")
+    if "revision" in payload and (type(payload["revision"]) is not int or payload["revision"] != record["revision"]):
+        raise SnapshotInvalid("complete snapshot revision mismatch")
+    if "entry_count" in payload and (type(payload["entry_count"]) is not int or payload["entry_count"] != record["entryCount"]):
+        raise SnapshotInvalid("complete snapshot declared count mismatch")
 
 
 def fetch_worker_data(*, timeout: float = 15.0) -> dict[str, Any]:
-    """One refresh round; never combine an API identity with another snapshot."""
-    result: dict[str, Any] = {}
+    """Accept live data only after the exact indexed archive passes its hash."""
     try:
         body, _ = _fetch_bytes(MODELDIAL_API_URL, expected_type="application/json", timeout=timeout)
+        api = json.loads(body.decode("utf-8"))
+        if not isinstance(api, Mapping) or api.get("schemaVersion") not in ("1.0", "1.1"):
+            raise SnapshotInvalid("unsupported publication API")
+        body, _ = _fetch_bytes(MODELDIAL_INDEX_URL, expected_type="application/json", timeout=timeout)
+        record = _matching_snapshot_record(api, json.loads(body.decode("utf-8")))
+        body, url = _fetch_bytes(record["fullSnapshotUrl"], expected_type="application/json", timeout=timeout)
         payload = json.loads(body.decode("utf-8"))
-        if isinstance(payload, Mapping):
-            result["api"] = payload
-            try:
-                result["luna_snapshot"] = adapt_modeldial_api(payload, allow_reference=True)
-            except (SnapshotInvalid, ValueError, TypeError):
-                pass
-    except (OSError, UnicodeError, json.JSONDecodeError, SnapshotInvalid):
-        pass
-    api = result.get("api")
-    record = None
+        _require_matching_full(record, payload)
+    except (OSError, UnicodeError, ValueError, TypeError):
+        # Neither unchecked API scores nor another batch's latest alias may
+        # authorize a live choice. The caller may use a qualified same-generation LKG.
+        return {"full_snapshot_status": "unavailable_or_mismatched"}
+    result = {"api": api, "full_snapshot": payload, "full_snapshot_status": "matched"}
     try:
-        if isinstance(api, Mapping) and api.get("schemaVersion") in ("1.0", "1.1"):
-            body, _ = _fetch_bytes(MODELDIAL_INDEX_URL, expected_type="application/json", timeout=timeout)
-            record = _matching_snapshot_record(api, json.loads(body.decode("utf-8")))
-            snapshot_url = record["fullSnapshotUrl"]
-        else:
-            snapshot_url = MODELDIAL_SNAPSHOT_URL
-        body, url = _fetch_bytes(snapshot_url, expected_type="application/json", timeout=timeout)
-        payload = json.loads(body.decode("utf-8"))
-        if record is not None:
-            _require_matching_full(record, payload)
-        result["full_snapshot"] = payload
-        result["full_snapshot_status"] = "matched" if record is not None else "independent_fallback"
-        if "luna_snapshot" not in result:
-            # A complete fallback is validated under its own identity. It is not
-            # labelled as the newer API publication or used for overall Sol costs.
+        result["luna_snapshot"] = adapt_modeldial_api(api, allow_reference=True)
+    except (SnapshotInvalid, ValueError, TypeError):
+        try:
             result["luna_snapshot"] = adapt_modeldial_snapshot(payload, source_url=url, allow_reference=True)
-    except (OSError, UnicodeError, json.JSONDecodeError, SnapshotInvalid, TypeError):
-        result["full_snapshot_status"] = "unavailable_or_mismatched"
+        except (SnapshotInvalid, ValueError, TypeError):
+            pass
     return result
 
 
 def _worker_record_valid(value: Any) -> bool:
-    if not isinstance(value, Mapping) or value.get("worker_profile_schema_version") != 2:
+    if not isinstance(value, Mapping) or value.get("worker_profile_schema_version") != WORKER_PROFILE_SCHEMA_VERSION:
+        return False
+    if value.get("cache_identity") != cache_identity():
+        return False
+    if not _cache_digest_valid(value):
         return False
     if value.get("reference_policy_version") != REFERENCE_POLICY_VERSION:
         return False
@@ -142,6 +163,8 @@ def _worker_record_valid(value: Any) -> bool:
         if not isinstance(item, Mapping) or item.get("status") not in ("ready", "unavailable"):
             return False
         if item["status"] == "ready":
+            if item.get("model") != (LUNA_MODEL if family == "luna" else REFERENCE_MODEL):
+                return False
             pair = (item.get("benchmark_provider"), item.get("benchmark_route"))
             if item.get("evidence_scope") != "reference_only" or (pair not in BENCHMARK_PAIRS and not (family == "luna" and pair == ("not_recorded", "not_recorded"))):
                 return False
@@ -170,7 +193,7 @@ def ensure_worker_profile(
 ) -> dict[str, Any]:
     """Cache one family-isolated daily choice without migrating legacy state."""
     current = _aware_bjt(now)
-    root = Path(state_dir)
+    root = Path(state_dir) / CACHE_NAMESPACE
     daily = root / "worker-profile.json"
     lkg_path = root / "worker-last-good.json"
     supported_sol = _normalize_supported(supported_sol)
@@ -191,10 +214,11 @@ def ensure_worker_profile(
         if "schemaVersion" in data:
             data = {"api": data}
         previous = _read_json_safely(lkg_path)
-        previous = previous if isinstance(previous, Mapping) else {}
-        cache = dict(previous)
+        previous = previous if isinstance(previous, Mapping) and previous.get("cache_identity") == cache_identity() and _cache_digest_valid(previous) else {}
+        cache = {**previous, "cache_identity": cache_identity()}
         result: dict[str, Any] = {
             "worker_profile_schema_version": WORKER_PROFILE_SCHEMA_VERSION,
+            "cache_identity": cache_identity(),
             "reference_policy_version": REFERENCE_POLICY_VERSION,
             "selection_date_bjt": current.date().isoformat(),
             "selected_at_bjt": current.isoformat(),
@@ -217,7 +241,7 @@ def ensure_worker_profile(
         if previous.get("luna") is not None:
             luna_candidates.append((previous["luna"], True))
         legacy = _read_json_safely(root / "last-good-profile.json")
-        if isinstance(legacy, Mapping):
+        if isinstance(legacy, Mapping) and legacy.get("cache_identity") == cache_identity() and _cache_digest_valid(legacy):
             luna_candidates.append((legacy.get("snapshot"), True))
         for snapshot, fallback in luna_candidates:
             try:
@@ -226,7 +250,7 @@ def ensure_worker_profile(
             except (SnapshotInvalid, ValueError, TypeError, KeyError):
                 continue
             result["luna"] = {"status": "ready", **{key: value for key, value in choice.items() if key != "source_url"}}
-            result["luna"].update({"evidence_scope": "reference_only", "benchmark_provider": valid.get("benchmark_provider", "not_recorded"), "benchmark_route": valid.get("benchmark_route", "not_recorded")})
+            result["luna"].update({"model": LUNA_MODEL, "selection_mode": "quality_only", "evidence_scope": "reference_only", "benchmark_provider": valid.get("benchmark_provider", "not_recorded"), "benchmark_route": valid.get("benchmark_route", "not_recorded")})
             cache["luna"] = valid
             break
         sol = _sol_module()
@@ -272,12 +296,14 @@ def ensure_worker_profile(
             except (ValueError, TypeError, KeyError):
                 continue
             result["sol"] = {
-                **choice, "status": "ready", "fallback": fallback,
+                **choice, "status": "ready", "model": REFERENCE_MODEL, "fallback": fallback,
                 "allowed_roles": [f"sol_{effort}" for effort in supported_sol],
                 "source_generated_at": snapshot.get("generated_at"),
             }
             cache["sol"] = snapshot
             break
+        cache = _seal_cache(cache)
+        result = _seal_cache(result)
         if cache != previous:
             _write_json(lkg_path, cache)
         _write_json(daily, result)
@@ -380,6 +406,8 @@ def validate_snapshot(payload: Mapping[str, Any]) -> dict[str, Any]:
     scores: dict[str, float] = {}
     canonical_scores = payload.get("scores")
     if isinstance(canonical_scores, Mapping):
+        if payload.get("model") != LUNA_MODEL or payload.get("cache_identity") != cache_identity():
+            raise SnapshotInvalid("canonical snapshot model/axis/policy mismatch")
         for effort in EFFORTS:
             score = canonical_scores.get(effort)
             if isinstance(score, bool) or not isinstance(score, (int, float)):
@@ -416,6 +444,8 @@ def validate_snapshot(payload: Mapping[str, Any]) -> dict[str, Any]:
 
     normalized = {
         "metadata_schema_version": METADATA_SCHEMA_VERSION,
+        "model": LUNA_MODEL,
+        "cache_identity": cache_identity(),
         "snapshot_id": snapshot_id,
         "published_at": published_at,
         "scores": scores,
@@ -509,6 +539,10 @@ def adapt_modeldial_snapshot(
 
     if not isinstance(payload, Mapping):
         raise SnapshotInvalid("ModelDial snapshot must be an object")
+    try:
+        _sol_module().require_full_snapshot_hash(payload)
+    except (TypeError, ValueError) as exc:
+        raise SnapshotInvalid("ModelDial snapshot content hash mismatch") from exc
     if payload.get("kind") != "first_party_snapshot" or payload.get("status") != "complete":
         raise SnapshotInvalid("ModelDial snapshot is not a complete publication")
     provenance = payload.get("provenance")
@@ -533,6 +567,8 @@ def adapt_modeldial_snapshot(
         "batch_sha256",
     ):
         _required_text(payload, key)
+    if re.fullmatch(r"sha256:[0-9a-f]{64}", payload["batch_sha256"]) is None:
+        raise SnapshotInvalid("ModelDial snapshot hash is invalid")
 
     entries = payload.get("entries")
     if not isinstance(entries, list):
@@ -707,8 +743,15 @@ def adapt_modeldial_api(
                 raise SnapshotInvalid("ModelDial API v1.1 backend score identity is invalid")
         if model == LUNA_MODEL:
             rows.append({"model": LUNA_MODEL, "effort": effort, "score": score})
-        cost = _finite_cost(ranking.get("estimatedReferenceCostUsd"))
-        cost_candidates.setdefault((model, effort), []).append(cost)
+        # Compact API v1.1 does not supply complete per-row cost coverage.
+        # A scalar estimatedReferenceCostUsd alone cannot prove comparability.
+        if (
+            ranking.get("costCoverage") == "complete"
+            and ranking.get("costProtocolId") == batch.get("scoreBaselineId")
+            and ranking.get("pricingSnapshotId") == batch.get("pricingSnapshotId")
+        ):
+            cost = _finite_cost(ranking.get("estimatedReferenceCostUsd"))
+            cost_candidates.setdefault((model, effort), []).append(cost)
 
     adapted = {
         "snapshot_id": batch_id,
@@ -777,25 +820,12 @@ def _fetch_bytes(url: str, *, expected_type: str, timeout: float) -> tuple[bytes
 
 
 def fetch_modeldial_snapshot(*, timeout: float = 15.0) -> dict[str, Any]:
-    """Fetch ModelDial API v1, falling back to the official full snapshot."""
-
-    try:
-        body, final_url = _fetch_bytes(
-            MODELDIAL_API_URL, expected_type="application/json", timeout=timeout
-        )
-        payload = json.loads(body.decode("utf-8"))
-        return adapt_modeldial_api(payload, source_url=final_url)
-    except (OSError, UnicodeError, json.JSONDecodeError, SnapshotInvalid):
-        pass
-
-    try:
-        body, final_url = _fetch_bytes(
-            MODELDIAL_SNAPSHOT_URL, expected_type="application/json", timeout=timeout
-        )
-        payload = json.loads(body.decode("utf-8"))
-        return adapt_modeldial_snapshot(payload, source_url=final_url)
-    except (OSError, UnicodeError, json.JSONDecodeError, SnapshotInvalid) as exc:
-        raise SnapshotInvalid("both first-party ModelDial JSON sources failed") from exc
+    """Use the same indexed, hash-checked acquisition as the Worker selector."""
+    data = fetch_worker_data(timeout=timeout)
+    snapshot = data.get("luna_snapshot")
+    if isinstance(snapshot, Mapping):
+        return validate_snapshot(snapshot)
+    raise SnapshotInvalid("no valid indexed and hash-verified ModelDial publication")
 
 
 def _normalize_supported(supported_efforts: Iterable[str] | None) -> tuple[str, ...]:
@@ -835,6 +865,8 @@ def select_snapshot(
 
     profile = {
         "metadata_schema_version": METADATA_SCHEMA_VERSION,
+        "model": LUNA_MODEL,
+        "cache_identity": cache_identity(),
         "source_winner_effort": source_effort,
         "source_winner_score": snapshot["scores"][source_effort],
         "selected_effort": selected_effort,
@@ -866,7 +898,7 @@ def select_snapshot(
                 "sol_cost_usd": sol_cost,
                 "reduction_pct": round((1 - luna_cost / sol_cost) * 100, 1),
             }
-    return profile
+    return _seal_cache(profile)
 
 
 def _read_json(path: Path) -> Any:
@@ -949,7 +981,7 @@ def ensure_daily_profile(
     """Return today's profile, selecting once or falling back to the LKG."""
 
     selected_at = _aware_bjt(now)
-    state_root = Path(state_dir)
+    state_root = Path(state_dir) / CACHE_NAMESPACE
     profile_path = state_root / "daily-profile.json"
     lkg_path = state_root / "last-good-profile.json"
 
@@ -959,7 +991,7 @@ def ensure_daily_profile(
                 existing = _read_json(profile_path)
             except (OSError, json.JSONDecodeError):
                 existing = None
-            if _same_bjt_day(existing, selected_at):
+            if _same_bjt_day(existing, selected_at) and _daily_profile_is_valid(existing):
                 return dict(existing)
 
         if live_snapshot is None and live_fetcher is not None:
@@ -980,12 +1012,14 @@ def ensure_daily_profile(
             except SnapshotInvalid:
                 profile = None
             else:
-                _write_json(lkg_path, {"snapshot": normalized_snapshot})
+                _write_json(lkg_path, _seal_cache({"snapshot": normalized_snapshot, "cache_identity": cache_identity()}))
                 _write_json(profile_path, profile)
                 return profile
 
         try:
             lkg_record = _read_json(lkg_path)
+            if not _cache_digest_valid(lkg_record) or lkg_record.get("cache_identity") != cache_identity():
+                raise SnapshotInvalid("LKG integrity/model/axis/policy mismatch")
             lkg_snapshot = lkg_record["snapshot"]
             profile = select_snapshot(
                 lkg_snapshot,
@@ -1123,6 +1157,10 @@ def _profile_date(profile: Mapping[str, Any]) -> str | None:
 def _daily_profile_is_valid(profile: Any) -> bool:
     if not isinstance(profile, Mapping):
         return False
+    if profile.get("metadata_schema_version") != METADATA_SCHEMA_VERSION or profile.get("model") != LUNA_MODEL or profile.get("cache_identity") != cache_identity():
+        return False
+    if not _cache_digest_valid(profile):
+        return False
     effort = profile.get("selected_effort")
     if effort not in EFFORTS or profile.get("selected_role") != ROLE_BY_EFFORT[effort]:
         return False
@@ -1214,7 +1252,7 @@ def read_status(
         if codex_home is not None
         else (Path.home() / ".codex").resolve(strict=False)
     )
-    state_root = Path(state_dir).resolve(strict=False)
+    state_root = Path(state_dir).resolve(strict=False) / CACHE_NAMESPACE
     project_root = (
         Path(project_dir).resolve(strict=False) if project_dir is not None else None
     )
@@ -1237,12 +1275,12 @@ def read_status(
         if (
             not isinstance(candidate, Mapping)
             or type(schema_version) is not int
-            or schema_version not in {1, 2, 3}
+            or schema_version not in {1, 2, 3, 4}
             or not isinstance(candidate.get("version"), str)
             or not isinstance(candidate.get("owned_files"), Mapping)
             or not isinstance(candidate.get("owned_blocks"), Mapping)
             or (
-                schema_version in {2, 3}
+                schema_version in {2, 3, 4}
                 and (
                     not isinstance(candidate.get("owned_skill_files"), Mapping)
                     or not isinstance(candidate.get("skills_root"), str)
@@ -1255,6 +1293,9 @@ def read_status(
         else:
             manifest = candidate
             manifest_status = "Ready"
+            if schema_version == 4 and candidate.get("model_contract") != cache_identity():
+                manifest_status = "Invalid"
+                misconfigured.append("MODEL_CONTRACT_INVALID")
 
     selector_path = home / "sol-luna-v4" / "selector.py"
     selector_status = "Ready"
@@ -1269,7 +1310,7 @@ def read_status(
     ):
         selector_status = "Ownership mismatch" if selector_bytes is not None else "Missing"
         misconfigured.append("SELECTOR_OWNERSHIP_MISMATCH")
-    if manifest and manifest.get("schema_version") == 3:
+    if manifest and manifest.get("schema_version") in {3, 4}:
         module_path = home / "sol-luna-v4" / "worker_selector.py"
         try:
             module_bytes = module_path.read_bytes()
@@ -1330,7 +1371,7 @@ def read_status(
         if agents_config.get("enabled") is not True:
             misconfigured.append("AGENTS_DISABLED")
         configured_max = agents_config.get("max_concurrent_threads_per_session")
-        if isinstance(configured_max, bool) or not isinstance(configured_max, int) or configured_max != (6 if manifest and manifest.get("schema_version") == 3 else 3):
+        if isinstance(configured_max, bool) or not isinstance(configured_max, int) or configured_max != (6 if manifest and manifest.get("schema_version") in {3, 4} else 3):
             misconfigured.append("MAX_PARALLEL_INVALID")
         else:
             max_parallel = configured_max
@@ -1341,8 +1382,8 @@ def read_status(
     missing_agents = False
     invalid_agents = False
     ownership_agents = False
-    expected_agents = WORKER_AGENT_FILES if manifest and manifest.get("schema_version") == 3 else STABLE_AGENT_FILES
-    if manifest and manifest.get("schema_version") == 3:
+    expected_agents = WORKER_AGENT_FILES if manifest and manifest.get("schema_version") in {3, 4} else STABLE_AGENT_FILES
+    if manifest and manifest.get("schema_version") in {3, 4}:
         owned_agents = {key for key in manifest["owned_files"] if key.startswith("agents/")}
         if owned_agents != {f"agents/{name}" for name in expected_agents}:
             misconfigured.append("AGENT_INVENTORY_INVALID")
@@ -1386,7 +1427,7 @@ def read_status(
                 "AGENT_PAYLOAD_INVALID",
                 (
                     "LEAF_CONFIG_INVALID"
-                    if manifest and manifest.get("schema_version") == 3
+                    if manifest and manifest.get("schema_version") in {3, 4}
                     else "NATIVE_LEAF_INVALID"
                 ),
             ]
@@ -1398,8 +1439,8 @@ def read_status(
     skills_ready = 0
     skills_expected = 0
     skills_status = "Not managed"
-    if manifest and manifest.get("schema_version") in {2, 3}:
-        expected_skills = WORKER_SKILL_FILES if manifest["schema_version"] == 3 else STABLE_SKILL_FILES
+    if manifest and manifest.get("schema_version") in {2, 3, 4}:
+        expected_skills = WORKER_SKILL_FILES if manifest["schema_version"] in {3, 4} else STABLE_SKILL_FILES
         skills_expected = len(expected_skills)
         skills_status = "Ready"
         if set(manifest.get("owned_skill_files", {})) != set(expected_skills):
@@ -1472,7 +1513,7 @@ def read_status(
                         degraded.append("CAPABILITY_DEGRADED")
 
     worker_profile = None
-    if manifest and manifest.get("schema_version") == 3:
+    if manifest and manifest.get("schema_version") in {3, 4}:
         worker_read, raw_worker = _read_daily_profile(state_root / "worker-profile.json")
         if worker_read == "READ_FAILED":
             misconfigured.append("WORKER_PROFILE_READ_FAILED")
@@ -1547,7 +1588,7 @@ def read_status(
         default="Not available",
     )
     diagnostic = {
-        "diagnostic_schema_version": 4 if manifest and manifest.get("schema_version") == 3 else STATUS_SCHEMA_VERSION,
+        "diagnostic_schema_version": 4 if manifest and manifest.get("schema_version") in {3, 4} else STATUS_SCHEMA_VERSION,
         "generated_at_utc": current.astimezone(UTC).isoformat(),
         "os": _safe_identifier(platform.system(), default="Unknown"),
         "architecture": _safe_identifier(platform.machine(), default="Unknown"),
@@ -1587,10 +1628,13 @@ def read_status(
             "project_root": "<PROJECT_ROOT>" if project_root is not None else "Not checked",
         },
     }
-    if manifest and manifest.get("schema_version") == 3:
+    if manifest and manifest.get("schema_version") in {3, 4}:
         # Read-only configuration evidence is distinct from native runtime proof.
         diagnostic.update({
             "coordinator_model": "User selected; not observed",
+            "worker_models": {"sol": REFERENCE_MODEL, "luna": LUNA_MODEL},
+            "cache_namespace": CACHE_NAMESPACE,
+            "reference_policy_version": REFERENCE_POLICY_VERSION,
             "leaf_config": leaf_config,
             "native_delegation": "Not checked",
             "native_tool_isolation": "Not checked",
@@ -1599,7 +1643,7 @@ def read_status(
             "workers": {"luna": {"status": "Not initialized"}, "sol": {"status": "Not initialized", "views": {}}},
         })
         if worker_profile:
-            whitelist = ("status", "selected_role", "selected_effort", "selection_mode", "fallback", "capability_degraded", "source_winner_effort", "quality_gap", "benchmark_provider", "benchmark_route", "evidence_scope")
+            whitelist = ("model", "status", "selected_role", "selected_effort", "selection_mode", "fallback", "capability_degraded", "source_winner_effort", "quality_gap", "benchmark_provider", "benchmark_route", "evidence_scope")
             def safe_choice(row):
                 result = {key: row[key] for key in whitelist if key in row}
                 source = row.get("source_metadata")

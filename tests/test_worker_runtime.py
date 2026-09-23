@@ -14,7 +14,7 @@ from src import selector
 from scripts.install import install
 
 
-FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "modeldial"
+FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "modeldial-gpt6"
 
 
 class WorkerRuntimeTests(unittest.TestCase):
@@ -46,7 +46,7 @@ class WorkerRuntimeTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             profile = selector.ensure_worker_profile({"luna_snapshot": self.luna}, state_dir=directory, now=self.now)
             profile["luna"]["selected_role"] = "default"
-            path = Path(directory) / "worker-profile.json"
+            path = Path(directory) / "gpt6-v3" / "worker-profile.json"
             path.write_text(json.dumps(profile), encoding="utf-8")
             repaired = selector.ensure_worker_profile({}, state_dir=directory, now=self.now)
             self.assertEqual(repaired["luna"]["selected_role"], "luna_max")
@@ -61,15 +61,17 @@ class WorkerRuntimeTests(unittest.TestCase):
 
     def test_ready_sol_cache_requires_ready_view_and_exact_supported_roles(self):
         profile = {
-            "worker_profile_schema_version": 2,
+            "worker_profile_schema_version": 3,
+            "cache_identity": selector.cache_identity(),
             "reference_policy_version": selector.REFERENCE_POLICY_VERSION,
             "selection_date_bjt": "2026-09-12",
             "supported_luna": ["max"], "supported_sol": ["high"],
             "luna": {"status": "unavailable"},
-            "sol": {"status": "ready", "evidence_scope": "reference_only", "benchmark_provider": "codex", "benchmark_route": "official_login", "allowed_roles": ["sol_high"], "views": {
+            "sol": {"status": "ready", "model": selector.REFERENCE_MODEL, "evidence_scope": "reference_only", "benchmark_provider": "codex", "benchmark_route": "official_login", "allowed_roles": ["sol_high"], "views": {
                 "general": {"status": "ready", "selected_role": "sol_high", "selected_effort": "high"},
             }},
         }
+        profile = selector._seal_cache(profile)
         self.assertTrue(selector._worker_record_valid(profile))
         profile["sol"]["allowed_roles"].append("sol_ultra")
         self.assertFalse(selector._worker_record_valid(profile))
@@ -106,8 +108,8 @@ class WorkerRuntimeTests(unittest.TestCase):
             self.assertNotIn("native_leaf", status)
             self.assertNotIn("native_runtime", status)
             self.assertEqual(before, {path.name: path.read_bytes() for path in state.iterdir() if path.is_file()})
-            self.assertFalse((state / "daily-profile.json").exists())
-            (state / "daily-profile.json").write_text('{broken legacy data', encoding="utf-8")
+            self.assertFalse((state / "gpt6-v3" / "daily-profile.json").exists())
+            (state / "gpt6-v3" / "daily-profile.json").write_text('{broken legacy data', encoding="utf-8")
             status = selector.read_status(codex_home=target, state_dir=state)
             self.assertEqual(status["health"], "Degraded")
             self.assertNotIn("DAILY_PROFILE_INVALID", status["reason_codes"])
@@ -126,15 +128,16 @@ class WorkerRuntimeTests(unittest.TestCase):
             self.assertTrue(second["sol"]["fallback"])
             self.assertEqual(second["sol"]["views"]["general"]["selected_role"], "sol_high")
 
-    def test_transport_keeps_full_fallback_identity_separate(self):
+    def test_transport_rejects_unindexed_full_alias(self):
         api = json.loads((FIXTURES / "api-complete-v1.1.json").read_text(encoding="utf-8"))
         api["schemaVersion"] = "99"
         snapshot = json.loads((FIXTURES / "first-party-complete.json").read_text(encoding="utf-8"))
         responses = [(json.dumps(api).encode(), selector.MODELDIAL_API_URL), (json.dumps(snapshot).encode(), selector.MODELDIAL_SNAPSHOT_URL)]
         with patch("src.selector._fetch_bytes", side_effect=responses):
             result = selector.fetch_worker_data()
-        self.assertEqual(result["api"]["schemaVersion"], "99")
-        self.assertEqual(result["luna_snapshot"]["snapshot_id"], snapshot["batch_id"])
+        self.assertNotIn("api", result)
+        self.assertNotIn("luna_snapshot", result)
+        self.assertNotIn("full_snapshot", result)
 
 
 if __name__ == "__main__":

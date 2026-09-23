@@ -72,14 +72,14 @@ def make_snapshot(
 
 def capability_pass():
     return {
-        "model": "gpt-5.6-luna",
-        "sol_model": "gpt-5.6-sol",
+        "model": "gpt-6-luna",
+        "sol_model": "gpt-6-sol",
         "all_supported": True,
         "sol_all_supported": True,
         "all_models_supported": True,
         "results": [
             {
-                "model": "gpt-5.6-luna",
+                "model": "gpt-6-luna",
                 "effort": effort,
                 "supported": True,
                 "response_exact": True,
@@ -89,7 +89,7 @@ def capability_pass():
         ],
         "sol_results": [
             {
-                "model": "gpt-5.6-sol",
+                "model": "gpt-6-sol",
                 "effort": effort,
                 "supported": True,
                 "response_exact": True,
@@ -575,7 +575,7 @@ class SnapshotAndReportTests(unittest.TestCase):
                 (VERSION, "CURRENT"),
                 ("v4.1.0", "OLDER"),
                 ("v4.1.5", "OLDER"),
-                ("v4.2.1", "NEWER"),
+                ("v4.3.1", "NEWER"),
                 ("not-semver", "INVALID"),
             ):
                 with self.subTest(version=version):
@@ -729,8 +729,8 @@ class SourceAndInstallWorkflowTests(unittest.TestCase):
             lambda payload: payload["sol_results"].pop(),
             lambda payload: payload["sol_results"][0].update(supported=False),
             lambda payload: payload.update(all_models_supported=False),
-            lambda payload: payload.update(sol_model="gpt-5.6-luna"),
-            lambda payload: payload["sol_results"][0].update(model="gpt-5.6-luna"),
+            lambda payload: payload.update(sol_model="gpt-6-luna"),
+            lambda payload: payload["sol_results"][0].update(model="gpt-6-luna"),
         ):
             with self.subTest(mutation=mutate):
                 capability = capability_pass()

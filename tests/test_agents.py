@@ -6,7 +6,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 AGENT_DIR = ROOT / ".codex" / "agents"
 EFFORTS = {"low", "medium", "high", "xhigh", "max"}
-MODELS = {"sol": "gpt-5.6-sol", "luna": "gpt-5.6-luna"}
+MODELS = {"sol": "gpt-6-sol", "luna": "gpt-6-luna"}
 
 
 class AgentConfigTests(unittest.TestCase):

@@ -38,6 +38,7 @@ from scripts.child_environment import (  # noqa: E402
     build_process_environment,
 )
 from scripts.probe_capabilities import run_probe  # noqa: E402
+from src.worker_selector import LUNA_MODEL, SOL_MODEL, EFFORTS  # noqa: E402
 
 
 ASSIST_SCHEMA = 1
@@ -952,7 +953,7 @@ def install_workflow(
             {
                 "model": item.get("model")
                 if isinstance(item.get("model"), str)
-                and item.get("model") in {"gpt-5.6-luna", "gpt-5.6-sol"}
+                and item.get("model") in {LUNA_MODEL, SOL_MODEL}
                 else None,
                 "effort": item.get("effort"),
                 "supported": item.get("supported") is True,
@@ -971,11 +972,11 @@ def install_workflow(
     capability_summary = {
         "model": capability.get("model")
         if isinstance(capability, Mapping)
-        and capability.get("model") == "gpt-5.6-luna"
+        and capability.get("model") == LUNA_MODEL
         else None,
         "sol_model": capability.get("sol_model")
         if isinstance(capability, Mapping)
-        and capability.get("sol_model") == "gpt-5.6-sol"
+        and capability.get("sol_model") == SOL_MODEL
         else None,
         "all_supported": capability.get("all_supported") is True
         if isinstance(capability, Mapping)
@@ -989,7 +990,7 @@ def install_workflow(
         "results": summarize_results(raw_results),
         "sol_results": summarize_results(raw_sol_results),
     }
-    expected_efforts = {"low", "medium", "high", "xhigh", "max"}
+    expected_efforts = set(EFFORTS)
 
     def complete_model_evidence(results: list[dict], model: str) -> bool:
         observed_efforts = {
@@ -1007,16 +1008,16 @@ def install_workflow(
         )
 
     if (
-        capability_summary["model"] != "gpt-5.6-luna"
-        or capability_summary["sol_model"] != "gpt-5.6-sol"
+        capability_summary["model"] != LUNA_MODEL
+        or capability_summary["sol_model"] != SOL_MODEL
         or not capability_summary["all_supported"]
         or not capability_summary["sol_all_supported"]
         or not capability_summary["all_models_supported"]
         or not complete_model_evidence(
-            capability_summary["results"], "gpt-5.6-luna"
+            capability_summary["results"], LUNA_MODEL
         )
         or not complete_model_evidence(
-            capability_summary["sol_results"], "gpt-5.6-sol"
+            capability_summary["sol_results"], SOL_MODEL
         )
     ):
         return {

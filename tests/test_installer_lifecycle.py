@@ -379,48 +379,39 @@ def call_install(target: Path, **kwargs):
     )
 
 
-def simulate_published_v420_rc1_install(target: Path) -> None:
-    """Materialize the published rc1 payload in an isolated fake home."""
-
-    call_install(target, source_commit=PUBLISHED_V420_RC1_COMMIT)
+def simulate_published_v420_install(target: Path, version="v4.2.0-rc1") -> None:
+    """Install immutable, hash-checked historical payloads in an isolated home."""
+    fixture = json.loads((ROOT / "fixtures/installer" / f"{version}-payload.json").read_text(encoding="utf-8"))
+    call_install(target, source_commit=fixture["source_commit"])
     manifest_path = target / MANIFEST_RELATIVE
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-
-    selector_relative = "sol-luna-v4/selector.py"
-    selector_path = target / selector_relative
-    selector = selector_path.read_bytes()
-    stable_user_agent = USER_AGENT.encode("ascii")
-    if selector.count(stable_user_agent) != 1:
-        raise AssertionError("stable selector User-Agent fixture is not unique")
-    selector = selector.replace(stable_user_agent, PUBLISHED_V420_RC1_USER_AGENT)
-    selector_digest = hashlib.sha256(selector).hexdigest()
-    if selector_digest != PUBLISHED_V420_RC1_SELECTOR_SHA256:
-        raise AssertionError("selector does not match the published rc1 payload")
-    selector_path.write_bytes(selector)
-
-    upgrade_relative = "sol-luna-upgrade/SKILL.md"
     skills_root = Path(manifest["skills_root"])
-    upgrade_path = skills_root / upgrade_relative
-    upgrade_skill = upgrade_path.read_bytes()
-    if upgrade_skill.count(STABLE_V420_RELEASES_PATH) != 1:
-        raise AssertionError("Stable release endpoint fixture is not unique")
-    upgrade_skill = upgrade_skill.replace(
-        STABLE_V420_RELEASES_PATH,
-        PUBLISHED_V420_RC1_RELEASES_PATH,
-    )
-    upgrade_digest = hashlib.sha256(upgrade_skill).hexdigest()
-    if upgrade_digest != PUBLISHED_V420_RC1_UPGRADE_SKILL_SHA256:
-        raise AssertionError("upgrade Skill does not match the published rc1 payload")
-    upgrade_path.write_bytes(upgrade_skill)
+    for source, item in fixture["files"].items():
+        raw = item["text"].encode("utf-8")
+        assert hashlib.sha256(raw).hexdigest() == item["sha256"]
+        if source.startswith("payload/skills/"):
+            relative = source.removeprefix("payload/skills/")
+            if relative.startswith("sol-luna-status/"):
+                raw = installer_module.render_status_skill(item["text"], target).encode("utf-8")
+            elif relative.startswith("sol-luna-delegate/"):
+                raw = installer_module.render_delegate_skill(item["text"], target).encode("utf-8")
+            path = skills_root / relative
+            manifest["owned_skill_files"][relative] = hashlib.sha256(raw).hexdigest()
+        else:
+            relative = source.replace(".codex/", "").replace("src/", "sol-luna-v4/")
+            path = target / relative
+            manifest["owned_files"][relative] = hashlib.sha256(raw).hexdigest()
+        path.write_bytes(raw)
+    if version == "v4.2.0-rc1":
+        assert manifest["owned_files"]["sol-luna-v4/selector.py"] == PUBLISHED_V420_RC1_SELECTOR_SHA256
+        assert manifest["owned_skill_files"]["sol-luna-upgrade/SKILL.md"] == PUBLISHED_V420_RC1_UPGRADE_SKILL_SHA256
+    manifest.update(version=version, schema_version=3, source_commit=fixture["source_commit"])
+    manifest.pop("model_contract", None)
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
-    manifest["version"] = "v4.2.0-rc1"
-    manifest["source_commit"] = PUBLISHED_V420_RC1_COMMIT
-    manifest["owned_files"][selector_relative] = selector_digest
-    manifest["owned_skill_files"][upgrade_relative] = upgrade_digest
-    manifest_path.write_text(
-        json.dumps(manifest, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
+
+def simulate_published_v420_rc1_install(target: Path) -> None:
+    simulate_published_v420_install(target)
 
 
 def materialize_legacy_fixture(target: Path) -> dict:
@@ -655,7 +646,7 @@ class InstallerLifecycleTests(unittest.TestCase):
             manifest = json.loads(
                 (target / MANIFEST_RELATIVE).read_text(encoding="utf-8")
             )
-            self.assertEqual(manifest["schema_version"], 3)
+            self.assertEqual(manifest["schema_version"], 4)
             self.assertEqual(
                 {path for path in manifest["owned_files"] if path.startswith("agents/")},
                 {f"agents/{filename}" for filename in AGENT_FILES},
@@ -812,7 +803,7 @@ class InstallerLifecycleTests(unittest.TestCase):
                     agent = tomllib.load(handle)
                 self.assertEqual(
                     agent["model"],
-                    "gpt-5.6-sol" if path.name.startswith("sol-") else "gpt-5.6-luna",
+                    "gpt-6-sol" if path.name.startswith("sol-") else "gpt-6-luna",
                 )
                 self.assertFalse(agent["agents"]["enabled"])
             installed_policy = (target / "AGENTS.md").read_text(encoding="utf-8")
@@ -844,7 +835,7 @@ class InstallerLifecycleTests(unittest.TestCase):
             manifest = json.loads(
                 (target / MANIFEST_RELATIVE).read_text(encoding="utf-8")
             )
-            self.assertEqual(manifest["schema_version"], 3)
+            self.assertEqual(manifest["schema_version"], 4)
             self.assertEqual(manifest["version"], VERSION)
             self.assertEqual(len(manifest["owned_files"]), 12)
             self.assertEqual(
@@ -1176,7 +1167,7 @@ class InstallerLifecycleTests(unittest.TestCase):
                 (target / MANIFEST_RELATIVE).read_text(encoding="utf-8")
             )
             self.assertEqual(manifest["version"], VERSION)
-            self.assertEqual(manifest["schema_version"], 3)
+            self.assertEqual(manifest["schema_version"], 4)
             self.assertEqual(manifest["source_commit"], "b" * 40)
             self.assertEqual(
                 {
@@ -1415,11 +1406,7 @@ class InstallerLifecycleTests(unittest.TestCase):
             rc1_selector = selector_path.read_bytes()
             rc1_upgrade_skill = upgrade_path.read_bytes()
             before = installation_hash(target)
-            expected_modified = {
-                MANIFEST_RELATIVE.as_posix(),
-                selector_relative,
-                f"skills:{upgrade_relative}",
-            }
+            expected_modified = {MANIFEST_RELATIVE.as_posix(), *json.loads(rc1_manifest)["owned_files"], *("skills:" + p for p in json.loads(rc1_manifest)["owned_skill_files"])}
             stable_source_commit = "4" * 40
 
             dry = dry_run_install(
@@ -1430,7 +1417,7 @@ class InstallerLifecycleTests(unittest.TestCase):
                 source_commit=stable_source_commit,
             )
             self.assertEqual(dry["status"], "DRY_RUN_PASS")
-            self.assertEqual(dry["effective_changes"], 3)
+            self.assertEqual(dry["effective_changes"], len(expected_modified))
             self.assertEqual(dry["created"], [])
             self.assertEqual(set(dry["modified"]), expected_modified)
             self.assertEqual(dry["removed"], [])
@@ -1443,7 +1430,7 @@ class InstallerLifecycleTests(unittest.TestCase):
                 source_commit=stable_source_commit,
             )
             self.assertEqual(upgraded["status"], "UPGRADED")
-            self.assertEqual(upgraded["effective_changes"], 3)
+            self.assertEqual(upgraded["effective_changes"], len(expected_modified))
             self.assertEqual(upgraded["created"], [])
             self.assertEqual(set(upgraded["modified"]), expected_modified)
             self.assertEqual(upgraded["removed"], [])
@@ -1458,16 +1445,11 @@ class InstallerLifecycleTests(unittest.TestCase):
                 (entry["root"], entry["path"]): entry
                 for entry in snapshot["entries"]
             }
+            old_manifest = json.loads(rc1_manifest)
             expected_snapshot_hashes = {
-                ("codex_home", MANIFEST_RELATIVE.as_posix()): hashlib.sha256(
-                    rc1_manifest
-                ).hexdigest(),
-                ("codex_home", selector_relative): hashlib.sha256(
-                    rc1_selector
-                ).hexdigest(),
-                ("skills_root", upgrade_relative): hashlib.sha256(
-                    rc1_upgrade_skill
-                ).hexdigest(),
+                ("codex_home", MANIFEST_RELATIVE.as_posix()): hashlib.sha256(rc1_manifest).hexdigest(),
+                **{("codex_home", p): h for p, h in old_manifest["owned_files"].items()},
+                **{("skills_root", p): h for p, h in old_manifest["owned_skill_files"].items()},
             }
             self.assertEqual(set(snapshot_entries), set(expected_snapshot_hashes))
             for key, expected_hash in expected_snapshot_hashes.items():
@@ -1633,7 +1615,7 @@ class InstallerLifecycleTests(unittest.TestCase):
             )
             installed = json.loads(manifest_path.read_text(encoding="utf-8"))
             self.assertEqual(installed["version"], VERSION)
-            self.assertEqual(installed["schema_version"], 3)
+            self.assertEqual(installed["schema_version"], 4)
             self.assertEqual(installed["source_commit"], "2" * 40)
             self.assertNotEqual(selector_path.read_bytes(), v414_selector)
             self.assertIn(
@@ -1924,7 +1906,7 @@ class InstallerLifecycleTests(unittest.TestCase):
             manifest = json.loads(
                 (target / MANIFEST_RELATIVE).read_text(encoding="utf-8")
             )
-            self.assertEqual(manifest["schema_version"], 3)
+            self.assertEqual(manifest["schema_version"], 4)
             self.assertEqual(manifest["version"], VERSION)
             self.assertEqual(
                 (target / "sol-luna-v4" / "selector.py").read_bytes(),

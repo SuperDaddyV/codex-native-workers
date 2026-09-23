@@ -6,16 +6,27 @@ from src.worker_selector import (
     adapt_sol_api,
     adapt_sol_full_snapshot,
     enrich_sol_backend_costs,
-    select_sol,
+    select_sol, full_snapshot_hash,
 )
 
 
-FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "modeldial"
+FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "modeldial-gpt6"
 
 
 def load_fixture(name):
     with (FIXTURES / name).open("r", encoding="utf-8") as handle:
         return json.load(handle)
+
+
+def reseal_matching_pair(api, full):
+    # These tests construct a NEW synthetic publication, not a corrupt old one.
+    full["batch_sha256"] = full_snapshot_hash(full)
+    digest = full["batch_sha256"]
+    api["batch"]["sha256"] = digest
+    api["views"]["backend"]["group_sha256"] = digest
+    if api.get("overall_batch") and api["overall_batch"]["sources"]["backend"]["batch_id"] == api["batch"]["id"]:
+        api["overall_batch"]["sources"]["backend"]["sha256"] = digest
+    return api
 
 
 def test_api_fixture_maps_four_independent_views_and_groups():
@@ -33,7 +44,7 @@ def test_api_fixture_maps_four_independent_views_and_groups():
 def test_reference_api_identity_is_preserved_through_root_items_and_selection():
     adapted = adapt_sol_api(load_fixture("reference-api-v1.1.json"))
     assert adapted["target"] == {
-        "model": "gpt-5.6-sol",
+        "model": "gpt-6-sol",
         "provider": "cloudflare-reference",
         "route": "custom_endpoint",
     }
@@ -79,6 +90,7 @@ def test_official_pair_is_preferred_only_when_complete_and_pair_is_snapshot_wide
     official_full = load_fixture("worker-cost-covered.json")
     official_full["entries"][0]["score_integrity"] = "untrusted"
     full["entries"].extend(official_full["entries"])
+    full["batch_sha256"] = full_snapshot_hash(full)
     adapted_full = adapt_sol_full_snapshot(full)
     assert adapted_full["target"]["provider"] == "cloudflare-reference"
     assert adapted_full["views"]["backend"]["status"] == "ready"
@@ -180,6 +192,7 @@ def test_full_snapshot_uses_nested_model_configuration_and_integrity_gates():
     assert backend["items"][0]["row_id"].startswith("cloudflare-reference:")
 
     payload["entries"][0]["advisor_eligible"] = False
+    payload["batch_sha256"] = full_snapshot_hash(payload)
     adapted = adapt_sol_full_snapshot(payload)
     assert adapted["views"]["backend"]["status"] == "unavailable"
 
@@ -205,11 +218,13 @@ def test_reference_full_snapshot_accepts_and_preserves_per_row_evidence_ids():
 def test_full_snapshot_unknown_route_and_invalid_evidence_fail_closed():
     payload = load_fixture("reference-full-snapshot.json")
     payload["entries"][0]["model_configuration"]["route_type"] = "unlisted-route"
+    payload["batch_sha256"] = full_snapshot_hash(payload)
     adapted = adapt_sol_full_snapshot(payload)
     assert adapted["views"]["backend"]["status"] == "unavailable"
 
     payload = load_fixture("reference-full-snapshot.json")
     payload["entries"][-1]["source_evidence_group_id"] = " "
+    payload["batch_sha256"] = full_snapshot_hash(payload)
     adapted = adapt_sol_full_snapshot(payload)
     assert adapted["views"]["backend"]["status"] == "unavailable"
     assert adapted["views"]["backend"]["reason"].startswith("missing_evidence_group:")
@@ -303,7 +318,7 @@ def test_missing_latency_skips_latency_for_cheapest_tie_and_preserves_cost_prior
             entry["estimated_api_cost_usd"] = 1.0
         elif effort == "max":
             entry["estimated_api_cost_usd"] = 2.0
-    enriched = enrich_sol_backend_costs(adapt_sol_api(api_payload), full)
+    enriched = enrich_sol_backend_costs(reseal_matching_pair(adapt_sol_api(api_payload), full), full)
     for item in enriched["views"]["backend"]["items"]:
         if item["effort"] == "xhigh":
             item["elapsed_ms"] = None
@@ -324,7 +339,7 @@ def test_cost_and_latency_ties_use_score_then_effort_deterministically():
     by_effort["high"]["estimated_api_cost_usd"] = 1.0
     by_effort["max"]["estimated_api_cost_usd"] = 1.0
     by_effort["high"]["elapsed_ms"] = by_effort["max"]["elapsed_ms"] = 400
-    enriched = enrich_sol_backend_costs(api, full)
+    enriched = enrich_sol_backend_costs(reseal_matching_pair(api, full), full)
     selected = select_sol(enriched)["views"]["backend"]
     assert selected["selected_effort"] == "max"  # Higher score breaks the exact latency tie.
 
@@ -343,7 +358,7 @@ def test_cost_and_latency_ties_use_score_then_effort_deterministically():
             row["elapsedMs"] = 400
         elif row["reasoningEffort"] == "xhigh":
             row["score"] = row["backendScore"] = 90
-    tied = select_sol(enrich_sol_backend_costs(adapt_sol_api(api_payload), full))["views"]["backend"]
+    tied = select_sol(enrich_sol_backend_costs(reseal_matching_pair(adapt_sol_api(api_payload), full), full))["views"]["backend"]
     assert tied["selected_effort"] == "high"  # Lower effort wins equal score and latency.
 
 

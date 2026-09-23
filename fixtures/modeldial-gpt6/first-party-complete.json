@@ -1,0 +1,168 @@
+{
+  "kind": "first_party_snapshot",
+  "status": "complete",
+  "batch_id": "fixture-first-party-001",
+  "published_at": "2026-08-10T16:00:00Z",
+  "question_pack_id": "coding-fast",
+  "question_pack_version": "fixture-v1",
+  "grader_version": "fixture-grader-v1",
+  "evaluation_profile": "full",
+  "score_baseline_id": "fixture-baseline-v1",
+  "batch_sha256": "sha256:1435b794e7d125efc6ea9d2a640fd7abcff59e9e4e1a2f155f68b6c2abf905e4",
+  "pricing_snapshot_id": "fixture-pricing-v1",
+  "provenance": {
+    "public_official_snapshot": true
+  },
+  "entries": [
+    {
+      "model_configuration": {
+        "provider_id": "codex",
+        "canonical_model_id": "gpt-6-luna",
+        "reasoning_effort": "low",
+        "route_type": "official_login"
+      },
+      "advisor_eligible": true,
+      "score_integrity": "first_party_controlled",
+      "route_identity": "first_party_controlled",
+      "cost_coverage": "complete",
+      "estimated_api_cost_usd": 0.02062,
+      "score": 10,
+      "source_evidence_group_id": "fixture-run-1"
+    },
+    {
+      "model_configuration": {
+        "provider_id": "codex",
+        "canonical_model_id": "gpt-6-luna",
+        "reasoning_effort": "medium",
+        "route_type": "official_login"
+      },
+      "advisor_eligible": true,
+      "score_integrity": "first_party_controlled",
+      "route_identity": "first_party_controlled",
+      "cost_coverage": "complete",
+      "estimated_api_cost_usd": 0.031059,
+      "score": 20,
+      "source_evidence_group_id": "fixture-run-1"
+    },
+    {
+      "model_configuration": {
+        "provider_id": "codex",
+        "canonical_model_id": "gpt-6-luna",
+        "reasoning_effort": "high",
+        "route_type": "official_login"
+      },
+      "advisor_eligible": true,
+      "score_integrity": "first_party_controlled",
+      "route_identity": "first_party_controlled",
+      "cost_coverage": "complete",
+      "estimated_api_cost_usd": 0.064337,
+      "score": 30,
+      "source_evidence_group_id": "fixture-run-1"
+    },
+    {
+      "model_configuration": {
+        "provider_id": "codex",
+        "canonical_model_id": "gpt-6-luna",
+        "reasoning_effort": "xhigh",
+        "route_type": "official_login"
+      },
+      "advisor_eligible": true,
+      "score_integrity": "first_party_controlled",
+      "route_identity": "first_party_controlled",
+      "cost_coverage": "complete",
+      "estimated_api_cost_usd": 0.09094,
+      "score": 40,
+      "source_evidence_group_id": "fixture-run-1"
+    },
+    {
+      "model_configuration": {
+        "provider_id": "codex",
+        "canonical_model_id": "gpt-6-luna",
+        "reasoning_effort": "max",
+        "route_type": "official_login"
+      },
+      "advisor_eligible": true,
+      "score_integrity": "first_party_controlled",
+      "route_identity": "first_party_controlled",
+      "cost_coverage": "complete",
+      "estimated_api_cost_usd": 0.154264,
+      "score": 50,
+      "source_evidence_group_id": "fixture-run-1"
+    },
+    {
+      "model_configuration": {
+        "provider_id": "codex",
+        "canonical_model_id": "gpt-6-sol",
+        "reasoning_effort": "low",
+        "route_type": "official_login"
+      },
+      "advisor_eligible": true,
+      "score_integrity": "first_party_controlled",
+      "route_identity": "first_party_controlled",
+      "cost_coverage": "complete",
+      "estimated_api_cost_usd": 0.343667,
+      "score": 76,
+      "source_evidence_group_id": "fixture-run-1"
+    },
+    {
+      "model_configuration": {
+        "provider_id": "codex",
+        "canonical_model_id": "gpt-6-sol",
+        "reasoning_effort": "medium",
+        "route_type": "official_login"
+      },
+      "advisor_eligible": true,
+      "score_integrity": "first_party_controlled",
+      "route_identity": "first_party_controlled",
+      "cost_coverage": "complete",
+      "estimated_api_cost_usd": 0.51765,
+      "score": 80,
+      "source_evidence_group_id": "fixture-run-1"
+    },
+    {
+      "model_configuration": {
+        "provider_id": "codex",
+        "canonical_model_id": "gpt-6-sol",
+        "reasoning_effort": "high",
+        "route_type": "official_login"
+      },
+      "advisor_eligible": true,
+      "score_integrity": "first_party_controlled",
+      "route_identity": "first_party_controlled",
+      "cost_coverage": "complete",
+      "estimated_api_cost_usd": 1.072283,
+      "score": 84,
+      "source_evidence_group_id": "fixture-run-1"
+    },
+    {
+      "model_configuration": {
+        "provider_id": "codex",
+        "canonical_model_id": "gpt-6-sol",
+        "reasoning_effort": "xhigh",
+        "route_type": "official_login"
+      },
+      "advisor_eligible": true,
+      "score_integrity": "first_party_controlled",
+      "route_identity": "first_party_controlled",
+      "cost_coverage": "complete",
+      "estimated_api_cost_usd": 1.515667,
+      "score": 88,
+      "source_evidence_group_id": "fixture-run-1"
+    },
+    {
+      "model_configuration": {
+        "provider_id": "codex",
+        "canonical_model_id": "gpt-6-sol",
+        "reasoning_effort": "max",
+        "route_type": "official_login"
+      },
+      "advisor_eligible": true,
+      "score_integrity": "first_party_controlled",
+      "route_identity": "first_party_controlled",
+      "cost_coverage": "complete",
+      "estimated_api_cost_usd": 2.571067,
+      "score": 91,
+      "source_evidence_group_id": "fixture-run-1"
+    }
+  ]
+}

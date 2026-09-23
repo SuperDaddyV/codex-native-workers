@@ -55,7 +55,7 @@ class CapabilityProbeTests(unittest.TestCase):
         sol_command = build_command("codex", "high", SOL_MODEL)
         self.assertEqual(sol_command[sol_command.index("--model") + 1], SOL_MODEL)
         self.assertTrue(
-            any("MODEL_GPT_5_6_SOL_EFFORT_HIGH_OK" in arg for arg in sol_command)
+            any("MODEL_GPT_6_SOL_EFFORT_HIGH_OK" in arg for arg in sol_command)
         )
 
     def test_probe_rejects_models_outside_the_two_supported_families(self):

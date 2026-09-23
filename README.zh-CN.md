@@ -1,10 +1,12 @@
 # Codex Native Workers
 
-由你选择的 Coordinator 掌握任务，原生 GPT-5.6 Sol 与 Luna worker 执行值得委派、边界清楚的工作。
+本分支是 **v4.3.0 验收候选**，尚未正式发布；当前已发布正式版仍为 [v4.2.0](https://github.com/SuperDaddyV/codex-native-workers/releases/tag/v4.2.0)。下面的 v4.3.0 安装提示词仅在正式 Release 发布后生效。
+
+由你选择的 Coordinator 掌握任务，原生 GPT-6 Sol 与 Luna worker 执行值得委派、边界清楚的工作。
 
 [English](README.md)
 
-[![Stable: v4.2.0](https://img.shields.io/badge/stable-v4.2.0-blue)](https://github.com/SuperDaddyV/codex-native-workers/releases/tag/v4.2.0)
+[![Target: v4.3.0](https://img.shields.io/badge/candidate-v4.3.0-blue)](https://github.com/SuperDaddyV/codex-native-workers/releases/tag/v4.3.0)
 [![Previous preview: v4.2.0-rc1](https://img.shields.io/badge/preview-v4.2.0--rc1-orange)](https://github.com/SuperDaddyV/codex-native-workers/releases/tag/v4.2.0-rc1)
 [![Validation](https://github.com/SuperDaddyV/codex-native-workers/actions/workflows/validate.yml/badge.svg?branch=master)](https://github.com/SuperDaddyV/codex-native-workers/actions/workflows/validate.yml)
 [![License](https://img.shields.io/github/license/SuperDaddyV/codex-native-workers)](LICENSE)
@@ -14,7 +16,7 @@
 
 ## 这是什么
 
-Codex Native Workers v4.2 把用户选择的 **Coordinator** 与两类直属原生 worker 分开：
+Codex Native Workers v4.3 把用户选择的 **Coordinator** 与两类直属原生 worker 分开：
 
 - **Coordinator 掌握整个任务。** 它负责需求、范围、架构、歧义处理、路由、整合、最终验收和最终答复。Astra 只是 Coordinator 的一个示例；本项目不会选择或安装 Coordinator 模型。
 - **Sol 执行复杂的边界任务。** 适合诊断、综合、跨模块推理，以及其他范围清楚但难度较高的执行工作。
@@ -28,21 +30,21 @@ Codex Native Workers v4.2 把用户选择的 **Coordinator** 与两类直属原�
 
 | 版本 | 定位 | 安装内容 |
 | --- | --- | --- |
-| **v4.2.0** | **正式版／默认安装** | 安装 5 个 Sol 与 5 个 Luna worker 档位、3 个 Skills；保留用户选择的 Coordinator。 |
-| v4.2.0-rc1 | 上一版 Preview | 双家族预览版；已有用户可升级到 v4.2.0。 |
+| **v4.3.0** | **验收候选／尚未发布** | 安装 5 个 Sol 与 5 个 Luna worker 档位、3 个 Skills；保留用户选择的 Coordinator。 |
+| v4.2.0-rc1 | 上一版 Preview | 双家族预览版；已有用户可升级到 v4.3.0。 |
 | v4.1.4 | 旧版 Stable | Sol 主控 + 5 个 Luna worker 档位，不包含 Sol 子代理或新版三个 Skills 流程。 |
 
-新用户和已有用户都使用下面这一个 **v4.2.0** 提示词，不要先安装旧版本。GitHub 的 **Latest** 指向正式版。前置条件、验收和恢复见[安装帮助与故障排查](INSTALLATION.zh-CN.md)。
+发布后，新用户和已有用户都可使用下面这一个 **v4.3.0** 提示词。在此之前，请使用已发布的 [v4.2.0 安装说明](https://github.com/SuperDaddyV/codex-native-workers/blob/v4.2.0/README.zh-CN.md)。GitHub 的 **Latest** 指向正式版。前置条件、验收和恢复见[安装帮助与故障排查](INSTALLATION.zh-CN.md)。
 
 ## 正式版安装（默认）
 
-目标：[Codex Native Workers v4.2.0](https://github.com/SuperDaddyV/codex-native-workers/releases/tag/v4.2.0)。新建一个能执行本地 shell 的 Codex 任务，完整复制下面提示词。必须先核验正式 Release 已发布，再进行安装。
+目标：[Codex Native Workers v4.3.0](https://github.com/SuperDaddyV/codex-native-workers/releases/tag/v4.3.0)。新建一个能执行本地 shell 的 Codex 任务，完整复制下面提示词。必须先核验正式 Release 已发布，再进行安装。
 
 ```text
 请从 https://github.com/SuperDaddyV/codex-native-workers
-安装或升级到 Codex Native Workers v4.2.0 正式版。
+安装或升级到 Codex Native Workers v4.3.0 正式版。
 
-读取 https://api.github.com/repos/SuperDaddyV/codex-native-workers/releases/tags/v4.2.0，
+读取 https://api.github.com/repos/SuperDaddyV/codex-native-workers/releases/tags/v4.3.0，
 要求 Release 已发布、非 draft、非 prerelease。将远端 tag 解析到精确的
 40-hex commit，取得干净的 detached checkout 后再次读取远端 tag；如有移动就停止。
 从该精确 commit 读取 NATIVE_WORKERS_SETUP.md 并遵循合同，不从 master、
@@ -116,7 +118,7 @@ Receipt 只汇总已观察到的任务事实，不是 runtime attestation，也�
 
 - Codex Desktop，或其他支持 custom agent 与 subagent 的当前 Codex 客户端。
 - 当前任务环境可执行 `codex` 命令；如果 `codex --version` 不能运行，仅安装 Codex Desktop 还不够。
-- 账号可使用用户选择的 Coordinator 模型，以及所需 effort 的 GPT-5.6 Sol 与 GPT-5.6 Luna。
+- 账号可使用用户选择的 Coordinator 模型，以及所需 effort 的 GPT-6 Sol 与 GPT-6 Luna。
 - Python 3.11 或更高版本并包含 `tomllib`，以及用于不可变精确 commit checkout 的 Git。已安装的 policy 与 Skill 选择器命令固定调用 **`python`**；只有 `python3` 或 `py` 可用还不够，需确认 Codex 执行环境中的 `python` 可用。
 - 能以只读 HTTPS 访问 GitHub，以及首次每日选择所需的 ModelDial 公共参考数据。模型调用权限来自 Codex 账号，不来自雷达网站。
 - Windows、Ubuntu/Linux 或 macOS。WSL 应视为独立 Linux 环境。
@@ -125,7 +127,7 @@ Receipt 只汇总已观察到的任务事实，不是 runtime attestation，也�
 
 不可变的 [v4.2.0-rc1 合同](https://github.com/SuperDaddyV/codex-native-workers/blob/527b174df13643a38bfe29652208eaa00f63fbf7/NATIVE_WORKERS_PREVIEW.md)及其[验证记录](https://github.com/SuperDaddyV/codex-native-workers/releases/download/v4.2.0-rc1/native-workers-rc1-validation.json)继续保留。
 
-只有明确需要旧 v4.1.4 时，才使用原有 [Assisted Installation contract](https://github.com/SuperDaddyV/codex-sol-luna-worker/blob/7494d47574ac751e76a231033a0ed91686899a07/CODEX_SOL_LUNA_INSTALL_ASSIST.md)。它锁定 [v4.1.4 Setup contract](https://github.com/SuperDaddyV/codex-sol-luna-worker/blob/bf01c438eae66f5ef9a27d401c6ee845f89d5d59/CODEX_SOL_LUNA_SETUP.md)和源码 `6a537b445ad6f17a9600c05e655f51a2844bfcc8`；[中文审阅版](CODEX_SOL_LUNA_INSTALL_ASSIST.zh-CN.md)仅供核对。这些是历史合同，不是 v4.2.0 安装入口；不要混入当前源码，也不要自动降级。
+只有明确需要旧 v4.1.4 时，才使用原有 [Assisted Installation contract](https://github.com/SuperDaddyV/codex-sol-luna-worker/blob/7494d47574ac751e76a231033a0ed91686899a07/CODEX_SOL_LUNA_INSTALL_ASSIST.md)。它锁定 [v4.1.4 Setup contract](https://github.com/SuperDaddyV/codex-sol-luna-worker/blob/bf01c438eae66f5ef9a27d401c6ee845f89d5d59/CODEX_SOL_LUNA_SETUP.md)和源码 `6a537b445ad6f17a9600c05e655f51a2844bfcc8`；[中文审阅版](CODEX_SOL_LUNA_INSTALL_ASSIST.zh-CN.md)仅供核对。这些是历史合同，不是 v4.3.0 安装入口；不要混入当前源码，也不要自动降级。
 
 ## 日常使用
 
@@ -154,7 +156,7 @@ Receipt 只汇总已观察到的任务事实，不是 runtime attestation，也�
 检查 Sol/Luna 状态
 ```
 
-对于 `v4.2.0`，diagnostic schema 4 把安装/配置与原生 runtime 证据分开。`Status Healthy`、`Agents 10/10 Ready`、`Skills 3/3 Ready` 和 `leaf_config Ready` 只说明配置状态。实际 native delegation、tool isolation、invocation guard 行为和观察到的最大并发量需要单独进行 runtime 检查。配置上限六个不等于实测容量。
+对于 `v4.3.0`，diagnostic schema 4 把安装/配置与原生 runtime 证据分开。`Status Healthy`、`Agents 10/10 Ready`、`Skills 3/3 Ready` 和 `leaf_config Ready` 只说明配置状态。实际 native delegation、tool isolation、invocation guard 行为和观察到的最大并发量需要单独进行 runtime 检查。配置上限六个不等于实测容量。
 
 v4.1.4 Stable 的 status 结构可能显示 `Agents 5/5 Ready`。其历史 compatibility smoke 只覆盖 Luna-only 行为，不是双 family v4.2 产品的验收。
 
@@ -164,7 +166,7 @@ v4.1.4 Stable 的 status 结构可能显示 `Agents 5/5 Ready`。其历史 compa
 
 ## 升级、回滚与卸载
 
-- **升级：** 现有安装可以说「升级 Sol/Luna 到最新版本」，这**包含 Prerelease**。要固定 v4.2.0 正式版，请使用上面的版本专用提示词；只接受稳定版时请明确说 Stable-only。已安装的 `sol-luna-upgrade` Skill 只应用经过验证的不可变目标。
+- **升级：** 现有安装可以说「升级 Sol/Luna 到最新版本」，这**包含 Prerelease**。要固定 v4.3.0 正式版，请使用上面的版本专用提示词；只接受稳定版时请明确说 Stable-only。已安装的 `sol-luna-upgrade` Skill 只应用经过验证的不可变目标。
 - **回滚：** 使用 installer 返回的精确 transaction backup；成功回滚会恢复经过校验的变更前状态。
 - **卸载：** 使用 installer 的 manifest-owned uninstall 流程，不要手工编辑托管 TOML、Skill 或 agent 文件。
 
@@ -173,7 +175,7 @@ v4.1.4 Stable 的 status 结构可能显示 `Agents 5/5 Ready`。其历史 compa
 ## 技术文档
 
 - [安装帮助与故障排查](INSTALLATION.zh-CN.md)
-- [v4.2.0 正式版安装、升级、回滚与卸载](NATIVE_WORKERS_SETUP.md)
+- [v4.3.0 正式版安装、升级、回滚与卸载](NATIVE_WORKERS_SETUP.md)
 - [历史 v4.2.0-rc1 预览版合同](NATIVE_WORKERS_PREVIEW.md)
 - [架构说明](ARCHITECTURE.md)
 - [Runtime 证据](RUNTIME_TESTS.md)
@@ -194,3 +196,11 @@ v4.1.4 Stable 的 status 结构可能显示 `Agents 5/5 Ready`。其历史 compa
 [MIT](LICENSE)
 
 `fixtures/modeldial/` 下由 ModelDial 数据派生的测试 fixture 依 CC BY 4.0 在[独立说明](fixtures/modeldial/README.md)中署名；项目源码许可证仍为 MIT。
+
+## GPT-6 升级与状态
+
+活动角色绑定 `gpt-6-sol`／`gpt-6-luna`，保留五档 effort，Sol 四视图及 Luna Daily。Coordinator 仍由用户选择。模型合同集中在 `src/worker_selector.py`，安装 manifest 为 schema 4。
+
+新状态写入现有 state 目录下的 `gpt6-v3`，绑定精确模型、评分轴、五档 effort 和选择策略版本 2。旧 GPT-5.6 Daily／LKG 原样保留，不能自动回退使用。缺少有效 GPT-6 数据与同代缓存时，由 Coordinator 接手。缺少完整可比成本证据时明确使用 `quality_only`，不声称本机账单或额度收益。
+
+升级后，磁盘角色正确不等于桌面宿主已加载。若任务仍显示 GPT-5.6 自定义角色，请完全退出并重启 Codex Desktop，再回到原任务继续原生验收；不要覆盖模型参数或调用旧 worker。shell CLI 与桌面宿主能力分别核对。事务备份路径以安装回执为准；旧状态不删除，回滚仍执行全部所有权及双根目录预验证。

@@ -1,3 +1,37 @@
+# v4.3.0 GPT-6 migration — active baseline, 2026-09-24
+
+Latest user instruction: continue implementation and acceptance preparation, then
+STOP BEFORE final Stable publication for user acceptance. Do not create/publish
+the v4.3.0 Release or move the default branch into a published-ready state before
+that acceptance. Existing implementation, branch/commit/push and candidate-install
+authorizations remain active.
+
+Authorized: implementation, codex/ branch, commits/push/tag, and immutable Stable
+Release after required acceptance; transactional exact-candidate installation into
+managed CODEX_HOME and three Skills. Preserve user Coordinator settings, unmanaged
+Global instructions, old releases, historical evidence and strict ownership/rollback.
+
+Active contract: gpt-6-sol and gpt-6-luna, five efforts; four dynamic Sol views and
+one Luna Daily. Central model definitions; generation/axis/policy-bound caches in a
+separate namespace. Never use GPT-5.6 Daily/LKG as automatic GPT-6 fallback. Match
+publication index/full identity; incomplete cost evidence means quality-only.
+
+Coordinator prepares while Desktop roles are GPT-5.6. Then follow the installed
+Skill once for useful direct GPT-6 Sol/Luna tasks and review model/effort/parentage
+and overlap. Required: focused/full tests, fresh/rc1/v4.2 lifecycle, preservation,
+zero-write repeat/conflict, exact rollback, exact-commit Windows/Ubuntu/macOS CI,
+immutable release/tag/default-branch/installed identity. Distinguish source,
+fake-home, installed, native, tool visibility, invocation guard and concurrency.
+If host reload is unavailable, stop native/release gates and record a precise resume
+point; continue independent work. Never infer native PASS from configuration.
+
+Initial live evidence: clean b00b769; installed rc1/527b174, ten GPT-5.6 roles and
+LKG_FALLBACK_ACTIVE. Desktop runtime 0.155.0-alpha.16; PATH CLI 0.146.0. Radar API
+has five GPT-6 rows per family; the matching archive returns 404. Historical
+acceptance below remains historical; current results will be recorded separately.
+
+---
+
 # v4.2 Local Coordinator / Sol / Luna Integration
 
 ## Authorized v4.2.0 Stable and repository rename — 2026-09-19

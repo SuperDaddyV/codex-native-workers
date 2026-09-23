@@ -10,7 +10,7 @@ from unittest.mock import patch
 from src import selector
 
 
-FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "modeldial"
+FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "modeldial-gpt6"
 NOW = datetime(2026, 9, 12, 23, tzinfo=selector.BJT)
 
 
@@ -30,6 +30,8 @@ def indexed_fixture():
     full = json.loads((FIXTURES / "first-party-complete.json").read_text(encoding="utf-8"))
     for src, dest in {"batchId": "batch_id", "publishedAt": "published_at", "questionPackVersion": "question_pack_version", "graderVersion": "grader_version", "evaluationProfile": "evaluation_profile", "scoreBaselineId": "score_baseline_id", "pricingSnapshotId": "pricing_snapshot_id", "sha256": "batch_sha256"}.items():
         full[dest] = record[src]
+    full["batch_sha256"] = selector._sol_module().full_snapshot_hash(full)
+    record["sha256"] = api["batch"]["sha256"] = full["batch_sha256"]
     return api, index, full
 
 
@@ -61,6 +63,7 @@ class ReferenceRuntimeTests(unittest.TestCase):
         for index, row in enumerate(full["entries"]):
             row["model_configuration"]["provider_id"], row["model_configuration"]["route_type"] = selector.BENCHMARK_PAIRS[1]
             row["source_evidence_group_id"] = f"result-{index}"
+        full["batch_sha256"] = selector._sol_module().full_snapshot_hash(full)
         snapshot = selector.adapt_modeldial_snapshot(full, now=NOW, allow_reference=True)
         self.assertEqual(len(set(snapshot["evidence_ids"].values())), 5)
         self.assertEqual(snapshot["benchmark_route"], "custom_endpoint")
@@ -78,14 +81,15 @@ class ReferenceRuntimeTests(unittest.TestCase):
         self.assertEqual(data["full_snapshot_status"], "matched")
         self.assertEqual(data["full_snapshot"]["batch_id"], api["batch"]["id"])
 
-    def test_missing_archive_keeps_valid_api_without_fetching_older_full(self):
+    def test_missing_archive_rejects_api_without_fetching_older_full(self):
         api, index, _ = indexed_fixture()
         replies = [(json.dumps(api).encode(), selector.MODELDIAL_API_URL), (json.dumps(index).encode(), selector.MODELDIAL_INDEX_URL), OSError("404")]
         with patch("src.selector._fetch_bytes", side_effect=replies) as fetch:
             data = selector.fetch_worker_data()
         self.assertEqual(fetch.call_count, 3)
         self.assertNotIn("full_snapshot", data)
-        self.assertIn("luna_snapshot", data)
+        self.assertNotIn("luna_snapshot", data)
+        self.assertNotIn("api", data)
         self.assertEqual(data["full_snapshot_status"], "unavailable_or_mismatched")
 
     def test_duplicate_or_mismatched_index_is_rejected_before_archive_fetch(self):
@@ -110,16 +114,17 @@ class ReferenceRuntimeTests(unittest.TestCase):
         with patch("src.selector._fetch_bytes", side_effect=replies):
             data = selector.fetch_worker_data()
         self.assertNotIn("full_snapshot", data)
-        self.assertEqual(data["luna_snapshot"]["snapshot_id"], api["batch"]["id"])
+        self.assertNotIn("luna_snapshot", data)
+        self.assertNotIn("api", data)
 
     def test_old_worker_policy_cache_is_reselected(self):
         with tempfile.TemporaryDirectory() as directory:
             first = selector.ensure_worker_profile({"api": reference_api()}, state_dir=directory, now=NOW)
             first.pop("reference_policy_version")
-            path = Path(directory) / "worker-profile.json"
+            path = Path(directory) / "gpt6-v3" / "worker-profile.json"
             path.write_text(json.dumps(first), encoding="utf-8")
             next_profile = selector.ensure_worker_profile({}, state_dir=directory, now=NOW)
-            self.assertEqual(next_profile["reference_policy_version"], 1)
+            self.assertEqual(next_profile["reference_policy_version"], 2)
             self.assertTrue(next_profile["luna"]["fallback"])
             self.assertEqual(next_profile["luna"]["benchmark_route"], "custom_endpoint")
 
@@ -127,7 +132,7 @@ class ReferenceRuntimeTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             first = selector.ensure_worker_profile({"api": reference_api()}, state_dir=directory, now=NOW)
             first["luna"]["benchmark_route"] = "official_login"
-            path = Path(directory) / "worker-profile.json"
+            path = Path(directory) / "gpt6-v3" / "worker-profile.json"
             path.write_text(json.dumps(first), encoding="utf-8")
             repaired = selector.ensure_worker_profile({}, state_dir=directory, now=NOW)
             self.assertEqual(repaired["luna"]["benchmark_route"], "custom_endpoint")

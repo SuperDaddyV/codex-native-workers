@@ -465,7 +465,7 @@ class InstallPlanTests(unittest.TestCase):
             )
             manifest_path = target / MANIFEST_RELATIVE
             manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-            manifest["version"] = "v4.2.1"
+            manifest["version"] = "v4.3.1"
             manifest_path.write_text(
                 json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
             )
@@ -484,8 +484,8 @@ class InstallPlanTests(unittest.TestCase):
                     self.assertEqual(tree_hash(target), before)
 
     def test_v420_stable_and_historical_semver_contract(self):
-        self.assertEqual(VERSION, "v4.2.0")
-        self.assertEqual(USER_AGENT, "codex-native-workers/4.2.0")
+        self.assertEqual(VERSION, "v4.3.0")
+        self.assertEqual(USER_AGENT, "codex-native-workers/4.3.0")
         self.assertGreater(_compare_project_semver(VERSION, "v4.2.0-rc1"), 0)
         self.assertGreater(_compare_project_semver(VERSION, "v4.2.0-local.2"), 0)
         self.assertGreater(_compare_project_semver(VERSION, "v4.1.2"), 0)

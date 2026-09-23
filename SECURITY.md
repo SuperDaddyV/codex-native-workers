@@ -1,3 +1,21 @@
+# GPT-6 v4.3.0 active contract
+
+The active model/effort contract lives in `src/worker_selector.py`: `gpt-6-sol`,
+`gpt-6-luna`, five efforts, four Sol views and one Luna Daily. User-selected
+Coordinator settings are preserved. GPT-5.6 below describes historical releases.
+
+Manifest schema 4 keeps the exact ten-role/two-module/three-Skill inventory and
+records the model contract. Schemas 1–3 keep their historical inventory checks.
+Generation-isolated `gpt6-v3` caches bind model, axes and selection policy 2. Old
+state is preserved, never used as an automatic fallback. Index/full publication
+identities, protocol and hash must match; incomplete cost means quality-only.
+Native role loading, tool visibility, invocation guard and measured concurrency
+require separate live evidence. The Global managed block remains <= 2048 bytes.
+
+The versioned sections below retain their original evidence labels and dates.
+
+---
+
 # Security Policy
 
 ## Codex Native Workers v4.2 Stable scope

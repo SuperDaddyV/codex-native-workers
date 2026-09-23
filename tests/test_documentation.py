@@ -101,10 +101,10 @@ SETUP_RAW_PATTERN = re.compile(
 )
 STABLE_API_URL = (
     "https://api.github.com/repos/SuperDaddyV/"
-    "codex-native-workers/releases/tags/v4.2.0"
+    "codex-native-workers/releases/tags/v4.3.0"
 )
 STABLE_RELEASE_URL = (
-    "https://github.com/SuperDaddyV/codex-native-workers/releases/tag/v4.2.0"
+    "https://github.com/SuperDaddyV/codex-native-workers/releases/tag/v4.3.0"
 )
 STABLE_PYTHON_CHECK = (
     'python -c "import sys, tomllib; '
@@ -184,12 +184,12 @@ class DocumentationTests(unittest.TestCase):
         ):
             content = text(path)
             self.assertIn("actions/workflows/validate.yml/badge.svg", content)
-            self.assertIn("releases/tag/v4.2.0", content)
-            self.assertIn("img.shields.io/badge/stable-v4.2.0", content)
+            self.assertIn("releases/tag/v4.3.0", content)
+            self.assertIn("img.shields.io/badge/candidate-v4.3.0", content)
             self.assertIn("github/license", content)
             self.assertEqual(
                 re.findall(r"(?m)^## (.+)$", content),
-                list(headings),
+                list(headings) + (["GPT-6 升级与状态"] if path == README_ZH else ["GPT-6 migration and diagnostics"]),
             )
             self.assertGreaterEqual(len(content.splitlines()), 180)
             self.assertLessEqual(len(content.splitlines()), 260)
@@ -489,8 +489,8 @@ class DocumentationTests(unittest.TestCase):
             [V414_SETUP_CONTRACT_COMMIT],
         )
         self.assertIn(V414_RUNTIME_SOURCE_COMMIT, text(SETUP))
-        self.assertIn("single **v4.2.0** prompt", english)
-        self.assertIn("下面这一个 **v4.2.0** 提示词", chinese)
+        self.assertIn("single **v4.3.0** prompt", english)
+        self.assertIn("下面这一个 **v4.3.0** 提示词", chinese)
         for stale in (
             PREVIOUS_STABLE_ASSIST_COMMIT,
             PREVIOUS_STABLE_SETUP_COMMIT,
@@ -1049,7 +1049,7 @@ class DocumentationTests(unittest.TestCase):
         self.assertIn(V414_RUNTIME_SOURCE_COMMIT, public_installation)
         self.assertIn("Stable release: `v4.1.4`", text(ASSIST))
         self.assertIn(STABLE_RELEASE_URL, text(README) + text(README_ZH))
-        self.assertIn("img.shields.io/badge/stable-v4.2.0", text(README) + text(README_ZH))
+        self.assertIn("img.shields.io/badge/candidate-v4.3.0", text(README) + text(README_ZH))
         self.assertNotIn("releases/tag/v4.1.3", text(README) + text(README_ZH))
         self.assertNotIn("img.shields.io/badge/stable-v4.1.3", public_installation)
         stable_public_claims = "\n".join(
@@ -1074,9 +1074,9 @@ class DocumentationTests(unittest.TestCase):
         setup = text(STABLE_SETUP)
         readmes = text(README) + "\n" + text(README_ZH)
 
-        self.assertIn("# Codex Native Workers — v4.2.0 Stable installation contract", setup)
+        self.assertIn("# Codex Native Workers — v4.3.0 Stable installation contract", setup)
         for required in (
-            "/repos/SuperDaddyV/codex-native-workers/releases/tags/v4.2.0",
+            "/repos/SuperDaddyV/codex-native-workers/releases/tags/v4.3.0",
             "draft=false",
             "prerelease=false",
             "published_at",
@@ -1084,7 +1084,7 @@ class DocumentationTests(unittest.TestCase):
             "clean detached checkout",
             "remote tag again",
             "TAG_MOVED",
-            'VERSION == "v4.2.0"',
+            'VERSION == "v4.3.0"',
             "--source-commit",
             "two-root transaction",
             "no file is\n   required to embed its own SHA",

@@ -18,16 +18,16 @@ from pathlib import Path
 from typing import Mapping
 
 
-EFFORTS = ("low", "medium", "high", "xhigh", "max")
-LUNA_MODEL = "gpt-5.6-luna"
-SOL_MODEL = "gpt-5.6-sol"
-MODELS = (LUNA_MODEL, SOL_MODEL)
 BJT = timezone(timedelta(hours=8), name="BJT")
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from scripts.child_environment import build_child_environment  # noqa: E402
+
+
+from src.worker_selector import EFFORTS, LUNA_MODEL, SOL_MODEL
+MODELS = (LUNA_MODEL, SOL_MODEL)
 
 
 DEFAULT_STATE = PROJECT_ROOT / ".var" / "capabilities.json"
