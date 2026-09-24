@@ -12,6 +12,7 @@ from unittest.mock import Mock, patch
 
 from src import selector
 from scripts.install import install
+from publication_fixtures import publication_bundle
 
 
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "modeldial-gpt6"
@@ -63,7 +64,7 @@ class WorkerRuntimeTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             profile = selector.ensure_worker_profile({"luna_snapshot": self.luna}, state_dir=directory, now=self.now)
             profile["luna"]["selected_role"] = "default"
-            path = Path(directory) / "gpt6-v3" / "worker-profile.json"
+            path = Path(directory) / "gpt6-v4" / "worker-profile.json"
             path.write_text(json.dumps(profile), encoding="utf-8")
             repaired = selector.ensure_worker_profile({}, state_dir=directory, now=self.now)
             self.assertEqual(repaired["luna"]["selected_role"], "luna_max")
@@ -104,9 +105,11 @@ class WorkerRuntimeTests(unittest.TestCase):
             install(target, allow_validation_sandbox=True)
             state = target / "sol-luna-v4" / "state"
             entry = target / "sol-luna-v4" / "selector.py"
+            bundle_path = Path(directory) / "publication.json"
+            bundle_path.write_text(json.dumps(publication_bundle(include_luna=False)), encoding="utf-8")
             result = subprocess.run([
                 sys.executable, str(entry), "--workers", "--ensure-daily", "--print-selection",
-                "--snapshot", str(FIXTURES / "worker-api-v1.1.json"), "--state-dir", str(state),
+                "--snapshot", str(bundle_path), "--state-dir", str(state),
             ], capture_output=True, text=True, check=False, cwd=directory)
             self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
             profile = json.loads(result.stdout)
@@ -125,8 +128,8 @@ class WorkerRuntimeTests(unittest.TestCase):
             self.assertNotIn("native_leaf", status)
             self.assertNotIn("native_runtime", status)
             self.assertEqual(before, {path.name: path.read_bytes() for path in state.iterdir() if path.is_file()})
-            self.assertFalse((state / "gpt6-v3" / "daily-profile.json").exists())
-            (state / "gpt6-v3" / "daily-profile.json").write_text('{broken legacy data', encoding="utf-8")
+            self.assertFalse((state / "gpt6-v4" / "daily-profile.json").exists())
+            (state / "gpt6-v4" / "daily-profile.json").write_text('{broken legacy data', encoding="utf-8")
             status = selector.read_status(codex_home=target, state_dir=state)
             self.assertEqual(status["health"], "Degraded")
             self.assertNotIn("DAILY_PROFILE_INVALID", status["reason_codes"])
@@ -138,7 +141,7 @@ class WorkerRuntimeTests(unittest.TestCase):
         choice = {"evidence_scope": "reference_only", "benchmark_provider": "codex", "benchmark_route": "official_login", "views": {"general": {"status": "ready", "selected_role": "sol_high", "selected_effort": "high"}}}
         sol = SimpleNamespace(adapt_sol_api=lambda value: normalized, select_sol=lambda value, **kwargs: copy.deepcopy(choice))
         with tempfile.TemporaryDirectory() as directory, patch("src.selector._sol_module", return_value=sol):
-            first = selector.ensure_worker_profile({"api": {"invalid_for_luna": True}}, state_dir=directory, now=self.now)
+            first = selector.ensure_worker_profile({"sol_snapshot": normalized}, state_dir=directory, now=self.now)
             self.assertEqual(first["luna"]["status"], "unavailable")
             self.assertEqual(first["sol"]["status"], "ready")
             second = selector.ensure_worker_profile({}, state_dir=directory, now=self.now + timedelta(days=1))

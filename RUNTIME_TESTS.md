@@ -1,3 +1,65 @@
+# GPT-6 v4.3.0 local publication-verification repair — 2026-09-24
+
+This is uncommitted repository work on top of candidate
+`937957768f31b8bcc487fc3080df5348f233f4a4`. It does not update real CODEX_HOME,
+installed Skills or Global instructions. No commit, tag, push or publication was
+performed. The earlier candidate evidence remains unchanged and is not evidence
+for this repaired tree.
+
+The independently reproduced API/archive score mismatch and unverified Sol-axis
+findings are repaired. Backend identity, score, scale and selection latency must
+match the exact hashed full archive. Frontend, reasoning and general each require
+their exact benchmark-index record, archive hash and matching selection inputs.
+An invalid source disables that view and dependent general selection; it cannot
+be rescued as quality-only. Malformed axis-source objects also leave independently
+verified backend/Luna selection available. Missing comparable costs alone still
+permits quality-only after score verification.
+
+Active state uses `gpt6-v4` with publication verification version 1. Earlier
+`gpt6-v3` files are preserved and rejected as fallback, including copies moved
+into the new namespace. Offline Worker inputs must supply the same indexed
+publication bundle as the network path. The daily selection algorithm, ten native
+profiles, strict installation inventory and Global byte budget are unchanged.
+
+Current results:
+
+- **PASS — source and fake-home:** 17 targeted publication-binding regressions;
+  final full standard-library suite, 466 tests in 103.822 seconds. Coverage includes
+  corruption and missing-archive rejection, family/view independence, old-cache
+  rejection, verified fallback, repeat zero-write, installation lifecycle,
+  preservation, exact rollback, Skill validation and public documentation.
+- **PASS — downloaded public archive replay:** the seven public JSON documents
+  acquired earlier in this task passed the repaired verification pipeline in
+  isolated repository state. Backend batch
+  `evaluation-fe161e59016664151e0e4e38607a0213e6aa42b91b2edab9cc7f7badd75fa786`,
+  digest `sha256:a717dd9b66a0cb825cd83348ae364bf425880894d17ca4c2c1d5cb9f69c628c8`;
+  overall batch `overall-bf7f1c53d2c0a20d465133da`, digest
+  `sha256:df5d447738beb20460a27662370a7f6e037001b5f0d66c92ca73e8a6e0737924`.
+  Luna selected xhigh quality-only; all four Sol views selected xhigh, backend
+  cost-optimized and the other three quality-only. No fallback was used. This is
+  reference-data evidence, not local billing, installed or native execution.
+- **BLOCKED — latest live acquisition:** at 2026-09-24 10:24:39 UTC, the first
+  ModelDial API request failed with `URLError` / `WinError 10054` (connection reset).
+  A fresh isolated state correctly reported both families unavailable. The final
+  seven-request live pipeline therefore did not complete; archive replay and
+  mocked transport tests do not turn this into a live PASS.
+- **NOT RUN — repaired-candidate exact-commit CI, real-home installation and
+  native GPT-6 worker acceptance.** Earlier candidate CI and installed evidence
+  cannot be reused as exact evidence for these uncommitted repairs.
+
+Commands: `python -X utf8 -B -m unittest discover -s tests -p test_publication_binding.py -q`
+and `python -X utf8 -B -m unittest discover -s tests -q`. Ignored local evidence is
+under `.var/v430-integrity-repair/`: `full-tests-final.log`,
+`archive-replay-validation.json` (input and source hashes), and
+`live-20260924T102439Z/validation.json` (raw transport failure).
+Data source: [ModelDial Radar](https://modeldial.com/radar),
+[backend index](https://modeldial.com/api/v1/radar/index.json) and
+[benchmark index](https://modeldial.com/data/benchmark-snapshots/index.json),
+[CC BY 4.0](https://modeldial.com/data-license). New test bundles are synthetic,
+not measured model results. Historical records below retain their original scope.
+
+---
+
 # GPT-6 v4.3.0 acceptance candidate — 2026-09-24
 
 User requested a stop before final Stable publication for acceptance. No new

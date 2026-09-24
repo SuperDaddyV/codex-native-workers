@@ -22,11 +22,11 @@ from typing import Any, Callable, Iterable, Mapping
 if __package__:
     from .worker_selector import (SOL_MODEL as REFERENCE_MODEL, LUNA_MODEL, EFFORTS, VERSION,
                                   WORKER_PROFILE_SCHEMA_VERSION, REFERENCE_POLICY_VERSION,
-                                  CACHE_NAMESPACE, cache_identity)
+                                  CACHE_NAMESPACE, PUBLICATION_VERIFICATION_VERSION, cache_identity)
 else:
     from worker_selector import (SOL_MODEL as REFERENCE_MODEL, LUNA_MODEL, EFFORTS, VERSION,
                                  WORKER_PROFILE_SCHEMA_VERSION, REFERENCE_POLICY_VERSION,
-                                 CACHE_NAMESPACE, cache_identity)
+                                 CACHE_NAMESPACE, PUBLICATION_VERIFICATION_VERSION, cache_identity)
 
 METADATA_SCHEMA_VERSION = 2
 STATUS_SCHEMA_VERSION = 2
@@ -38,6 +38,7 @@ UTC = timezone.utc
 MODELDIAL_API_URL = "https://modeldial.com/api/v1/radar/latest.json"
 MODELDIAL_SNAPSHOT_URL = "https://modeldial.com/data/reference-snapshots/latest.json"
 MODELDIAL_INDEX_URL = "https://modeldial.com/api/v1/radar/index.json"
+MODELDIAL_BENCHMARK_INDEX_URL = "https://modeldial.com/data/benchmark-snapshots/index.json"
 MODELDIAL_ALLOWED_HOSTS = frozenset({"modeldial.com", "reference.modeldial.com"})
 MAX_SNAPSHOT_BYTES = 2 * 1024 * 1024
 API_CLOCK_SKEW = timedelta(minutes=10)
@@ -69,13 +70,14 @@ def _sol_module():
 
 def _seal_cache(value: Mapping[str, Any]) -> dict[str, Any]:
     result = {key: item for key, item in value.items() if key != "content_sha256"}
+    result.setdefault("publication_verification_version", PUBLICATION_VERIFICATION_VERSION)
     encoded = json.dumps(result, sort_keys=True, ensure_ascii=True, separators=(",", ":"), allow_nan=False).encode("utf-8")
     result["content_sha256"] = hashlib.sha256(encoded).hexdigest()
     return result
 
 
 def _cache_digest_valid(value: Any) -> bool:
-    if not isinstance(value, Mapping):
+    if not isinstance(value, Mapping) or type(value.get("publication_verification_version")) is not int or value["publication_verification_version"] != PUBLICATION_VERIFICATION_VERSION:
         return False
     try:
         return value.get("content_sha256") == _seal_cache(value)["content_sha256"]
@@ -125,7 +127,8 @@ def fetch_worker_data(*, timeout: float = 15.0) -> dict[str, Any]:
         if not isinstance(api, Mapping) or api.get("schemaVersion") not in ("1.0", "1.1"):
             raise SnapshotInvalid("unsupported publication API")
         body, _ = _fetch_bytes(MODELDIAL_INDEX_URL, expected_type="application/json", timeout=timeout)
-        record = _matching_snapshot_record(api, json.loads(body.decode("utf-8")))
+        index = json.loads(body.decode("utf-8"))
+        record = _matching_snapshot_record(api, index)
         body, url = _fetch_bytes(record["fullSnapshotUrl"], expected_type="application/json", timeout=timeout)
         payload = json.loads(body.decode("utf-8"))
         _require_matching_full(record, payload)
@@ -133,15 +136,64 @@ def fetch_worker_data(*, timeout: float = 15.0) -> dict[str, Any]:
         # Neither unchecked API scores nor another batch's latest alias may
         # authorize a live choice. The caller may use a qualified same-generation LKG.
         return {"full_snapshot_status": "unavailable_or_mismatched"}
-    result = {"api": api, "full_snapshot": payload, "full_snapshot_status": "matched"}
+    result = {"api": api, "publication_index": index, "full_snapshot": payload, "full_snapshot_status": "matched"}
+    overall = api.get("overallBatch")
+    if not isinstance(overall, Mapping):
+        return result
     try:
-        result["luna_snapshot"] = adapt_modeldial_api(api, allow_reference=True)
-    except (SnapshotInvalid, ValueError, TypeError):
+        body, _ = _fetch_bytes(MODELDIAL_BENCHMARK_INDEX_URL, expected_type="application/json", timeout=timeout)
+        benchmark_index = json.loads(body.decode("utf-8"))
+    except (OSError, UnicodeError, ValueError, TypeError):
+        return result
+    result["benchmark_index"] = benchmark_index
+    result["benchmark_snapshots"] = {}
+    sources = overall.get("sources", {})
+    downloaded = {}
+    for name, axis in (("frontend", "frontend_v17"), ("knowledge", "hle_deep_20"), ("overall", "overall")):
         try:
-            result["luna_snapshot"] = adapt_modeldial_snapshot(payload, source_url=url, allow_reference=True)
-        except (SnapshotInvalid, ValueError, TypeError):
-            pass
+            source = overall if name == "overall" else sources.get(name)
+            record = _sol_module().benchmark_record(benchmark_index, source, axis)
+            archive_url = _benchmark_archive_url(record.get("path"))
+            if archive_url not in downloaded:
+                body, _ = _fetch_bytes(archive_url, expected_type="application/json", timeout=timeout)
+                downloaded[archive_url] = json.loads(body.decode("utf-8"))
+            result["benchmark_snapshots"][name] = downloaded[archive_url]
+        except (OSError, UnicodeError, ValueError, TypeError, AttributeError):
+            continue
     return result
+
+
+def _benchmark_archive_url(path: Any) -> str:
+    # Only relative archive paths from the official inventory are accepted.
+    if not isinstance(path, str) or re.fullmatch(r"(?:overall/)?archive/[A-Za-z0-9_-]+\.json", path) is None:
+        raise SnapshotInvalid("invalid benchmark archive path")
+    return _validated_modeldial_url(urllib.parse.urljoin(MODELDIAL_BENCHMARK_INDEX_URL, path))
+
+
+def _verified_worker_data(data: Mapping[str, Any], *, now: datetime | None = None) -> dict[str, Any]:
+    """Offline and network publication bundles pass the same verification gate."""
+    api, full = data.get("api"), data.get("full_snapshot")
+    try:
+        if not isinstance(api, Mapping):
+            return {}
+        record = _matching_snapshot_record(api, data.get("publication_index"))
+        _require_matching_full(record, full)
+    except (ValueError, TypeError, KeyError):
+        return {}
+    verified = {}
+    try:
+        luna = adapt_modeldial_api(api, now=now, allow_reference=True)
+        _sol_module().require_backend_api_rows(api, full, LUNA_MODEL, luna["benchmark_provider"], luna["benchmark_route"])
+        # Luna is quality-only. API cost declarations are not archive evidence.
+        luna.pop("reference_costs", None)
+        verified["luna_snapshot"] = luna
+    except (ValueError, TypeError, KeyError):
+        pass
+    try:
+        verified["sol_snapshot"] = _sol_module().verify_sol_publication(api, full, data.get("benchmark_index"), data.get("benchmark_snapshots"))
+    except (ValueError, TypeError, KeyError):
+        pass
+    return verified
 
 
 def _worker_record_valid(value: Any) -> bool:
@@ -213,6 +265,10 @@ def ensure_worker_profile(
         data = live_data if isinstance(live_data, Mapping) else {}
         if "schemaVersion" in data:
             data = {"api": data}
+        # Canonical snapshots are a library injection point used by pure
+        # tests. Network and CLI input always enter as publication bundles.
+        if "api" in data or "full_snapshot" in data:
+            data = _verified_worker_data(data, now=current)
         previous = _read_json_safely(lkg_path)
         previous = previous if isinstance(previous, Mapping) and previous.get("cache_identity") == cache_identity() and _cache_digest_valid(previous) else {}
         cache = {**previous, "cache_identity": cache_identity()}
@@ -228,16 +284,6 @@ def ensure_worker_profile(
         luna_candidates = []
         if data.get("luna_snapshot") is not None:
             luna_candidates.append((data["luna_snapshot"], False))
-        elif isinstance(data.get("api"), Mapping):
-            try:
-                luna_candidates.append((adapt_modeldial_api(data["api"], now=current, allow_reference=True), False))
-            except (SnapshotInvalid, ValueError, TypeError):
-                pass
-        if not luna_candidates and isinstance(data.get("full_snapshot"), Mapping):
-            try:
-                luna_candidates.append((adapt_modeldial_snapshot(data["full_snapshot"], now=current, allow_reference=True), False))
-            except (SnapshotInvalid, ValueError, TypeError):
-                pass
         if previous.get("luna") is not None:
             luna_candidates.append((previous["luna"], True))
         legacy = _read_json_safely(root / "last-good-profile.json")
@@ -255,19 +301,8 @@ def ensure_worker_profile(
             break
         sol = _sol_module()
         sol_candidates = []
-        if isinstance(data.get("api"), Mapping):
-            try:
-                adapted = sol.adapt_sol_api(data["api"])
-                if isinstance(data.get("full_snapshot"), Mapping):
-                    adapted = sol.enrich_sol_backend_costs(adapted, data["full_snapshot"])
-                sol_candidates.append((adapted, False))
-            except (ValueError, TypeError, KeyError):
-                pass
-        if isinstance(data.get("full_snapshot"), Mapping):
-            try:
-                sol_candidates.append((sol.adapt_sol_full_snapshot(data["full_snapshot"]), False))
-            except (ValueError, TypeError, KeyError):
-                pass
+        if isinstance(data.get("sol_snapshot"), Mapping):
+            sol_candidates.append((data["sol_snapshot"], False))
         if previous.get("sol") is not None:
             sol_candidates.append((previous["sol"], True))
         for snapshot, fallback in sol_candidates:
@@ -822,7 +857,7 @@ def _fetch_bytes(url: str, *, expected_type: str, timeout: float) -> tuple[bytes
 def fetch_modeldial_snapshot(*, timeout: float = 15.0) -> dict[str, Any]:
     """Use the same indexed, hash-checked acquisition as the Worker selector."""
     data = fetch_worker_data(timeout=timeout)
-    snapshot = data.get("luna_snapshot")
+    snapshot = _verified_worker_data(data).get("luna_snapshot")
     if isinstance(snapshot, Mapping):
         return validate_snapshot(snapshot)
     raise SnapshotInvalid("no valid indexed and hash-verified ModelDial publication")
@@ -1635,6 +1670,7 @@ def read_status(
             "worker_models": {"sol": REFERENCE_MODEL, "luna": LUNA_MODEL},
             "cache_namespace": CACHE_NAMESPACE,
             "reference_policy_version": REFERENCE_POLICY_VERSION,
+            "publication_verification_version": PUBLICATION_VERIFICATION_VERSION,
             "leaf_config": leaf_config,
             "native_delegation": "Not checked",
             "native_tool_isolation": "Not checked",
@@ -1730,6 +1766,8 @@ def main(argv: list[str] | None = None) -> int:
             parser.error("--workers requires structured output, not --print-role")
         try:
             data = _read_json(Path(args.snapshot)) if args.snapshot else None
+            if args.snapshot and (not isinstance(data, Mapping) or "api" not in data):
+                raise SnapshotInvalid("--workers --snapshot requires a complete indexed publication bundle")
             profile = ensure_worker_profile(
                 data, state_dir=args.state_dir, supported_luna=supported,
                 supported_sol=tuple(x.strip() for x in args.sol_supported.split(",") if x.strip()),

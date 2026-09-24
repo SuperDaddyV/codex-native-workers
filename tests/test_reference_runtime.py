@@ -8,6 +8,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from src import selector
+from publication_fixtures import publication_bundle
 
 
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "modeldial-gpt6"
@@ -23,16 +24,8 @@ def reference_api():
 
 
 def indexed_fixture():
-    api = reference_api()
-    record = {"batchId": api["batch"]["id"], **{k: v for k, v in api["batch"].items() if k != "id"}}
-    record["fullSnapshotUrl"] = "https://modeldial.com/data/reference-snapshots/archive/test.json"
-    index = {"schemaVersion": "1.1", "snapshots": [record]}
-    full = json.loads((FIXTURES / "first-party-complete.json").read_text(encoding="utf-8"))
-    for src, dest in {"batchId": "batch_id", "publishedAt": "published_at", "questionPackVersion": "question_pack_version", "graderVersion": "grader_version", "evaluationProfile": "evaluation_profile", "scoreBaselineId": "score_baseline_id", "pricingSnapshotId": "pricing_snapshot_id", "sha256": "batch_sha256"}.items():
-        full[dest] = record[src]
-    full["batch_sha256"] = selector._sol_module().full_snapshot_hash(full)
-    record["sha256"] = api["batch"]["sha256"] = full["batch_sha256"]
-    return api, index, full
+    bundle = publication_bundle(reference_api())
+    return bundle["api"], bundle["publication_index"], bundle["full_snapshot"]
 
 
 class ReferenceRuntimeTests(unittest.TestCase):
@@ -45,7 +38,7 @@ class ReferenceRuntimeTests(unittest.TestCase):
         self.assertEqual(snapshot["evidence_scope"], "reference_only")
         self.assertNotIn("reference_costs", snapshot)
         with tempfile.TemporaryDirectory() as directory:
-            profile = selector.ensure_worker_profile({"api": api}, state_dir=directory, now=NOW)
+            profile = selector.ensure_worker_profile(publication_bundle(api), state_dir=directory, now=NOW)
             self.assertEqual(profile["luna"]["status"], "ready")
             self.assertEqual(profile["luna"]["benchmark_provider"], "cloudflare-reference")
             self.assertNotIn("reference_cost_comparison", profile["luna"])
@@ -74,7 +67,7 @@ class ReferenceRuntimeTests(unittest.TestCase):
         record = index["snapshots"][0]
         unrelated = {**record, "batchId": "older-batch", "fullSnapshotUrl": "https://modeldial.com/old.json"}
         index["snapshots"].insert(0, unrelated)
-        replies = [(json.dumps(api).encode(), selector.MODELDIAL_API_URL), (json.dumps(index).encode(), selector.MODELDIAL_INDEX_URL), (json.dumps(full).encode(), record["fullSnapshotUrl"])]
+        replies = [(json.dumps(api).encode(), selector.MODELDIAL_API_URL), (json.dumps(index).encode(), selector.MODELDIAL_INDEX_URL), (json.dumps(full).encode(), record["fullSnapshotUrl"]), OSError("benchmark index offline")]
         with patch("src.selector._fetch_bytes", side_effect=replies) as fetch:
             data = selector.fetch_worker_data()
         self.assertEqual(fetch.call_args_list[2].args[0], record["fullSnapshotUrl"])
@@ -119,9 +112,9 @@ class ReferenceRuntimeTests(unittest.TestCase):
 
     def test_old_worker_policy_cache_is_reselected(self):
         with tempfile.TemporaryDirectory() as directory:
-            first = selector.ensure_worker_profile({"api": reference_api()}, state_dir=directory, now=NOW)
+            first = selector.ensure_worker_profile(publication_bundle(reference_api()), state_dir=directory, now=NOW)
             first.pop("reference_policy_version")
-            path = Path(directory) / "gpt6-v3" / "worker-profile.json"
+            path = Path(directory) / "gpt6-v4" / "worker-profile.json"
             path.write_text(json.dumps(first), encoding="utf-8")
             next_profile = selector.ensure_worker_profile({}, state_dir=directory, now=NOW)
             self.assertEqual(next_profile["reference_policy_version"], 2)
@@ -130,9 +123,9 @@ class ReferenceRuntimeTests(unittest.TestCase):
 
     def test_cached_reference_cannot_be_relabeled_as_native_route(self):
         with tempfile.TemporaryDirectory() as directory:
-            first = selector.ensure_worker_profile({"api": reference_api()}, state_dir=directory, now=NOW)
+            first = selector.ensure_worker_profile(publication_bundle(reference_api()), state_dir=directory, now=NOW)
             first["luna"]["benchmark_route"] = "official_login"
-            path = Path(directory) / "gpt6-v3" / "worker-profile.json"
+            path = Path(directory) / "gpt6-v4" / "worker-profile.json"
             path.write_text(json.dumps(first), encoding="utf-8")
             repaired = selector.ensure_worker_profile({}, state_dir=directory, now=NOW)
             self.assertEqual(repaired["luna"]["benchmark_route"], "custom_endpoint")

@@ -201,6 +201,8 @@ v4.1.4 Stable 的 status 结构可能显示 `Agents 5/5 Ready`。其历史 compa
 
 活动角色绑定 `gpt-6-sol`／`gpt-6-luna`，保留五档 effort，Sol 四视图及 Luna Daily。Coordinator 仍由用户选择。模型合同集中在 `src/worker_selector.py`，安装 manifest 为 schema 4。
 
-新状态写入现有 state 目录下的 `gpt6-v3`，绑定精确模型、评分轴、五档 effort 和选择策略版本 2。旧 GPT-5.6 Daily／LKG 原样保留，不能自动回退使用。缺少有效 GPT-6 数据与同代缓存时，由 Coordinator 接手。缺少完整可比成本证据时明确使用 `quality_only`，不声称本机账单或额度收益。
+新状态写入现有 state 目录下的 `gpt6-v4`，绑定精确模型、评分轴、五档 effort 和选择策略版本 2。旧 GPT-5.6 Daily／LKG 原样保留，不能自动回退使用。缺少有效 GPT-6 数据与同代缓存时，由 Coordinator 接手。缺少完整可比成本证据时明确使用 `quality_only`，不声称本机账单或额度收益。
 
 升级后，磁盘角色正确不等于桌面宿主已加载。若任务仍显示 GPT-5.6 自定义角色，请完全退出并重启 Codex Desktop，再回到原任务继续原生验收；不要覆盖模型参数或调用旧 worker。shell CLI 与桌面宿主能力分别核对。事务备份路径以安装回执为准；旧状态不删除，回滚仍执行全部所有权及双根目录预验证。
+
+发布数据校验会逐项核对后端档位的身份、分数、量纲和耗时；Sol 前端、推理及综合视图还必须匹配各自的分榜索引与完整快照。缺少证据或数据不一致的视图不能降级成 quality-only 后继续选档。新 `gpt6-v4` 缓存要求发布校验版本 1；此前的 `gpt6-v3` 缓存原样保留，不能用于自动回退。

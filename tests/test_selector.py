@@ -551,7 +551,7 @@ class SelectorTests(unittest.TestCase):
 
     def test_invalid_live_uses_lkg(self):
         with tempfile.TemporaryDirectory() as directory:
-            (Path(directory) / "gpt6-v3").mkdir(exist_ok=True)
+            (Path(directory) / "gpt6-v4").mkdir(exist_ok=True)
             day_one = datetime(2026, 8, 11, 9, tzinfo=BJT)
             day_two = datetime(2026, 8, 12, 9, tzinfo=BJT)
             ensure_daily_profile(
@@ -565,12 +565,12 @@ class SelectorTests(unittest.TestCase):
 
     def test_first_install_failure_is_closed(self):
         with tempfile.TemporaryDirectory() as directory:
-            (Path(directory) / "gpt6-v3").mkdir(exist_ok=True)
+            (Path(directory) / "gpt6-v4").mkdir(exist_ok=True)
             with self.assertRaises(SelectionUnavailable):
                 ensure_daily_profile(
                     load_fixture("missing-row.json"), state_dir=directory
                 )
-            self.assertFalse((Path(directory) / "gpt6-v3" / "daily-profile.json").exists())
+            self.assertFalse((Path(directory) / "gpt6-v4" / "daily-profile.json").exists())
 
     def test_unsupported_source_winner_degrades_capability(self):
         profile = select_snapshot(
@@ -584,7 +584,7 @@ class SelectorTests(unittest.TestCase):
 
     def test_bjt_day_rollover_reselects(self):
         with tempfile.TemporaryDirectory() as directory:
-            (Path(directory) / "gpt6-v3").mkdir(exist_ok=True)
+            (Path(directory) / "gpt6-v4").mkdir(exist_ok=True)
             before_midnight = datetime(2026, 8, 11, 23, 59, tzinfo=BJT)
             after_midnight = datetime(2026, 8, 12, 0, 1, tzinfo=BJT)
             first = ensure_daily_profile(
@@ -602,7 +602,7 @@ class SelectorTests(unittest.TestCase):
 
     def test_same_day_does_not_refresh(self):
         with tempfile.TemporaryDirectory() as directory:
-            (Path(directory) / "gpt6-v3").mkdir(exist_ok=True)
+            (Path(directory) / "gpt6-v4").mkdir(exist_ok=True)
             morning = datetime(2026, 8, 11, 8, tzinfo=BJT)
             evening = datetime(2026, 8, 11, 20, tzinfo=BJT)
             first = ensure_daily_profile(
@@ -616,7 +616,7 @@ class SelectorTests(unittest.TestCase):
 
     def test_same_day_does_not_call_live_fetcher(self):
         with tempfile.TemporaryDirectory() as directory:
-            (Path(directory) / "gpt6-v3").mkdir(exist_ok=True)
+            (Path(directory) / "gpt6-v4").mkdir(exist_ok=True)
             morning = datetime(2026, 8, 11, 8, tzinfo=BJT)
             evening = datetime(2026, 8, 11, 20, tzinfo=BJT)
             ensure_daily_profile(
@@ -636,7 +636,7 @@ class SelectorTests(unittest.TestCase):
 
     def test_stale_profile_refreshes_once(self):
         with tempfile.TemporaryDirectory() as directory:
-            (Path(directory) / "gpt6-v3").mkdir(exist_ok=True)
+            (Path(directory) / "gpt6-v4").mkdir(exist_ok=True)
             day_one = datetime(2026, 8, 11, 9, tzinfo=BJT)
             day_two = datetime(2026, 8, 12, 9, tzinfo=BJT)
             ensure_daily_profile(
@@ -656,7 +656,7 @@ class SelectorTests(unittest.TestCase):
 
     def test_concurrent_first_use_refreshes_only_once(self):
         with tempfile.TemporaryDirectory() as directory:
-            (Path(directory) / "gpt6-v3").mkdir(exist_ok=True)
+            (Path(directory) / "gpt6-v4").mkdir(exist_ok=True)
             calls = 0
             calls_lock = threading.Lock()
 
@@ -678,11 +678,11 @@ class SelectorTests(unittest.TestCase):
                 roles = list(pool.map(lambda _: select(), range(4)))
             self.assertEqual(roles, ["luna_high"] * 4)
             self.assertEqual(calls, 1)
-            self.assertTrue((Path(directory) / "gpt6-v3" / "selector.lock").is_file())
+            self.assertTrue((Path(directory) / "gpt6-v4" / "selector.lock").is_file())
 
     def test_global_cli_prints_only_role(self):
         with tempfile.TemporaryDirectory() as directory:
-            (Path(directory) / "gpt6-v3").mkdir(exist_ok=True)
+            (Path(directory) / "gpt6-v4").mkdir(exist_ok=True)
             output = io.StringIO()
             with redirect_stdout(output):
                 code = main(
@@ -701,7 +701,7 @@ class SelectorTests(unittest.TestCase):
     @patch("src.selector.fetch_modeldial_snapshot", side_effect=SnapshotInvalid("offline"))
     def test_global_cli_fail_closed_status(self, _fetch):
         with tempfile.TemporaryDirectory() as directory:
-            (Path(directory) / "gpt6-v3").mkdir(exist_ok=True)
+            (Path(directory) / "gpt6-v4").mkdir(exist_ok=True)
             output = io.StringIO()
             with redirect_stdout(output):
                 code = main(
@@ -714,8 +714,8 @@ class SelectorTests(unittest.TestCase):
                 )
             self.assertEqual(code, 3)
             self.assertEqual(output.getvalue(), f"{NO_PROFILE_STATUS}\n")
-            self.assertFalse((Path(directory) / "gpt6-v3" / "daily-profile.json").exists())
-            self.assertFalse((Path(directory) / "gpt6-v3" / "last-good-profile.json").exists())
+            self.assertFalse((Path(directory) / "gpt6-v4" / "daily-profile.json").exists())
+            self.assertFalse((Path(directory) / "gpt6-v4" / "last-good-profile.json").exists())
 
     def test_ultra_never_enters_allowlist(self):
         payload = load_fixture("complete.json")
@@ -838,8 +838,8 @@ class SelectorTests(unittest.TestCase):
     @patch("src.selector._fetch_bytes", side_effect=OSError("offline"))
     def test_both_json_sources_fail_then_old_lkg_is_used(self, _fetch):
         with tempfile.TemporaryDirectory() as directory:
-            (Path(directory) / "gpt6-v3").mkdir(exist_ok=True)
-            lkg_path = Path(directory) / "gpt6-v3" / "last-good-profile.json"
+            (Path(directory) / "gpt6-v4").mkdir(exist_ok=True)
+            lkg_path = Path(directory) / "gpt6-v4" / "last-good-profile.json"
             lkg_path.write_text(
                 json.dumps(_seal_cache({"snapshot": load_fixture("complete.json"), "cache_identity": cache_identity()})),
                 encoding="utf-8",
@@ -856,7 +856,7 @@ class SelectorTests(unittest.TestCase):
     @patch("src.selector._fetch_bytes", side_effect=OSError("offline"))
     def test_both_json_sources_fail_without_lkg_is_closed(self, _fetch):
         with tempfile.TemporaryDirectory() as directory:
-            (Path(directory) / "gpt6-v3").mkdir(exist_ok=True)
+            (Path(directory) / "gpt6-v4").mkdir(exist_ok=True)
             with self.assertRaisesRegex(SelectionUnavailable, NO_PROFILE_STATUS):
                 ensure_daily_profile(
                     None,
@@ -871,8 +871,8 @@ class SelectorTests(unittest.TestCase):
 
         fetch.side_effect = malformed_fetch
         with tempfile.TemporaryDirectory() as directory:
-            (Path(directory) / "gpt6-v3").mkdir(exist_ok=True)
-            lkg_path = Path(directory) / "gpt6-v3" / "last-good-profile.json"
+            (Path(directory) / "gpt6-v4").mkdir(exist_ok=True)
+            lkg_path = Path(directory) / "gpt6-v4" / "last-good-profile.json"
             lkg_path.write_text(
                 json.dumps(_seal_cache({"snapshot": load_fixture("complete.json"), "cache_identity": cache_identity()})),
                 encoding="utf-8",
@@ -894,7 +894,7 @@ class SelectorTests(unittest.TestCase):
 
         fetch.side_effect = malformed_fetch
         with tempfile.TemporaryDirectory() as directory:
-            (Path(directory) / "gpt6-v3").mkdir(exist_ok=True)
+            (Path(directory) / "gpt6-v4").mkdir(exist_ok=True)
             with self.assertRaisesRegex(SelectionUnavailable, NO_PROFILE_STATUS):
                 ensure_daily_profile(
                     None,
@@ -904,10 +904,10 @@ class SelectorTests(unittest.TestCase):
 
     def test_old_daily_profile_reuses_same_day_without_network(self):
         with tempfile.TemporaryDirectory() as directory:
-            (Path(directory) / "gpt6-v3").mkdir(exist_ok=True)
+            (Path(directory) / "gpt6-v4").mkdir(exist_ok=True)
             now = datetime(2026, 8, 13, 9, tzinfo=BJT)
             old_profile = select_snapshot(load_fixture("complete.json"), now=now)
-            (Path(directory) / "gpt6-v3" / "daily-profile.json").write_text(
+            (Path(directory) / "gpt6-v4" / "daily-profile.json").write_text(
                 json.dumps(old_profile),
                 encoding="utf-8",
             )
@@ -925,11 +925,11 @@ class SelectorTests(unittest.TestCase):
 
     def test_unbound_same_day_profile_is_reselected(self):
         with tempfile.TemporaryDirectory() as directory:
-            (Path(directory) / "gpt6-v3").mkdir(exist_ok=True)
+            (Path(directory) / "gpt6-v4").mkdir(exist_ok=True)
             now = datetime(2026, 8, 13, 9, tzinfo=BJT)
             legacy = select_snapshot(load_fixture("complete.json"), now=now)
             legacy.pop("metadata_schema_version")
-            path = Path(directory) / "gpt6-v3" / "daily-profile.json"
+            path = Path(directory) / "gpt6-v4" / "daily-profile.json"
             original = json.dumps(legacy, sort_keys=True)
             path.write_text(original, encoding="utf-8")
             profile = ensure_daily_profile(
@@ -951,11 +951,11 @@ class SelectorTests(unittest.TestCase):
         )
         for mutate in mutations:
             with self.subTest(mutation=mutate), tempfile.TemporaryDirectory() as directory:
-                (Path(directory) / "gpt6-v3").mkdir(exist_ok=True)
+                (Path(directory) / "gpt6-v4").mkdir(exist_ok=True)
                 now = datetime(2026, 8, 13, 9, tzinfo=BJT)
                 invalid = select_snapshot(load_fixture("complete.json"), now=now)
                 mutate(invalid)
-                path = Path(directory) / "gpt6-v3" / "daily-profile.json"
+                path = Path(directory) / "gpt6-v4" / "daily-profile.json"
                 path.write_text(json.dumps(invalid), encoding="utf-8")
 
                 profile = ensure_daily_profile(
@@ -971,11 +971,11 @@ class SelectorTests(unittest.TestCase):
 
     def test_invalid_same_day_profile_without_source_fails_closed(self):
         with tempfile.TemporaryDirectory() as directory:
-            (Path(directory) / "gpt6-v3").mkdir(exist_ok=True)
+            (Path(directory) / "gpt6-v4").mkdir(exist_ok=True)
             now = datetime(2026, 8, 13, 9, tzinfo=BJT)
             invalid = select_snapshot(load_fixture("complete.json"), now=now)
             invalid.pop("fallback")
-            (Path(directory) / "gpt6-v3" / "daily-profile.json").write_text(
+            (Path(directory) / "gpt6-v4" / "daily-profile.json").write_text(
                 json.dumps(invalid), encoding="utf-8"
             )
 
@@ -984,8 +984,8 @@ class SelectorTests(unittest.TestCase):
 
     def test_legacy_lkg_selects_without_cost_suffix(self):
         with tempfile.TemporaryDirectory() as directory:
-            (Path(directory) / "gpt6-v3").mkdir(exist_ok=True)
-            lkg = Path(directory) / "gpt6-v3" / "last-good-profile.json"
+            (Path(directory) / "gpt6-v4").mkdir(exist_ok=True)
+            lkg = Path(directory) / "gpt6-v4" / "last-good-profile.json"
             lkg.write_text(
                 json.dumps(_seal_cache({"snapshot": load_fixture("complete.json"), "cache_identity": cache_identity()})),
                 encoding="utf-8",
@@ -1015,7 +1015,7 @@ class SelectorTests(unittest.TestCase):
 
     def test_lkg_projects_fallback_and_reference_cost(self):
         with tempfile.TemporaryDirectory() as directory:
-            (Path(directory) / "gpt6-v3").mkdir(exist_ok=True)
+            (Path(directory) / "gpt6-v4").mkdir(exist_ok=True)
             live = adapt_modeldial_api(load_fixture("api-complete.json"))
             day_one = datetime(2026, 8, 13, 9, tzinfo=BJT)
             ensure_daily_profile(live, state_dir=directory, now=day_one)
@@ -1033,7 +1033,7 @@ class SelectorTests(unittest.TestCase):
 
     def test_print_selection_json_contract(self):
         with tempfile.TemporaryDirectory() as directory:
-            (Path(directory) / "gpt6-v3").mkdir(exist_ok=True)
+            (Path(directory) / "gpt6-v4").mkdir(exist_ok=True)
             output = io.StringIO()
             with redirect_stdout(output):
                 code = main(
@@ -1065,11 +1065,11 @@ class SelectorTests(unittest.TestCase):
 
     def test_api_lkg_remains_compatible_with_existing_snapshot_contract(self):
         with tempfile.TemporaryDirectory() as directory:
-            (Path(directory) / "gpt6-v3").mkdir(exist_ok=True)
+            (Path(directory) / "gpt6-v4").mkdir(exist_ok=True)
             adapted = adapt_modeldial_api(load_fixture("api-complete.json"))
             ensure_daily_profile(adapted, state_dir=directory)
             record = json.loads(
-                (Path(directory) / "gpt6-v3" / "last-good-profile.json").read_text(encoding="utf-8")
+                (Path(directory) / "gpt6-v4" / "last-good-profile.json").read_text(encoding="utf-8")
             )
             normalized = validate_snapshot(record["snapshot"])
             self.assertEqual(set(normalized["scores"]), set(EFFORTS))
@@ -1102,7 +1102,7 @@ class StatusAndDiagnosticTests(unittest.TestCase):
 
     def test_status_no_profile_is_healthy_and_read_only(self):
         with tempfile.TemporaryDirectory() as directory:
-            (Path(directory) / "gpt6-v3").mkdir(exist_ok=True)
+            (Path(directory) / "gpt6-v4").mkdir(exist_ok=True)
             target = Path(directory) / ".codex"
             materialize_fake_global(target)
             state = target / "sol-luna-v4" / "state"
@@ -1117,9 +1117,9 @@ class StatusAndDiagnosticTests(unittest.TestCase):
             self.assertIn("TODAY_SELECTION_NOT_INITIALIZED", status["reason_codes"])
             self.assertFalse(status["selection_initialized"])
             self.assertFalse(state.exists())
-            self.assertFalse((state / "gpt6-v3" / "selector.lock").exists())
-            self.assertFalse((state / "gpt6-v3" / "daily-profile.json").exists())
-            self.assertFalse((state / "gpt6-v3" / "last-good-profile.json").exists())
+            self.assertFalse((state / "gpt6-v4" / "selector.lock").exists())
+            self.assertFalse((state / "gpt6-v4" / "daily-profile.json").exists())
+            self.assertFalse((state / "gpt6-v4" / "last-good-profile.json").exists())
             self.assertEqual(tree_inventory(target), before)
             self.assertNotIn(
                 "subprocess",
@@ -1128,7 +1128,7 @@ class StatusAndDiagnosticTests(unittest.TestCase):
 
     def test_status_uninitialized_preserves_misconfigured_health(self):
         with tempfile.TemporaryDirectory() as directory:
-            (Path(directory) / "gpt6-v3").mkdir(exist_ok=True)
+            (Path(directory) / "gpt6-v4").mkdir(exist_ok=True)
             target = Path(directory) / ".codex"
             materialize_fake_global(target)
             skill = (
@@ -1148,7 +1148,7 @@ class StatusAndDiagnosticTests(unittest.TestCase):
 
     def test_status_healthy_is_read_only(self):
         with tempfile.TemporaryDirectory() as directory:
-            (Path(directory) / "gpt6-v3").mkdir(exist_ok=True)
+            (Path(directory) / "gpt6-v4").mkdir(exist_ok=True)
             target = Path(directory) / ".codex"
             materialize_fake_global(target)
             state = target / "sol-luna-v4" / "state"
@@ -1174,7 +1174,7 @@ class StatusAndDiagnosticTests(unittest.TestCase):
 
     def test_status_missing_managed_skill_is_misconfigured(self):
         with tempfile.TemporaryDirectory() as directory:
-            (Path(directory) / "gpt6-v3").mkdir(exist_ok=True)
+            (Path(directory) / "gpt6-v4").mkdir(exist_ok=True)
             target = Path(directory) / ".codex"
             materialize_fake_global(target)
             skill = (
@@ -1196,7 +1196,7 @@ class StatusAndDiagnosticTests(unittest.TestCase):
 
     def test_status_modified_managed_skill_is_misconfigured(self):
         with tempfile.TemporaryDirectory() as directory:
-            (Path(directory) / "gpt6-v3").mkdir(exist_ok=True)
+            (Path(directory) / "gpt6-v4").mkdir(exist_ok=True)
             target = Path(directory) / ".codex"
             materialize_fake_global(target)
             skill = (
@@ -1218,12 +1218,12 @@ class StatusAndDiagnosticTests(unittest.TestCase):
 
     def test_status_invalid_today_profile_is_unavailable(self):
         with tempfile.TemporaryDirectory() as directory:
-            (Path(directory) / "gpt6-v3").mkdir(exist_ok=True)
+            (Path(directory) / "gpt6-v4").mkdir(exist_ok=True)
             target = Path(directory) / ".codex"
             materialize_fake_global(target)
             state = target / "sol-luna-v4" / "state"
-            (state / "gpt6-v3").mkdir(parents=True)
-            (state / "gpt6-v3" / "daily-profile.json").write_text(
+            (state / "gpt6-v4").mkdir(parents=True)
+            (state / "gpt6-v4" / "daily-profile.json").write_text(
                 json.dumps(
                     {
                         "selection_date_bjt": datetime.now(BJT).date().isoformat(),
@@ -1240,12 +1240,12 @@ class StatusAndDiagnosticTests(unittest.TestCase):
 
     def test_status_invalid_json_profile_remains_unavailable(self):
         with tempfile.TemporaryDirectory() as directory:
-            (Path(directory) / "gpt6-v3").mkdir(exist_ok=True)
+            (Path(directory) / "gpt6-v4").mkdir(exist_ok=True)
             target = Path(directory) / ".codex"
             materialize_fake_global(target)
             state = target / "sol-luna-v4" / "state"
-            (state / "gpt6-v3").mkdir(parents=True)
-            (state / "gpt6-v3" / "daily-profile.json").write_text("{", encoding="utf-8")
+            (state / "gpt6-v4").mkdir(parents=True)
+            (state / "gpt6-v4" / "daily-profile.json").write_text("{", encoding="utf-8")
 
             status = self.status(target, state)
 
@@ -1262,12 +1262,12 @@ class StatusAndDiagnosticTests(unittest.TestCase):
         for failure in failures:
             with self.subTest(failure=type(failure).__name__):
                 with tempfile.TemporaryDirectory() as directory:
-                    (Path(directory) / "gpt6-v3").mkdir(exist_ok=True)
+                    (Path(directory) / "gpt6-v4").mkdir(exist_ok=True)
                     target = Path(directory) / ".codex"
                     materialize_fake_global(target)
                     state = target / "sol-luna-v4" / "state"
-                    (state / "gpt6-v3").mkdir(parents=True)
-                    profile_path = state / "gpt6-v3" / "daily-profile.json"
+                    (state / "gpt6-v4").mkdir(parents=True)
+                    profile_path = state / "gpt6-v4" / "daily-profile.json"
                     profile_path.write_text("{}", encoding="utf-8")
                     before = tree_inventory(target)
                     original_read_text = Path.read_text
@@ -1315,14 +1315,14 @@ class StatusAndDiagnosticTests(unittest.TestCase):
 
     def test_status_profile_read_failure_does_not_affect_normal_selection(self):
         with tempfile.TemporaryDirectory() as directory:
-            (Path(directory) / "gpt6-v3").mkdir(exist_ok=True)
+            (Path(directory) / "gpt6-v4").mkdir(exist_ok=True)
             target = Path(directory) / ".codex"
             materialize_fake_global(target)
             state = target / "sol-luna-v4" / "state"
             now = datetime.now(BJT)
             snapshot = adapt_modeldial_api(load_fixture("api-complete.json"), now=now)
             original_profile = ensure_daily_profile(snapshot, state_dir=state, now=now)
-            profile_path = state / "gpt6-v3" / "daily-profile.json"
+            profile_path = state / "gpt6-v4" / "daily-profile.json"
             profile_bytes = profile_path.read_bytes()
             original_read_text = Path.read_text
 
@@ -1344,11 +1344,11 @@ class StatusAndDiagnosticTests(unittest.TestCase):
 
     def test_status_degraded_projects_both_indicators(self):
         with tempfile.TemporaryDirectory() as directory:
-            (Path(directory) / "gpt6-v3").mkdir(exist_ok=True)
+            (Path(directory) / "gpt6-v4").mkdir(exist_ok=True)
             target = Path(directory) / ".codex"
             materialize_fake_global(target)
             state = target / "sol-luna-v4" / "state"
-            (state / "gpt6-v3").mkdir(parents=True)
+            (state / "gpt6-v4").mkdir(parents=True)
             profile = select_snapshot(
                 adapt_modeldial_snapshot(
                     load_fixture("first-party-complete.json"),
@@ -1358,7 +1358,7 @@ class StatusAndDiagnosticTests(unittest.TestCase):
                 now=datetime.now(BJT),
                 fallback=True,
             )
-            (state / "gpt6-v3" / "daily-profile.json").write_text(
+            (state / "gpt6-v4" / "daily-profile.json").write_text(
                 json.dumps(profile), encoding="utf-8"
             )
             status = self.status(target, state)
@@ -1373,13 +1373,13 @@ class StatusAndDiagnosticTests(unittest.TestCase):
 
     def test_status_misconfigured_precedence(self):
         with tempfile.TemporaryDirectory() as directory:
-            (Path(directory) / "gpt6-v3").mkdir(exist_ok=True)
+            (Path(directory) / "gpt6-v4").mkdir(exist_ok=True)
             target = Path(directory) / ".codex"
             materialize_fake_global(target)
             (target / "sol-luna-v4" / "install-manifest.json").unlink()
             state = target / "sol-luna-v4" / "state"
-            (state / "gpt6-v3").mkdir(parents=True)
-            (state / "gpt6-v3" / "daily-profile.json").write_text("{}", encoding="utf-8")
+            (state / "gpt6-v4").mkdir(parents=True)
+            (state / "gpt6-v4" / "daily-profile.json").write_text("{}", encoding="utf-8")
             status = self.status(target, state)
             self.assertEqual(status["health"], "Misconfigured")
             self.assertEqual(status["reason_codes"][0], "MANIFEST_MISSING")
@@ -1390,7 +1390,7 @@ class StatusAndDiagnosticTests(unittest.TestCase):
 
     def test_status_reader_failure_is_isolated(self):
         with tempfile.TemporaryDirectory() as directory:
-            (Path(directory) / "gpt6-v3").mkdir(exist_ok=True)
+            (Path(directory) / "gpt6-v4").mkdir(exist_ok=True)
             target = Path(directory) / ".codex"
             materialize_fake_global(target)
             (target / "sol-luna-v4" / "install-manifest.json").write_bytes(b"not-json")
@@ -1400,7 +1400,7 @@ class StatusAndDiagnosticTests(unittest.TestCase):
 
     def test_diagnostic_exact_whitelist(self):
         with tempfile.TemporaryDirectory() as directory:
-            (Path(directory) / "gpt6-v3").mkdir(exist_ok=True)
+            (Path(directory) / "gpt6-v4").mkdir(exist_ok=True)
             target = Path(directory) / ".codex"
             materialize_fake_global(target)
             status = self.status(target)
@@ -1408,7 +1408,7 @@ class StatusAndDiagnosticTests(unittest.TestCase):
                 set(status),
                 DIAGNOSTIC_KEYS
                 | {
-                    "coordinator_model", "worker_models", "cache_namespace", "reference_policy_version",
+                    "coordinator_model", "worker_models", "cache_namespace", "reference_policy_version", "publication_verification_version",
                     "leaf_config",
                     "native_delegation",
                     "native_tool_isolation",
@@ -1436,7 +1436,7 @@ class StatusAndDiagnosticTests(unittest.TestCase):
 
     def test_leaf_toml_only_changes_configuration_diagnostic(self):
         with tempfile.TemporaryDirectory() as directory:
-            (Path(directory) / "gpt6-v3").mkdir(exist_ok=True)
+            (Path(directory) / "gpt6-v4").mkdir(exist_ok=True)
             target = Path(directory) / ".codex"
             materialize_fake_global(target)
             agent = target / "agents" / "luna-max.toml"
@@ -1461,11 +1461,11 @@ class StatusAndDiagnosticTests(unittest.TestCase):
 
     def test_diagnostic_sanitizer_redacts_canaries(self):
         with tempfile.TemporaryDirectory() as directory:
-            (Path(directory) / "gpt6-v3").mkdir(exist_ok=True)
+            (Path(directory) / "gpt6-v4").mkdir(exist_ok=True)
             target = Path(directory) / ".codex"
             materialize_fake_global(target)
             state = target / "sol-luna-v4" / "state"
-            (state / "gpt6-v3").mkdir(parents=True)
+            (state / "gpt6-v4").mkdir(parents=True)
             now = datetime.now(BJT)
             profile = select_snapshot(
                 adapt_modeldial_api(load_fixture("api-complete.json")), now=now
@@ -1479,7 +1479,7 @@ class StatusAndDiagnosticTests(unittest.TestCase):
             profile["pricing_snapshot_id"] = (
                 f"{unc_canary} {private_url} api_key=SECRET sk-secret ghp_secret"
             )
-            (state / "gpt6-v3" / "daily-profile.json").write_text(
+            (state / "gpt6-v4" / "daily-profile.json").write_text(
                 json.dumps(profile), encoding="utf-8"
             )
             project = Path(directory) / "SecretUser-project"

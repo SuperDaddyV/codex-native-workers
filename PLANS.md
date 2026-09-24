@@ -1,5 +1,37 @@
 # v4.3.0 GPT-6 migration — active baseline, 2026-09-24
 
+Current release instruction, 2026-09-24: the user authorizes GitHub publication
+after required checks, and requests concise, plain-language public pages with
+clear installation and navigation. This supersedes the earlier publication hold.
+The prior explicit authorization for exact-candidate transactional installation,
+Git commits/push/tag and final Stable Release remains in scope. Preserve all
+historical releases, unmanaged configuration and evidence. Do not publish Stable
+until exact-source CI, installed integrity and useful native Sol/Luna acceptance
+pass; a live data failure stops dependent native/release gates only.
+
+First preserve the completed publication-integrity repair as its own candidate,
+then simplify bilingual README/installation pages and retain detailed contracts
+and historical evidence in their dedicated documents. Validate rendered Markdown,
+navigation and immutable installation links. Record final identities and current
+PASS/BLOCKED/NOT RUN results separately from the checkpoints below.
+
+## Previous repair checkpoint
+
+Current local repair, authorized 2026-09-24: close the independently reproduced
+API/archive score-binding and unverified Sol-axis findings. This turn is repository
+implementation and validation only; no real-home installation, Git mutation or
+GitHub publication. Keep the previous 9379577 candidate evidence unchanged.
+Use verification version 1 and isolated gpt6-v4 state; preserve gpt6-v3. Re-run
+focused/full source and fake-home checks, and verify public archives separately.
+New exact-commit CI, installed and native evidence remain subsequent gates.
+
+Repair checkpoint: the two publication-integrity findings and malformed-axis
+error handling are fixed. The final 466-test source/fake-home suite passes;
+downloaded public archives pass replay in isolated repository state. The latest
+live API request is blocked by WinError 10054, not a validation bypass. Full
+results and remaining NOT RUN gates are at the top of `RUNTIME_TESTS.md`.
+The repaired tree remains uncommitted and uninstalled; no publication occurred.
+
 Latest user instruction: continue implementation and acceptance preparation, then
 STOP BEFORE final Stable publication for user acceptance. Do not create/publish
 the v4.3.0 Release or move the default branch into a published-ready state before

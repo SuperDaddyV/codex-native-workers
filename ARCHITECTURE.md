@@ -6,11 +6,26 @@ Coordinator settings are preserved. GPT-5.6 below describes historical releases.
 
 Manifest schema 4 keeps the exact ten-role/two-module/three-Skill inventory and
 records the model contract. Schemas 1–3 keep their historical inventory checks.
-Generation-isolated `gpt6-v3` caches bind model, axes and selection policy 2. Old
+Generation-isolated `gpt6-v4` caches bind model, axes and selection policy 2. Old
 state is preserved, never used as an automatic fallback. Index/full publication
 identities, protocol and hash must match; incomplete cost means quality-only.
 Native role loading, tool visibility, invocation guard and measured concurrency
 require separate live evidence. The Global managed block remains <= 2048 bytes.
+
+Publication verification version 1 binds every selected backend row to the full
+archive, including model/provider/route/effort, score, scale and latency. Other
+Sol views require the [benchmark index](https://modeldial.com/data/benchmark-snapshots/index.json)
+and exact indexed frontend/knowledge/overall archives. Backend JSON uses sorted-key
+canonical hashing; benchmark and overall JSON use publication-order hashing, each
+excluding only its declared digest field. Both formats were checked against public
+archives. Unverified views and dependent general selection remain unavailable;
+missing comparable costs alone permits quality-only after score verification.
+
+The `gpt6-v4` namespace and cache verification marker reject pre-repair GPT-6
+Daily/LKG records, including records copied from `gpt6-v3`. Those older files are
+preserved. `--workers --snapshot` requires the same complete indexed publication
+bundle as the network path, not an API-only document or preselected role. Offline
+fixture results are test evidence; they never attest a native runtime.
 
 The versioned sections below retain their original evidence labels and dates.
 

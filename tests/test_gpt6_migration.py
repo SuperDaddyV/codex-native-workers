@@ -8,6 +8,7 @@ from unittest.mock import Mock, patch
 
 from src import selector, worker_selector
 from test_reference_runtime import indexed_fixture, NOW
+from publication_fixtures import publication_bundle
 from test_installer_lifecycle import (
     sandbox, simulate_published_v420_install, installation_hash, call_install,
     dry_run_install, rollback, ROOT, FIXED_TIME, InstallerError,
@@ -53,7 +54,7 @@ class GenerationCacheTests(unittest.TestCase):
     def test_same_generation_fallback_and_repeat_have_no_writes(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            first = selector.ensure_worker_profile({"api": api_fixture()}, state_dir=root, now=NOW)
+            first = selector.ensure_worker_profile(publication_bundle(api_fixture()), state_dir=root, now=NOW)
             second = selector.ensure_worker_profile({}, state_dir=root, now=NOW + timedelta(days=1))
             self.assertTrue(second["sol"]["fallback"])
             self.assertEqual(second["sol"]["model"], "gpt-6-sol")
@@ -68,7 +69,7 @@ class GenerationCacheTests(unittest.TestCase):
         for field, value in (("models", {"sol": "gpt-5.6-sol", "luna": "gpt-5.6-luna"}), ("luna_axis", ["overallRankings", "overallScore"]), ("policy_version", 1)):
             with self.subTest(field=field), tempfile.TemporaryDirectory() as directory:
                 api, _, _ = indexed_fixture()
-                first = selector.ensure_worker_profile({"api": api}, state_dir=directory, now=NOW)
+                first = selector.ensure_worker_profile(publication_bundle(api), state_dir=directory, now=NOW)
                 self.assertEqual(first["luna"]["model"], "gpt-6-luna")
                 root = Path(directory) / selector.CACHE_NAMESPACE
                 for name in ("worker-profile.json", "worker-last-good.json"):
@@ -82,7 +83,7 @@ class GenerationCacheTests(unittest.TestCase):
     def test_cache_body_corruption_is_not_accepted(self):
         with tempfile.TemporaryDirectory() as directory:
             api, _, _ = indexed_fixture()
-            selector.ensure_worker_profile({"api": api}, state_dir=directory, now=NOW)
+            selector.ensure_worker_profile(publication_bundle(api), state_dir=directory, now=NOW)
             root = Path(directory) / selector.CACHE_NAMESPACE
             for name in ("worker-profile.json", "worker-last-good.json"):
                 payload = json.loads((root / name).read_bytes())
@@ -120,7 +121,7 @@ class PublicationIntegrityTests(unittest.TestCase):
                 self.assertEqual(data, {"full_snapshot_status": "unavailable_or_mismatched"})
                 empty = selector.ensure_worker_profile(data, state_dir=directory, now=NOW)
                 self.assertEqual([empty[f]["status"] for f in ("sol", "luna")], ["unavailable"] * 2)
-                selector.ensure_worker_profile({"api": api}, state_dir=directory, now=NOW, refresh=True)
+                selector.ensure_worker_profile(publication_bundle(api), state_dir=directory, now=NOW, refresh=True)
                 cached = selector.ensure_worker_profile(data, state_dir=directory, now=NOW + timedelta(days=1))
                 self.assertTrue(cached["luna"]["fallback"])
 

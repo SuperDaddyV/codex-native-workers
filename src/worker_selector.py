@@ -24,7 +24,8 @@ LUNA_MODEL = "gpt-6-luna"
 MODEL_BY_FAMILY = {"sol": SOL_MODEL, "luna": LUNA_MODEL}
 WORKER_PROFILE_SCHEMA_VERSION = 3
 REFERENCE_POLICY_VERSION = 2
-CACHE_NAMESPACE = "gpt6-v3"
+CACHE_NAMESPACE = "gpt6-v4"
+PUBLICATION_VERIFICATION_VERSION = 1
 SOL_PROVIDER = "codex"
 SOL_ROUTE = "official_login"
 REFERENCE_PROVIDER = "cloudflare-reference"
@@ -68,6 +69,175 @@ def full_snapshot_hash(payload: Mapping[str, Any]) -> str:
 def require_full_snapshot_hash(payload: Mapping[str, Any]) -> None:
     if not isinstance(payload, Mapping) or payload.get("batch_sha256") != full_snapshot_hash(payload):
         raise ValueError("ModelDial full snapshot content hash mismatch")
+
+
+def benchmark_snapshot_hash(payload: Mapping[str, Any], field: str) -> str:
+    """Benchmark/overall archives use publication order, unlike backend JSON."""
+    body = {key: value for key, value in payload.items() if key != field}
+    encoded = json.dumps(body, ensure_ascii=False, separators=(",", ":"), allow_nan=False).encode("utf-8")
+    return "sha256:" + hashlib.sha256(encoded).hexdigest()
+
+
+def benchmark_record(index: Any, source: Any, axis: str) -> Mapping[str, Any]:
+    """Resolve the API's exact source, never an unrelated latest alias."""
+    if not isinstance(index, Mapping) or type(index.get("schema_version")) is not int or index["schema_version"] != 1 or index.get("kind") != "benchmark_axes":
+        raise ValueError("unsupported benchmark index")
+    if not isinstance(source, Mapping):
+        raise ValueError("missing benchmark source")
+    records = [index.get("overall")] if axis == "overall" else index.get("snapshots")
+    if not isinstance(records, list):
+        raise ValueError("missing benchmark inventory")
+    batch_id = source.get("id") if axis == "overall" else source.get("batchId")
+    matches = [row for row in records if isinstance(row, Mapping) and row.get("batch_id") == batch_id]
+    if len(matches) != 1 or not _text(batch_id):
+        raise ValueError("no unique indexed benchmark batch")
+    record = matches[0]
+    hash_field = "overall_sha256" if axis == "overall" else "benchmark_sha256"
+    if record.get("published_at") != source.get("publishedAt") or _sha256(record.get(hash_field), hash_field) != source.get("sha256"):
+        raise ValueError("benchmark source identity mismatch")
+    _timestamp(record.get("published_at"), "published_at")
+    if axis == "overall":
+        if _positive_integer(record.get("entry_count"), "entry_count") != source.get("entryCount"):
+            raise ValueError("overall entry count mismatch")
+    else:
+        _positive_integer(record.get("revision"), "revision")
+        _sha256(record.get("source_reference_batch_sha256"), "source_reference_batch_sha256")
+        if not isinstance(record.get("axes"), list) or axis not in record["axes"]:
+            raise ValueError("benchmark axis mismatch")
+    return record
+
+
+def _verified_benchmark(index: Any, source: Any, axis: str, payload: Any) -> Mapping[str, Any]:
+    record = benchmark_record(index, source, axis)
+    field = "overall_sha256" if axis == "overall" else "benchmark_sha256"
+    kind = "overall_capability_ranking" if axis == "overall" else "benchmark_axes"
+    if not isinstance(payload, Mapping) or type(payload.get("schema_version")) is not int or payload["schema_version"] != 1 or payload.get("kind") != kind:
+        raise ValueError("unsupported benchmark archive")
+    if payload.get(field) != record[field] or benchmark_snapshot_hash(payload, field) != record[field]:
+        raise ValueError("benchmark archive content hash mismatch")
+    keys = ("batch_id", "published_at", "entry_count") if axis == "overall" else ("batch_id", "published_at", "revision", "source_reference_batch_sha256")
+    if any(type(payload.get(key)) is not type(record[key]) or payload[key] != record[key] for key in keys):
+        raise ValueError("benchmark archive metadata mismatch")
+    if axis != "overall":
+        axes = payload.get("axes")
+        if not isinstance(axes, Mapping) or set(axes) != set(record["axes"]):
+            raise ValueError("benchmark archive axes mismatch")
+        section = axes.get(axis)
+        if not isinstance(section, Mapping) or section.get("status") != "complete" or _finite_number(section.get("score_scale")) != 100 or not _text(section.get("benchmark_ref")):
+            raise ValueError("benchmark scoring protocol incomplete")
+        return section
+    if not isinstance(payload.get("entries"), list) or len(payload["entries"]) != record["entry_count"]:
+        raise ValueError("overall archive count mismatch")
+    return payload
+
+
+def _backend_entries(full: Mapping[str, Any], model: str, provider: str, route: str) -> dict[str, Mapping[str, Any]]:
+    context = _full_snapshot_context(full)
+    selected: dict[str, Mapping[str, Any]] = {}
+    for row in context["entries"]:
+        cfg = row.get("model_configuration") if isinstance(row, Mapping) else None
+        if not isinstance(cfg, Mapping) or (cfg.get("canonical_model_id"), cfg.get("provider_id"), cfg.get("route_type")) != (model, provider, route):
+            continue
+        effort = cfg.get("reasoning_effort")
+        if effort not in EFFORTS:
+            continue
+        if effort in selected or row.get("advisor_eligible") is not True or row.get("score_integrity") != "first_party_controlled" or row.get("route_identity") != "first_party_controlled":
+            raise ValueError("duplicate or uncontrolled backend entry")
+        selected[effort] = row
+    if set(selected) != set(EFFORTS):
+        raise ValueError("incomplete backend identities")
+    return selected
+
+
+def require_backend_api_rows(api: Mapping[str, Any], full: Mapping[str, Any], model: str, provider: str, route: str) -> None:
+    """Bind every selection input to its exact model/provider/route/effort row."""
+    entries = _backend_entries(full, model, provider, route)
+    rows = api.get("rankings")
+    if not isinstance(rows, list):
+        raise ValueError("missing API rankings")
+    selected = [row for row in rows if isinstance(row, Mapping) and (row.get("model"), row.get("provider"), row.get("route")) == (model, provider, route) and row.get("reasoningEffort") in EFFORTS]
+    if len(selected) != len(EFFORTS) or {row["reasoningEffort"] for row in selected} != set(EFFORTS):
+        raise ValueError("incomplete or duplicate API identities")
+    for row in selected:
+        entry = entries[row["reasoningEffort"]]
+        entry_id = entry.get("model_configuration_id", entry.get("id"))
+        if not _text(entry_id) or entry_id != row.get("id"):
+            raise ValueError("backend row identity mismatch")
+        for api_key, full_key in (("score", "score"), ("maxScore", "max_score"), ("elapsedMs", "elapsed_ms")):
+            expected = _finite_number(entry.get(full_key), minimum=0)
+            if expected is None or _finite_number(row.get(api_key), minimum=0) != expected:
+                raise ValueError("backend API/archive value mismatch")
+
+
+def verify_sol_publication(api: Mapping[str, Any], full: Mapping[str, Any], index: Any, archives: Any) -> dict[str, Any]:
+    """Only verified views reach selection; a missing view cannot borrow proof."""
+    result = adapt_sol_api(api)
+    views = result["views"]
+    provider, route = result["benchmark_provider"], result["benchmark_route"]
+    archives = archives if isinstance(archives, Mapping) else {}
+    def reject(name: str) -> None:
+        old = views[name]
+        views[name] = _unavailable_view("publication_unverified_or_mismatched", **{key: old[key] for key in ("group_id", "group_published_at", "group_sha256", "source_array", "score_field", "source_row_count") if key in old})
+    try:
+        require_backend_api_rows(api, full, SOL_MODEL, provider, route)
+    except (ValueError, TypeError, KeyError):
+        reject("backend")
+    # Backend cost and latency are consumed only after score and identity binding.
+    result = enrich_sol_backend_costs(result, full)
+    views = result["views"]
+    overall = api.get("overallBatch")
+    sources = overall.get("sources", {}) if isinstance(overall, Mapping) else {}
+    sources = sources if isinstance(sources, Mapping) else {}
+    for name, source_name, axis, score_key in (("frontend", "frontend", "frontend_v17", "total_score"), ("reasoning", "knowledge", "hle_deep_20", "score")):
+        try:
+            section = _verified_benchmark(index, sources.get(source_name), axis, archives.get(source_name))
+            if views[name].get("status") != "ready":
+                raise ValueError("API view is unavailable")
+            entries = section.get("entries")
+            if not isinstance(entries, list):
+                raise ValueError("missing axis entries")
+            backend = _backend_entries(full, SOL_MODEL, provider, route)
+            for item in views[name]["items"]:
+                matches = [r for r in entries if isinstance(r, Mapping) and r.get("candidate_id") == item["row_id"]]
+                if len(matches) != 1:
+                    raise ValueError("no unique axis row")
+                row = matches[0]
+                origin = backend[item["effort"]]
+                if (row.get("connection_id"), row.get("model_id"), row.get("reasoning_effort")) != (provider, SOL_MODEL, item["effort"]) or origin.get("model_configuration_id", origin.get("id")) != row["candidate_id"]:
+                    raise ValueError("axis identity mismatch")
+                if _finite_number(row.get(score_key), minimum=0) != item["score"] or _finite_number(row.get("max_score"), minimum=0) != item["max_score"]:
+                    raise ValueError("axis score mismatch")
+                if "status" in row and row["status"] != "complete":
+                    raise ValueError("axis row incomplete")
+        except (ValueError, TypeError, KeyError):
+            reject(name)
+    try:
+        if any(views[name].get("status") != "ready" for name in VIEWS):
+            raise ValueError("overall dependency unavailable")
+        overall_full = _verified_benchmark(index, overall, "overall", archives.get("overall"))
+        expected_sources = {key: {"batch_id": value["batchId"], "published_at": value["publishedAt"], "sha256": value["sha256"]} for key, value in sources.items()}
+        if set(expected_sources) != {"backend", "frontend", "knowledge"} or overall_full.get("sources") != expected_sources:
+            raise ValueError("overall sources mismatch")
+        batch = api["batch"]
+        if sources["backend"] != {"batchId": batch["id"], "publishedAt": batch["publishedAt"], "sha256": batch["sha256"]}:
+            raise ValueError("overall backend batch mismatch")
+        weights = overall_full.get("weights")
+        if not isinstance(weights, Mapping) or set(weights) != {"backend", "frontend", "knowledge"} or any(_finite_number(v, minimum=0) is None for v in weights.values()) or not math.isclose(sum(weights.values()), 1.0) or api.get("weights") != weights:
+            raise ValueError("overall weights mismatch")
+        by_view = {name: {item["effort"]: item for item in views[name]["items"]} for name in VIEWS}
+        for item in views["general"]["items"]:
+            matches = [row for row in overall_full["entries"] if isinstance(row, Mapping) and row.get("candidate_id") == item["row_id"]]
+            if len(matches) != 1:
+                raise ValueError("no unique overall row")
+            row = matches[0]
+            if (row.get("connection_id"), row.get("model_id"), row.get("reasoning_effort")) != (provider, SOL_MODEL, item["effort"]):
+                raise ValueError("overall identity mismatch")
+            for name, field in (("general", "overall_score"), ("backend", "backend_score"), ("frontend", "frontend_score"), ("reasoning", "knowledge_score")):
+                if _finite_number(row.get(field), minimum=0) != by_view[name][item["effort"]]["score"]:
+                    raise ValueError("overall score/dependency mismatch")
+    except (ValueError, TypeError, KeyError):
+        reject("general")
+    return result
 
 
 def _text(value: Any) -> bool:
@@ -784,8 +954,10 @@ def enrich_sol_backend_costs(
 ) -> dict[str, Any]:
     """Attach full-snapshot costs only to matching API backend rows.
 
-    A bad or mismatched optional full snapshot leaves the valid API score view
-    usable in quality-only mode. This never copies costs into aggregate axes.
+    Call publication verification before this enrichment-only helper. Missing
+    comparable costs leave verified scores usable in quality-only mode; this
+    helper alone does not establish score integrity or authorize selection.
+    It never copies costs into aggregate axes.
     """
 
     root = _normalize_root(snapshot)

@@ -6,6 +6,9 @@
 - Keep exact batch-index/full-snapshot matching, quality-only selection without complete comparable cost, and strict transactional ownership/rollback checks.
 - Update three compatible Skills, bilingual setup/help and diagnostics; distinguish Desktop role loading from shell CLI support.
 - Document a single explicit recovery selection after user-confirmed outage recovery, preserving failed-cache evidence without changing validation or the daily selection algorithm.
+- Bind actual selection scores and backend latency to hashed archives; reject mismatches instead of treating them as quality-only.
+- Verify each Sol view against the public benchmark index and its exact archive; failures disable only that view and its dependencies.
+- Preserve pre-repair GPT-6 caches under `gpt6-v3`; require verification version 1 in new `gpt6-v4` state and reject API-only offline Worker inputs.
 - Required native GPT-6 acceptance, exact-commit CI and immutable publication are recorded only when actually complete.
 
 # Changelog
