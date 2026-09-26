@@ -1,3 +1,44 @@
+# GPT-6 v4.3.0 release acceptance — 2026-09-26
+
+The approved three-tier product contract has useful native acceptance in explicit
+basic mode. Live Radar validation remains separately blocked; no integrity check
+was relaxed. Historical checkpoints below describe their own earlier sources.
+
+- **PASS — final source and fake-home:** 484 standard-library tests in 103.922
+  seconds. This includes the mixed-view reporting fix: Sol reports fallback when
+  any selected view uses cache, while each view retains its own live/cached mode.
+  The same native Sol reviewer reproduced the defect and verified the fix and
+  all 11 focused routing regressions. The Global policy and inventory are unchanged.
+- **PASS — routing candidate CI:** source
+  `c40412fe19c4bee4a00f0a853f3abfeeb973a97b` passed Windows, Ubuntu and macOS in both
+  [push CI](https://github.com/SuperDaddyV/codex-native-workers/actions/runs/36236309559)
+  and [PR CI](https://github.com/SuperDaddyV/codex-native-workers/actions/runs/36236310980).
+- **PASS — installed routing candidate:** that exact source was installed by the
+  two-root transaction. All 15 owned hashes passed; 13 preserved configuration
+  and state files retained their hashes and timestamps. A repeated apply made
+  zero writes and no backup. These results are installation evidence only.
+- **PASS — useful Windows Desktop native work:** one installed selection returned
+  explicit basic routes (`no_benchmark`). The Coordinator dispatched `sol_high`
+  for bounded selector review and `luna_medium` for bounded installation-document
+  review. Both completed; their running periods visibly overlapped. Model/effort
+  attribution uses the host-advertised GPT-6 bindings and matching installed TOML
+  hashes, not independent backend introspection. Sol's finding was fixed and
+  rechecked; Luna found no contradictory setup guidance or broken local targets.
+- **BLOCKED — current live Radar:** the recorded exact archive returned HTTP 404.
+  The mismatched latest alias was rejected. Basic operation does not make this a
+  successful reference-data check or establish benchmark/cost optimization.
+- **NOT RUN — other native environments and capacity:** automated cross-platform
+  tests do not prove installation in every macOS/CLI/Desktop environment. Only
+  two direct workers were observed; six-worker capacity and nested invocation
+  enforcement were not tested. Historical tool-isolation failure remains FAIL.
+
+Final release commit, exact-source CI and installed payload identities are recorded
+in the [v4.3.0 validation asset](https://github.com/SuperDaddyV/codex-native-workers/releases/download/v4.3.0/native-workers-v4.3.0-validation.json)
+when publication completes. This source document alone is not publication proof.
+Local raw receipts remain private under `.var/v430-basic-routing-20260926/`.
+
+---
+
 # GPT-6 v4.3.0 three-tier routing checkpoint — 2026-09-26
 
 The user approved explicit basic routing when verified live Radar and qualified

@@ -1,4 +1,4 @@
-# v4.3.0 — GPT-6 migration (release gates pending)
+# v4.3.0 — GPT-6 and resilient task routing
 
 - Pin ten active worker profiles to GPT-6 Sol/Luna; preserve user-selected Coordinator and five dynamic efforts.
 - Centralize model/effort contracts across selectors, installer and capability probe.

@@ -7,7 +7,7 @@ Let Codex share the work: you choose the coordinator, GPT-6 Sol handles demandin
 [![Validation](https://github.com/SuperDaddyV/codex-native-workers/actions/workflows/validate.yml/badge.svg?branch=master)](https://github.com/SuperDaddyV/codex-native-workers/actions/workflows/validate.yml)
 [![License](https://img.shields.io/github/license/SuperDaddyV/codex-native-workers)](LICENSE)
 
-> **v4.3.0 is awaiting acceptance and is not published.** The current Stable is [v4.2.0](https://github.com/SuperDaddyV/codex-native-workers/releases/tag/v4.2.0); use its [installation instructions](https://github.com/SuperDaddyV/codex-native-workers/blob/v4.2.0/README.md). The v4.3.0 prompt below becomes usable after its Stable release.
+> **v4.3.0 · GPT-6** — [Release](https://github.com/SuperDaddyV/codex-native-workers/releases/tag/v4.3.0) · [Previous versions](VERSIONS.md)
 
 ## What it does
 

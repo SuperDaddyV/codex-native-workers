@@ -7,7 +7,7 @@
 [![Validation](https://github.com/SuperDaddyV/codex-native-workers/actions/workflows/validate.yml/badge.svg?branch=master)](https://github.com/SuperDaddyV/codex-native-workers/actions/workflows/validate.yml)
 [![License](https://img.shields.io/github/license/SuperDaddyV/codex-native-workers)](LICENSE)
 
-> **v4.3.0 正待验收，尚未发布。** 当前正式版是 [v4.2.0](https://github.com/SuperDaddyV/codex-native-workers/releases/tag/v4.2.0)，可使用该版本的[安装说明](https://github.com/SuperDaddyV/codex-native-workers/blob/v4.2.0/README.zh-CN.md)。下面的 v4.3.0 安装入口在正式发布后生效。
+> **v4.3.0 · GPT-6** — [正式版](https://github.com/SuperDaddyV/codex-native-workers/releases/tag/v4.3.0) · [历史版本](VERSIONS.md)
 
 ## 有什么用
 

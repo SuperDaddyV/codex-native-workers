@@ -1,11 +1,11 @@
 name: Compatibility report
-description: Report compatibility with current Stable v4.2.0, the previous v4.2.0-rc1 Preview, or legacy Stable v4.1.4
+description: Report compatibility with current Stable v4.3.0, the previous v4.2.0-rc1 Preview, or legacy Stable v4.1.4
 title: "[Compatibility]: "
 body:
   - type: markdown
     attributes:
       value: |
-        Success reports are welcome. They help us understand OS compatibility, fresh installs, upgrades, Sol and Luna delegation, and current Coordinator/Workers Receipt or legacy Delegation Receipt behavior across current Stable v4.2.0, the previous v4.2.0-rc1 Preview, and legacy Stable v4.1.4. Reports are public GitHub Issues only.
+        Success reports are welcome. They help us understand OS compatibility, fresh installs, upgrades, Sol and Luna delegation, and current Coordinator/Workers Receipt or legacy Delegation Receipt behavior across current Stable v4.3.0, the previous v4.2.0-rc1 Preview, and legacy Stable v4.1.4. Reports are public GitHub Issues only.
 
         Stable describes the tested configuration, routing, and transactional installation product; it does not guarantee host-enforced recursive isolation. Keep configuration/status evidence separate from actual native execution.
 
@@ -44,8 +44,8 @@ body:
       label: Release channel
       description: Which version or candidate did you test?
       options:
-        - "Candidate (v4.3.0, unpublished)"
-        - "Current Stable (v4.2.0)"
+        - "Current Stable (v4.3.0)"
+        - "Previous Stable (v4.2.0)"
         - "Previous Preview (v4.2.0-rc1)"
         - "Legacy Stable (v4.1.4)"
         - Other published version
@@ -71,14 +71,14 @@ body:
     attributes:
       label: From version
       description: Optional. For an upgrade, enter the version you upgraded from.
-      placeholder: v4.1.4 / v4.2.0-rc1 / Unknown
+      placeholder: v4.3.0 / v4.2.0 / Unknown
 
   - type: input
     id: installed_version
     attributes:
       label: Installed / tested version
       description: Enter the version actually installed or tested, including the exact tag or commit when available.
-      placeholder: v4.2.0 (or v4.2.0-rc1 / v4.1.4)
+      placeholder: v4.3.0 (or v4.2.0 / v4.2.0-rc1 / v4.1.4)
     validations:
       required: true
 

@@ -2,7 +2,7 @@
 
 [简体中文](INSTALLATION.zh-CN.md) · [Home](README.md)
 
-**v4.3.0 is unpublished; current Stable remains v4.2.0.** This page describes the v4.3.0 candidate. Start with the [homepage prompt](README.md#install-or-upgrade), then follow [NATIVE_WORKERS_SETUP.md](NATIVE_WORKERS_SETUP.md) from the verified release commit.
+**v4.3.0 · GPT-6.** Start with the [homepage prompt](README.md#install-or-upgrade), then follow [NATIVE_WORKERS_SETUP.md](NATIVE_WORKERS_SETUP.md) from the verified release commit.
 
 ## Identify the environment
 

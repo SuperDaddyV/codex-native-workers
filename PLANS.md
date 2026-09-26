@@ -27,6 +27,18 @@ continues. Accept useful native Sol and Luna work under the explicitly reported
 routing mode; do not require a live Radar outage to disappear for basic-mode
 acceptance. Record unavailable live-data coverage separately before release.
 
+## Final three-tier checkpoint
+
+Final three-tier implementation checkpoint: 484 source/fake-home tests pass.
+Routing candidate c40412f passed three-platform push and PR CI, transactional
+real-home installation, 15 owned hashes, preservation and zero-write repeat.
+One installed basic-mode selection supported useful direct `sol_high` and
+`luna_medium` work with observed overlap. The Coordinator fixed Sol's mixed-view
+fallback-reporting finding; that worker rechecked the reproduction and focused
+regressions. Final publication preparation must align the final commit, exact CI,
+installed manifest, immutable tag and release validation asset. Keep live Radar
+BLOCKED and other unrun native environments/capacity separate from this acceptance.
+
 ## Previous cross-client checkpoint
 
 Current release instruction, 2026-09-24: the user authorizes GitHub publication

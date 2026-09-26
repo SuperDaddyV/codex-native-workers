@@ -142,7 +142,7 @@ class DocumentationTests(unittest.TestCase):
             self.assertLessEqual(len(content.splitlines()), 110)
             self.assertIn('actions/workflows/validate.yml/badge.svg', content)
             self.assertIn('github/license', content)
-            self.assertIn('v4.2.0', content)
+            self.assertIn('VERSIONS.md', content)
             self.assertIn('v4.3.0', content)
             self.assertNotRegex(content, r'\b[0-9a-f]{40}\b')
             self.assertEqual(content.count('```') % 2, 0)
@@ -465,7 +465,8 @@ class DocumentationTests(unittest.TestCase):
                 self.assertEqual(len(labels), len(set(labels)))
                 self.assertNotIn("labels:", content)
                 self.assertNotIn("contact_links:", content)
-                self.assertIn("Current Stable (v4.2.0)", content)
+                self.assertIn("Current Stable (v4.3.0)", content)
+                self.assertIn("Previous Stable (v4.2.0)", content)
                 self.assertIn("Previous Preview (v4.2.0-rc1)", content)
                 self.assertIn("Legacy Stable (v4.1.4)", content)
                 self.assertIn('"NOT RUN"', content)
@@ -482,7 +483,7 @@ class DocumentationTests(unittest.TestCase):
             "unless specifically requested during later troubleshooting",
         ):
             self.assertIn(phrase, bug)
-        self.assertIn("placeholder: v4.2.0", bug)
+        self.assertIn("placeholder: v4.3.0", bug)
         self.assertNotIn("placeholder: v4.1.1", bug)
         self.assertIn("`Sol/Luna: Sol-only · no independent bounded work`", bug)
         self.assertIn("`Sol/Luna: delegated · luna_max ×2 · parallel`", bug)
@@ -506,11 +507,11 @@ class DocumentationTests(unittest.TestCase):
             "More than 1 week",
         ):
             self.assertIn(option, compatibility)
-        self.assertIn("placeholder: v4.1.4 / v4.2.0-rc1 / Unknown", compatibility)
+        self.assertIn("placeholder: v4.3.0 / v4.2.0 / Unknown", compatibility)
         self.assertIn("placeholder: sol_max / Unknown", compatibility)
         self.assertIn("Coordinator/Workers: delegated", compatibility)
         self.assertIn("sequential execution is not parallel", compatibility)
-        self.assertIn("placeholder: v4.2.0", compatibility)
+        self.assertIn("placeholder: v4.3.0", compatibility)
         self.assertNotIn("placeholder: v4.1.1", compatibility)
 
         feature = text(ISSUE_TEMPLATE_DIR / "feature-feedback.yml")

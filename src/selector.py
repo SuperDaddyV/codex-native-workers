@@ -405,7 +405,7 @@ def ensure_worker_profile(
             views = {name: selected_views.get(name, (base_choice or {}).get("views", {}).get(name, {"status": "unavailable"})) for name in SOL_VIEWS}
             result["sol"] = {
                 **base_choice, "status": "ready", "model": REFERENCE_MODEL,
-                "fallback": all(row["fallback"] for row in selected_views.values()),
+                "fallback": any(row["fallback"] for row in selected_views.values()),
                 "allowed_roles": [f"sol_{effort}" for effort in supported_sol],
                 "views": views,
             }

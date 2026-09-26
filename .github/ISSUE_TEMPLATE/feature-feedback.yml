@@ -1,11 +1,11 @@
 name: Feature request / feedback
-description: Suggest a focused improvement for current Stable v4.2.0, the previous v4.2.0-rc1 Preview, or legacy Stable v4.1.4
+description: Suggest a focused improvement for current Stable v4.3.0, the previous v4.2.0-rc1 Preview, or legacy Stable v4.1.4
 title: "[Feature request / feedback]: "
 body:
   - type: markdown
     attributes:
       value: |
-        Feature feedback is welcome for current Stable v4.2.0, the previous v4.2.0-rc1 Preview, or legacy Stable v4.1.4. Say which target the suggestion concerns when it is version-specific. Stable does not guarantee host-enforced recursive isolation.
+        Feature feedback is welcome for current Stable v4.3.0, the previous v4.2.0-rc1 Preview, or legacy Stable v4.1.4. Say which target the suggestion concerns when it is version-specific. Stable does not guarantee host-enforced recursive isolation.
 
         **Non-guarantee notice.** Feature feedback does not guarantee implementation, roadmap inclusion, compatibility, support, or a delivery timeline. Suggestions remain subject to project scope, evidence, review, and maintainer acceptance.
 
@@ -17,8 +17,8 @@ body:
       label: Release channel
       description: Which version or candidate does this feedback concern?
       options:
-        - "Candidate (v4.3.0, unpublished)"
-        - "Current Stable (v4.2.0)"
+        - "Current Stable (v4.3.0)"
+        - "Previous Stable (v4.2.0)"
         - "Previous Preview (v4.2.0-rc1)"
         - "Legacy Stable (v4.1.4)"
         - Both current and previous targets
@@ -32,7 +32,7 @@ body:
     attributes:
       label: Version under discussion
       description: Optional. Enter the exact version, tag, or commit when this feedback is version-specific.
-      placeholder: v4.2.0 (or v4.2.0-rc1 / v4.1.4)
+      placeholder: v4.3.0 (or v4.2.0 / v4.2.0-rc1 / v4.1.4)
 
   - type: dropdown
     id: evidence_status
