@@ -4,8 +4,9 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-README = ROOT / "README.md"
-README_ZH = ROOT / "README.zh-CN.md"
+README_EN = ROOT / "README.en.md"
+README_ZH = ROOT / "README.md"
+README_LEGACY_ZH = ROOT / "README.zh-CN.md"
 PREVIEW = ROOT / "NATIVE_WORKERS_PREVIEW.md"
 INSTALLATION = ROOT / "INSTALLATION.md"
 INSTALLATION_ZH = ROOT / "INSTALLATION.zh-CN.md"
@@ -37,8 +38,9 @@ ISSUE_FORMS = {
     },
 }
 PUBLIC_DOCS = (
-    README,
+    README_EN,
     README_ZH,
+    README_LEGACY_ZH,
     PREVIEW,
     INSTALLATION,
     INSTALLATION_ZH,
@@ -127,16 +129,18 @@ def local_markdown_targets(content: str):
 
 class DocumentationTests(unittest.TestCase):
     def test_bilingual_navigation_and_setup_contract(self):
-        for home, other, guide in ((README, README_ZH, INSTALLATION), (README_ZH, README, INSTALLATION_ZH)):
+        for home, other, guide in ((README_EN, README_ZH, INSTALLATION), (README_ZH, README_EN, INSTALLATION_ZH)):
             for destination in (other, guide, STABLE_SETUP, ROOT / 'VERSIONS.md'):
                 self.assertIn('](' + destination.name + ')', text(home))
+        self.assertIn('[English](README.en.md)', text(ROOT / 'README.md'))
+        self.assertIn('(README.md#安装或升级)', text(README_LEGACY_ZH))
         history = text(ROOT / 'VERSIONS.md')
         for value in (PINNED_ASSIST_BLOB_URL, PINNED_SETUP_BLOB_URL, V414_RUNTIME_SOURCE_COMMIT, RC1_RUNTIME_SOURCE_COMMIT):
             self.assertIn(value, history)
 
 
     def test_homepages_are_concise_and_installation_is_easy_to_find(self):
-        for home, headings in ((README, ('What it does','Install or upgrade','Daily use','Check that it works','Common questions','More information')), (README_ZH, ('有什么用','安装或升级','日常怎么用','如何确认生效','常见问题','更多信息'))):
+        for home, headings in ((README_EN, ('What it does','Install or upgrade','Daily use','Check that it works','Common questions','More information')), (README_ZH, ('有什么用','安装或升级','日常怎么用','如何确认生效','常见问题','更多信息'))):
             content = text(home)
             self.assertEqual(re.findall(r'(?m)^## (.+)$', content), list(headings))
             self.assertLessEqual(len(content.splitlines()), 110)
@@ -149,13 +153,13 @@ class DocumentationTests(unittest.TestCase):
 
 
     def test_readmes_explain_native_worker_routing_parallelism_and_receipts(self):
-        for path in (README, README_ZH):
+        for path in (README_EN, README_ZH):
             content = text(path)
             for token in ('Coordinator','GPT-6 Sol','GPT-6 Luna','0–3','4–6','2 KiB','sol-luna-delegate','sol-luna-status','sol-luna-upgrade','Coordinator/Workers: delegated · sol_high ×1 · luna_high ×1 · parallel'):
                 self.assertIn(token, content)
-        self.assertIn('You choose the model', text(README))
+        self.assertIn('You choose the model', text(README_EN))
         self.assertIn('主模型由你选择', text(README_ZH))
-        self.assertIn('no fixed Sol quota', text(README))
+        self.assertIn('no fixed Sol quota', text(README_EN))
         self.assertIn('Sol 没有固定配额', text(README_ZH))
 
 
@@ -171,7 +175,7 @@ class DocumentationTests(unittest.TestCase):
 
     def test_readmes_bound_runtime_and_savings_claims(self):
         for token in ('six-worker capacity is unverified','does not guarantee host-enforced recursive isolation','do not establish local performance or guarantee quota savings'):
-            self.assertIn(token, text(README))
+            self.assertIn(token, text(README_EN))
         for token in ('六 worker 容量未验证','不提供宿主强制递归隔离保证','不保证节省额度'):
             self.assertIn(token, text(README_ZH))
         historical = text(ROOT / 'RUNTIME_TESTS.md')
@@ -180,7 +184,7 @@ class DocumentationTests(unittest.TestCase):
 
 
     def test_installation_entry_supports_each_client_and_platform(self):
-        for path in (README,README_ZH,INSTALLATION,INSTALLATION_ZH):
+        for path in (README_EN,README_ZH,INSTALLATION,INSTALLATION_ZH):
             content=text(path)
             for token in ('Windows','macOS','CLI','python3','python','Git','WSL'):
                 self.assertIn(token,content)
@@ -202,14 +206,14 @@ class DocumentationTests(unittest.TestCase):
 
 
     def test_single_prompt_follows_verified_current_release_contract(self):
-        for path in (README, README_ZH):
+        for path in (README_EN, README_ZH):
             prompts=re.findall(r'```text\n(.*?)\n```',text(path),re.S)
             install=[value for value in prompts if STABLE_API_URL in value]
             self.assertEqual(len(install),1)
             for token in ('NATIVE_WORKERS_SETUP.md','commit','dry-run','CODEX_HOME'):
                 self.assertIn(token,install[0])
             self.assertNotRegex(install[0],r'\b[0-9a-f]{40}\b')
-        self.assertIn('immutable tag',text(README))
+        self.assertIn('immutable tag',text(README_EN))
         self.assertIn('不可变 tag',text(README_ZH))
         for token in (PINNED_ASSIST_BLOB_URL,PINNED_SETUP_BLOB_URL,V414_RUNTIME_SOURCE_COMMIT):
             self.assertIn(token,text(ROOT/'VERSIONS.md'))
@@ -523,7 +527,7 @@ class DocumentationTests(unittest.TestCase):
         ):
             self.assertIn(f"- {option}", feature)
 
-        for path in (README,README_ZH):
+        for path in (README_EN,README_ZH):
             for filename in ('bug-report.yml','compatibility-report.yml','feature-feedback.yml'):
                 self.assertIn('issues/new?template='+filename,text(path))
             self.assertIn('CODEX_HOME',text(path))
@@ -539,7 +543,7 @@ class DocumentationTests(unittest.TestCase):
         combined = "\n".join(
             text(path)
             for path in (
-                README,
+                README_EN,
                 README_ZH,
                 ASSIST,
                 SETUP,
@@ -548,7 +552,7 @@ class DocumentationTests(unittest.TestCase):
                 ROOT / "SECURITY.md",
             )
         )
-        for path in (README, README_ZH):
+        for path in (README_EN, README_ZH):
             for link in ('NATIVE_WORKERS_SETUP.md','VERSIONS.md','ARCHITECTURE.md','RUNTIME_TESTS.md','SECURITY.md','CHANGELOG.md'):
                 self.assertIn(link,text(path))
 
@@ -699,12 +703,12 @@ class DocumentationTests(unittest.TestCase):
         self.assertIn(PINNED_SETUP_BLOB_URL, public_installation)
         self.assertIn(V414_RUNTIME_SOURCE_COMMIT, public_installation)
         self.assertIn("Stable release: `v4.1.4`", text(ASSIST))
-        self.assertIn(STABLE_API_URL, text(README) + text(README_ZH))
-        self.assertIn("v4.3.0", text(README) + text(README_ZH))
-        self.assertNotIn("releases/tag/v4.1.3", text(README) + text(README_ZH))
+        self.assertIn(STABLE_API_URL, text(README_EN) + text(README_ZH))
+        self.assertIn("v4.3.0", text(README_EN) + text(README_ZH))
+        self.assertNotIn("releases/tag/v4.1.3", text(README_EN) + text(README_ZH))
         self.assertNotIn("img.shields.io/badge/stable-v4.1.3", public_installation)
         stable_public_claims = "\n".join(
-            (text(README), text(README_ZH), text(ROOT / "RUNTIME_TESTS.md"))
+            (text(README_EN), text(README_ZH), text(ROOT / "RUNTIME_TESTS.md"))
         ).lower()
         for unresolved in (
             "unreleased `v4.1.4`",
@@ -723,7 +727,7 @@ class DocumentationTests(unittest.TestCase):
         runtime = text(ROOT / "RUNTIME_TESTS.md")
         changelog = text(ROOT / "CHANGELOG.md")
         setup = text(STABLE_SETUP)
-        readmes = text(README) + "\n" + text(README_ZH)
+        readmes = text(README_EN) + "\n" + text(README_ZH)
 
         self.assertIn("# Codex Native Workers — v4.3.0 Stable installation contract", setup)
         for required in (
@@ -749,7 +753,7 @@ class DocumentationTests(unittest.TestCase):
             " ".join(setup.split()),
         )
 
-        for content in (text(README), text(README_ZH)):
+        for content in (text(README_EN), text(README_ZH)):
             prompts = re.findall(r"```text\n(.*?)\n```", content, re.S)
             stable = [prompt for prompt in prompts if STABLE_API_URL in prompt]
             self.assertEqual(len(stable), 1)
@@ -875,17 +879,17 @@ class DocumentationTests(unittest.TestCase):
         )
 
     def test_readme_status_guidance_is_bilingual_and_bounded(self):
-        for path in (README,README_ZH):
+        for path in (README_EN,README_ZH):
             for token in ('10/10','3/3','Today Selection not initialized','Not checked','RUNTIME_TESTS.md'):
                 self.assertIn(token,text(path))
-        self.assertIn('Healthy configuration is not runtime acceptance',text(README))
+        self.assertIn('Healthy configuration is not runtime acceptance',text(README_EN))
         self.assertIn('配置健康不等于运行验收通过',text(README_ZH))
         self.assertIn('native_tool_isolation',text(ROOT/'ARCHITECTURE.md'))
         self.assertIn('adds no selector or network call',text(ROOT/'SECURITY.md'))
 
 
     def test_setup_execution_urls_are_coordinated_and_immutable_when_pinned(self):
-        english = text(README)
+        english = text(README_EN)
         chinese = text(README_ZH)
         combined = english + "\n" + chinese
         for content in (english, chinese):
@@ -920,8 +924,9 @@ class DocumentationTests(unittest.TestCase):
 
     def test_all_local_documentation_links_exist(self):
         for document in (
-            README,
+            README_EN,
             README_ZH,
+            README_LEGACY_ZH,
             PREVIEW,
             INSTALLATION,
             INSTALLATION_ZH,
@@ -968,7 +973,7 @@ class DocumentationTests(unittest.TestCase):
                 self.assertIsNone(pattern.search(content), path)
 
     def test_hooks_are_not_a_current_install_requirement(self):
-        content = "\n".join(text(path) for path in (README, README_ZH, SETUP))
+        content = "\n".join(text(path) for path in (README_EN, README_ZH, SETUP))
         stale_requirements = (
             re.compile(
                 r"(?im)^(?![^\n]*\b(?:no|not|do not|does not|without)\b)"

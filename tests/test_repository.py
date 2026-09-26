@@ -136,6 +136,7 @@ class RepositorySafetyTests(unittest.TestCase):
             ROOT / "ARCHITECTURE.md",
             ROOT / "CHANGELOG.md",
             ROOT / "README.md",
+            ROOT / "README.en.md",
             ROOT / "README.zh-CN.md",
             ROOT / "RUNTIME_TESTS.md",
         }

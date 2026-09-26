@@ -1,8 +1,8 @@
 # Installation and troubleshooting
 
-[简体中文](INSTALLATION.zh-CN.md) · [Home](README.md)
+[简体中文](INSTALLATION.zh-CN.md) · [Home](README.en.md)
 
-**v4.3.0 · GPT-6.** Start with the [homepage prompt](README.md#install-or-upgrade), then follow [NATIVE_WORKERS_SETUP.md](NATIVE_WORKERS_SETUP.md) from the verified release commit.
+**v4.3.0 · GPT-6.** Start with the [homepage prompt](README.en.md#install-or-upgrade), then follow [NATIVE_WORKERS_SETUP.md](NATIVE_WORKERS_SETUP.md) from the verified release commit.
 
 ## Identify the environment
 

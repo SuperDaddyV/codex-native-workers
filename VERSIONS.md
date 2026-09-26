@@ -1,6 +1,6 @@
 # Previous versions / 历史版本
 
-[Home](README.md) · [中文首页](README.zh-CN.md)
+[中文首页](README.md) · [English](README.en.md)
 
 Use the current published Stable release unless you explicitly need an older version.
 优先使用已发布的正式版；历史合同只能安装其指定版本，不要混用当前源码。

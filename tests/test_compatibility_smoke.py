@@ -852,8 +852,8 @@ class CompatibilitySmokeTests(unittest.TestCase):
         self.assertIn("--state-dir", command)
 
     def test_documentation_bounds_legacy_smoke_and_routes_current_product_to_runtime_checks(self):
-        english = (ROOT / "README.md").read_text(encoding="utf-8")
-        chinese = (ROOT / "README.zh-CN.md").read_text(encoding="utf-8")
+        english = (ROOT / "README.en.md").read_text(encoding="utf-8")
+        chinese = (ROOT / "README.md").read_text(encoding="utf-8")
         history = (ROOT / "VERSIONS.md").read_text(encoding="utf-8")
 
         for content in (english, chinese):
