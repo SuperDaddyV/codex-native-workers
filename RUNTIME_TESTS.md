@@ -19,8 +19,8 @@ was relaxed. Historical checkpoints below describe their own earlier sources.
   zero writes and no backup. These results are installation evidence only.
 - **PASS — useful Windows Desktop native work:** one installed selection returned
   explicit basic routes (`no_benchmark`). The Coordinator dispatched `sol_high`
-  for bounded selector review and `luna_medium` for bounded installation-document
-  review. Both completed; their running periods visibly overlapped. Model/effort
+  for bounded selector review and `luna_medium` for review of installation
+  documents. Both completed; their running periods visibly overlapped. Model/effort
   attribution uses the host-advertised GPT-6 bindings and matching installed TOML
   hashes, not independent backend introspection. Sol's finding was fixed and
   rechecked; Luna found no contradictory setup guidance or broken local targets.
