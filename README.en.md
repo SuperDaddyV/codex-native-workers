@@ -19,13 +19,13 @@ Let Codex share the work: you choose the lead model in Codex, GPT-6 Sol handles 
 
 ```mermaid
 ---
-config: {flowchart: {nodeSpacing: 16, rankSpacing: 20}}
+config: {flowchart: {nodeSpacing: 16, rankSpacing: 12, padding: 8, minNodeWidth: 0}}
 ---
 flowchart LR
-    A{"Lead model<br/>Delegate?"} -->|No| B["Lead model executes"]
-    A -->|Yes| C["Choose Sol / Luna<br/>Select effort; check role"]
-    C --> D["Worker executes"]
-    B --> E["Lead model<br/>Reviews and delivers"]
+    A{"Lead model<br/>Delegate?"} -->|No| B["Lead executes"]
+    A -->|Yes| C["Sol / Luna<br/>Effort + role check"]
+    C --> D["Worker runs"]
+    B --> E["Lead reviews<br/>and delivers"]
     D --> E
 ```
 

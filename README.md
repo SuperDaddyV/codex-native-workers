@@ -19,11 +19,11 @@
 
 ```mermaid
 ---
-config: {flowchart: {nodeSpacing: 16, rankSpacing: 20}}
+config: {flowchart: {nodeSpacing: 16, rankSpacing: 12, padding: 8, minNodeWidth: 0}}
 ---
 flowchart LR
     A{"主脑判断<br/>值得委派？"} -->|否| B["主脑执行"]
-    A -->|是| C["按任务选 Sol / Luna<br/>选档并检查角色"]
+    A -->|是| C["选 Sol / Luna<br/>选档并检查角色"]
     C --> D["子代理执行"]
     B --> E["主脑复核交付"]
     D --> E
