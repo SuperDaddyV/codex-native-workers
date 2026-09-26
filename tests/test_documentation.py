@@ -104,10 +104,10 @@ SETUP_RAW_PATTERN = re.compile(
 )
 STABLE_API_URL = (
     "https://api.github.com/repos/SuperDaddyV/"
-    "codex-native-workers/releases/tags/v4.3.0"
+    "codex-native-workers/releases/tags/v4.3.1"
 )
 STABLE_RELEASE_URL = (
-    "https://github.com/SuperDaddyV/codex-native-workers/releases/tag/v4.3.0"
+    "https://github.com/SuperDaddyV/codex-native-workers/releases/tag/v4.3.1"
 )
 STABLE_PYTHON_CHECK = (
     'python -c "import sys, tomllib; '
@@ -147,7 +147,7 @@ class DocumentationTests(unittest.TestCase):
             self.assertIn('actions/workflows/validate.yml/badge.svg', content)
             self.assertIn('github/license', content)
             self.assertIn('VERSIONS.md', content)
-            self.assertIn('v4.3.0', content)
+            self.assertIn('v4.3.1', content)
             self.assertNotRegex(content, r'\b[0-9a-f]{40}\b')
             self.assertEqual(content.count('```') % 2, 0)
 
@@ -469,7 +469,8 @@ class DocumentationTests(unittest.TestCase):
                 self.assertEqual(len(labels), len(set(labels)))
                 self.assertNotIn("labels:", content)
                 self.assertNotIn("contact_links:", content)
-                self.assertIn("Current Stable (v4.3.0)", content)
+                self.assertIn("Current Stable (v4.3.1)", content)
+                self.assertIn("Previous Stable (v4.3.0)", content)
                 self.assertIn("Previous Stable (v4.2.0)", content)
                 self.assertIn("Previous Preview (v4.2.0-rc1)", content)
                 self.assertIn("Legacy Stable (v4.1.4)", content)
@@ -487,7 +488,7 @@ class DocumentationTests(unittest.TestCase):
             "unless specifically requested during later troubleshooting",
         ):
             self.assertIn(phrase, bug)
-        self.assertIn("placeholder: v4.3.0", bug)
+        self.assertIn("placeholder: v4.3.1", bug)
         self.assertNotIn("placeholder: v4.1.1", bug)
         self.assertIn("`Sol/Luna: Sol-only · no independent bounded work`", bug)
         self.assertIn("`Sol/Luna: delegated · luna_max ×2 · parallel`", bug)
@@ -511,11 +512,11 @@ class DocumentationTests(unittest.TestCase):
             "More than 1 week",
         ):
             self.assertIn(option, compatibility)
-        self.assertIn("placeholder: v4.3.0 / v4.2.0 / Unknown", compatibility)
+        self.assertIn("placeholder: v4.3.1 / v4.3.0 / Unknown", compatibility)
         self.assertIn("placeholder: sol_max / Unknown", compatibility)
         self.assertIn("Coordinator/Workers: delegated", compatibility)
         self.assertIn("sequential execution is not parallel", compatibility)
-        self.assertIn("placeholder: v4.3.0", compatibility)
+        self.assertIn("placeholder: v4.3.1", compatibility)
         self.assertNotIn("placeholder: v4.1.1", compatibility)
 
         feature = text(ISSUE_TEMPLATE_DIR / "feature-feedback.yml")
@@ -704,7 +705,7 @@ class DocumentationTests(unittest.TestCase):
         self.assertIn(V414_RUNTIME_SOURCE_COMMIT, public_installation)
         self.assertIn("Stable release: `v4.1.4`", text(ASSIST))
         self.assertIn(STABLE_API_URL, text(README_EN) + text(README_ZH))
-        self.assertIn("v4.3.0", text(README_EN) + text(README_ZH))
+        self.assertIn("v4.3.1", text(README_EN) + text(README_ZH))
         self.assertNotIn("releases/tag/v4.1.3", text(README_EN) + text(README_ZH))
         self.assertNotIn("img.shields.io/badge/stable-v4.1.3", public_installation)
         stable_public_claims = "\n".join(
@@ -729,9 +730,9 @@ class DocumentationTests(unittest.TestCase):
         setup = text(STABLE_SETUP)
         readmes = text(README_EN) + "\n" + text(README_ZH)
 
-        self.assertIn("# Codex Native Workers — v4.3.0 Stable installation contract", setup)
+        self.assertIn("# Codex Native Workers — v4.3.1 Stable installation contract", setup)
         for required in (
-            "/repos/SuperDaddyV/codex-native-workers/releases/tags/v4.3.0",
+            "/repos/SuperDaddyV/codex-native-workers/releases/tags/v4.3.1",
             "draft=false",
             "prerelease=false",
             "published_at",
@@ -739,7 +740,7 @@ class DocumentationTests(unittest.TestCase):
             "clean detached checkout",
             "remote tag again",
             "TAG_MOVED",
-            'VERSION == "v4.3.0"',
+            'VERSION == "v4.3.1"',
             "--source-commit",
             "two-root transaction",
             "no file is\n   required to embed its own SHA",

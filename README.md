@@ -7,7 +7,7 @@
 [![Validation](https://github.com/SuperDaddyV/codex-native-workers/actions/workflows/validate.yml/badge.svg?branch=master)](https://github.com/SuperDaddyV/codex-native-workers/actions/workflows/validate.yml)
 [![License](https://img.shields.io/github/license/SuperDaddyV/codex-native-workers)](LICENSE)
 
-> **v4.3.0 · GPT-6** — [正式版](https://github.com/SuperDaddyV/codex-native-workers/releases/tag/v4.3.0) · [历史版本](VERSIONS.md)
+> **v4.3.1 · GPT-6** — [正式版](https://github.com/SuperDaddyV/codex-native-workers/releases/tag/v4.3.1) · [历史版本](VERSIONS.md)
 
 ## 有什么用
 
@@ -30,8 +30,8 @@
 在你准备使用的 Codex 环境中新开本地任务，复制：
 
 ```text
-请为当前 Codex 环境安装或升级 Codex Native Workers v4.3.0。
-先核验 https://api.github.com/repos/SuperDaddyV/codex-native-workers/releases/tags/v4.3.0
+请为当前 Codex 环境安装或升级 Codex Native Workers v4.3.1。
+先核验 https://api.github.com/repos/SuperDaddyV/codex-native-workers/releases/tags/v4.3.1
 确为已发布正式版，锁定不可变 tag 的精确 commit，读取该 commit 的 NATIVE_WORKERS_SETUP.md 并执行。
 识别 Windows/macOS/Linux、桌面端或 CLI、真实 CODEX_HOME 和用户 Skill 根目录。
 先诊断依赖、网络、权限和现有安装；在安装授权范围内主动修复，复查后继续，不要只列问题。

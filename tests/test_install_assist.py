@@ -575,7 +575,7 @@ class SnapshotAndReportTests(unittest.TestCase):
                 (VERSION, "CURRENT"),
                 ("v4.1.0", "OLDER"),
                 ("v4.1.5", "OLDER"),
-                ("v4.3.1", "NEWER"),
+                (f"v{int(VERSION[1:].split('.')[0]) + 1}.0.0", "NEWER"),
                 ("not-semver", "INVALID"),
             ):
                 with self.subTest(version=version):

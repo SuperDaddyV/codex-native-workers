@@ -7,7 +7,7 @@ Let Codex share the work: you choose the coordinator, GPT-6 Sol handles demandin
 [![Validation](https://github.com/SuperDaddyV/codex-native-workers/actions/workflows/validate.yml/badge.svg?branch=master)](https://github.com/SuperDaddyV/codex-native-workers/actions/workflows/validate.yml)
 [![License](https://img.shields.io/github/license/SuperDaddyV/codex-native-workers)](LICENSE)
 
-> **v4.3.0 · GPT-6** — [Release](https://github.com/SuperDaddyV/codex-native-workers/releases/tag/v4.3.0) · [Previous versions](VERSIONS.md)
+> **v4.3.1 · GPT-6** — [Release](https://github.com/SuperDaddyV/codex-native-workers/releases/tag/v4.3.1) · [Previous versions](VERSIONS.md)
 
 ## What it does
 
@@ -30,8 +30,8 @@ For **Codex Desktop and Codex CLI on Windows and macOS**; Linux also has automat
 Open a local task in the Codex environment you intend to use, then paste:
 
 ```text
-Install or upgrade Codex Native Workers v4.3.0 for this Codex environment.
-Verify https://api.github.com/repos/SuperDaddyV/codex-native-workers/releases/tags/v4.3.0
+Install or upgrade Codex Native Workers v4.3.1 for this Codex environment.
+Verify https://api.github.com/repos/SuperDaddyV/codex-native-workers/releases/tags/v4.3.1
 is a published Stable release, resolve its immutable tag to an exact commit, and follow NATIVE_WORKERS_SETUP.md from that commit.
 Identify Windows/macOS/Linux, Desktop or CLI, the actual CODEX_HOME and user Skill root.
 Diagnose dependencies, connectivity, permissions and the existing installation. Fix issues within the installation authorization, recheck and continue; do not merely list problems.

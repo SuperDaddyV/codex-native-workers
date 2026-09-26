@@ -1,3 +1,32 @@
+# GPT-6 v4.3.1 archive acquisition checkpoint — 2026-09-26
+
+The patch returns a validated benchmark archive URL as a string. It retains all
+publication, hash, score and routing checks. Independently named fixtures now
+exercise actual URL validation and urllib Request construction, preventing the
+old test helper from hiding the production type error.
+
+- **PASS — failure reproduced and focused regression:** the original code failed
+  the new boundary test; the repaired code passes all 18 publication tests.
+- **PASS — source and fake-home:** 485 standard-library tests in 99.597 seconds;
+  documentation and privacy checks also pass after recording this checkpoint.
+- **PASS — saved public-response replay:** all seven previously captured responses
+  passed their saved hashes, request construction and unchanged validators. All
+  five routes selected verified reference profiles. Network I/O was mocked for
+  replay; this is not fresh live acquisition or installed-state evidence.
+- **BLOCKED — fresh live acquisition at this checkpoint:** two production-path
+  attempts failed before HTTP with connection reset (Windows error 10054). An
+  independent curl request also reset. This is separate from the repaired URL
+  type error and the earlier exact-archive 404. No cache was imported and no
+  system networking or validation rule was changed.
+- **PENDING — release gates:** final exact-source cross-platform CI, transactional
+  installed integrity and useful native review are recorded separately. Release
+  publication must not imply fresh live proof when only replay is available.
+
+Historical evidence remains below. The eventual v4.3.1 validation asset records
+final source, installation, live acquisition and native observations separately.
+
+---
+
 # GPT-6 v4.3.0 release acceptance — 2026-09-26
 
 The approved three-tier product contract has useful native acceptance in explicit

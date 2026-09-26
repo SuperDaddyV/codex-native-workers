@@ -4,7 +4,8 @@ import json
 import tempfile
 import unittest
 from contextlib import redirect_stdout
-from io import StringIO
+from io import BytesIO, StringIO
+from email.message import Message
 from datetime import datetime, timedelta
 from pathlib import Path
 from unittest.mock import patch
@@ -22,6 +23,40 @@ def select(bundle):
 
 
 class PublicationBindingTests(unittest.TestCase):
+    def test_live_acquisition_constructs_requests_for_all_verified_archives(self):
+        payloads, _ = transport(publication_bundle())
+        requested = []
+
+        class Response(BytesIO):
+            def __init__(self, body, url):
+                super().__init__(body)
+                self.url = url
+                self.headers = Message()
+                self.headers["Content-Type"] = "application/json"
+
+            def geturl(self):
+                return self.url
+
+        def open_request(request, timeout):
+            self.assertIsInstance(request, selector.urllib.request.Request)
+            self.assertEqual(request.get_method(), "GET")
+            requested.append(request.full_url)
+            return Response(
+                json.dumps(payloads[request.full_url], ensure_ascii=False).encode("utf-8"),
+                request.full_url,
+            )
+
+        # Preserve _fetch_bytes, URL checks and actual Request construction;
+        # replace only network I/O with independently named fixture endpoints.
+        with patch("src.selector.urllib.request.build_opener") as build:
+            build.return_value.open.side_effect = open_request
+            profile = select(selector.fetch_worker_data())
+
+        self.assertCountEqual(requested, payloads)
+        self.assertEqual(len(requested), 7)
+        routes = [profile["routing"]["luna"], *profile["routing"]["sol"]["views"].values()]
+        self.assertTrue(all(route["mode"] == "live" for route in routes))
+
     def test_verified_publication_enables_both_families_and_all_views(self):
         bundle = publication_bundle()
         payloads, fetch = transport(bundle)

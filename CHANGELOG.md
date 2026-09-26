@@ -1,3 +1,9 @@
+# v4.3.1 — Restore complete Radar acquisition
+
+- Fix benchmark archive URLs being passed as parsed objects instead of strings. Sol general, frontend and reasoning can now fetch their exact published archives when available.
+- Add regression coverage through real URL validation and request construction; fixture endpoints no longer depend on the production URL helper.
+- Preserve strict publication/hash/score checks, qualified-cache/basic fallback, existing configuration and the lightweight Global policy. Chinese remains the homepage.
+
 # v4.3.0 — GPT-6 and resilient task routing
 
 - Pin ten active worker profiles to GPT-6 Sol/Luna; preserve user-selected Coordinator and five dynamic efforts.

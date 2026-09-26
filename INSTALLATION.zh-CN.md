@@ -2,7 +2,7 @@
 
 [English](INSTALLATION.md) · [返回首页](README.md)
 
-**v4.3.0 · GPT-6。** 先复制[首页提示词](README.md#安装或升级)，再执行经核验发布 commit 中的 [NATIVE_WORKERS_SETUP.md](NATIVE_WORKERS_SETUP.md)。
+**v4.3.1 · GPT-6。** 先复制[首页提示词](README.md#安装或升级)，再执行经核验发布 commit 中的 [NATIVE_WORKERS_SETUP.md](NATIVE_WORKERS_SETUP.md)。
 
 ## 先认准环境
 

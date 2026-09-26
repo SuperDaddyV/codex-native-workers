@@ -1,6 +1,6 @@
-# Codex Native Workers — v4.3.0 Stable installation contract
+# Codex Native Workers — v4.3.1 Stable installation contract
 
-This contract applies only to the published, non-draft, non-prerelease `v4.3.0`
+This contract applies only to the published, non-draft, non-prerelease `v4.3.1`
 Release in `SuperDaddyV/codex-native-workers`. This document or a tag alone is not
 publication evidence. The renamed repository retains the project's history;
 installed paths, managed markers and `sol-luna-*` Skill names remain compatible.
@@ -53,19 +53,19 @@ valid; no repeated confirmation is required for already authorized operations.
 
 ## 2. Resolve the published immutable source
 
-1. Read `/repos/SuperDaddyV/codex-native-workers/releases/tags/v4.3.0`. Require
+1. Read `/repos/SuperDaddyV/codex-native-workers/releases/tags/v4.3.1`. Require
    `draft=false`, `prerelease=false`, and non-null `published_at`. Do not substitute
    an unpublished candidate, the newest prerelease, or `target_commitish`.
-2. Resolve the remote `v4.3.0` tag and peel an annotated/lightweight tag to one exact
+2. Resolve the remote `v4.3.1` tag and peel an annotated/lightweight tag to one exact
    40-hex commit. Acquire a clean detached checkout at that commit, then read the
    remote tag again. A change is `TAG_MOVED`: stop without installation writes.
 3. Read this contract from that exact commit. Require detached `HEAD`, the verified
    tag commit and the installer's `--source-commit` to match; require installer
-   `VERSION == "v4.3.0"`. Do not install from `master`, another moving branch or an
+   `VERSION == "v4.3.1"`. Do not install from `master`, another moving branch or an
    unverified tag. A later README/documentation commit is not the runtime source.
 4. The source and contract share the verified release commit, so no file is
    required to embed its own SHA. Do not use the old v4.1.4 setup/assisted contract
-   to apply v4.3.0 or substitute current source into an older pinned contract.
+   to apply v4.3.1 or substitute current source into an older pinned contract.
 
 ## 3. Apply one two-root transaction
 

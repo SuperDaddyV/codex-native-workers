@@ -1,4 +1,22 @@
-# v4.3.0 GPT-6 migration — active baseline, 2026-09-26
+# v4.3.1 archive acquisition repair — active baseline, 2026-09-26
+
+The user approved repairing the client defect found after ModelDial restored its
+exact archives. Keep HTTPS/host/path validation, publication identity, hashes,
+score binding, routing policy, cache namespace and the Global block unchanged.
+Return a URL string from the validated benchmark archive helper. Remove the
+fixture's dependency on that helper and cover the real request-construction
+boundary so an invalid URL type cannot be hidden by a mocked fetcher.
+
+Existing commit/push, candidate transaction and publication authorization remains
+active for this product patch. Prepare v4.3.1, preserve immutable v4.3.0, and keep
+Chinese as the homepage. Require focused/full tests, exact-source three-platform
+CI, isolated live acquisition, transactional installed integrity/preservation,
+one explicitly authorized installed recovery selection and useful bounded native
+review before Stable publication. Preserve the prior Daily bytes before refresh;
+never import isolated diagnostic data into installed state. Record exact release
+identities and source/installed/native evidence separately in the validation asset.
+
+## Previous v4.3.0 baseline
 
 ## Authorized three-tier routing — 2026-09-26
 

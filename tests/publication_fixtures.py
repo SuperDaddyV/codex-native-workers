@@ -84,7 +84,7 @@ def transport(bundle):
     payloads = {selector.MODELDIAL_API_URL: bundle["api"], selector.MODELDIAL_INDEX_URL: bundle["publication_index"], selector.MODELDIAL_BENCHMARK_INDEX_URL: bundle["benchmark_index"], bundle["publication_index"]["snapshots"][0]["fullSnapshotUrl"]: bundle["full_snapshot"]}
     for name, payload in bundle["benchmark_snapshots"].items():
         path = ("overall/" if name == "overall" else "") + f"archive/synthetic-{name}.json"
-        payloads[selector._benchmark_archive_url(path)] = payload
+        payloads[f"https://modeldial.com/data/benchmark-snapshots/{path}"] = payload
     def fetch(url, **kwargs):
         value = payloads[url]
         if isinstance(value, Exception):

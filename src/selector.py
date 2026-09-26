@@ -31,7 +31,7 @@ else:
 METADATA_SCHEMA_VERSION = 2
 STATUS_SCHEMA_VERSION = 2
 REFERENCE_COST_METRIC = "modeldial_estimated_reference_cost_usd"
-USER_AGENT = "codex-native-workers/4.3.0"
+USER_AGENT = "codex-native-workers/4.3.1"
 ROLE_BY_EFFORT = {effort: f"luna_{effort}" for effort in EFFORTS}
 BJT = timezone(timedelta(hours=8), name="BJT")
 UTC = timezone.utc
@@ -169,7 +169,7 @@ def _benchmark_archive_url(path: Any) -> str:
     # Only relative archive paths from the official inventory are accepted.
     if not isinstance(path, str) or re.fullmatch(r"(?:overall/)?archive/[A-Za-z0-9_-]+\.json", path) is None:
         raise SnapshotInvalid("invalid benchmark archive path")
-    return _validated_modeldial_url(urllib.parse.urljoin(MODELDIAL_BENCHMARK_INDEX_URL, path))
+    return _validated_modeldial_url(urllib.parse.urljoin(MODELDIAL_BENCHMARK_INDEX_URL, path)).geturl()
 
 
 def _verified_worker_data(data: Mapping[str, Any], *, now: datetime | None = None) -> dict[str, Any]:

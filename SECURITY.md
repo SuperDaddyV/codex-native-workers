@@ -1,4 +1,4 @@
-# GPT-6 v4.3.0 active contract
+# GPT-6 v4.3.1 active contract
 
 The active model/effort contract lives in `src/worker_selector.py`: `gpt-6-sol`,
 `gpt-6-luna`, five efforts, four Sol views and one Luna Daily. User-selected
