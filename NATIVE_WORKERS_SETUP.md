@@ -22,24 +22,30 @@ Confirm the user requested installation or upgrade to this target. An inspection
 request alone does not authorize apply. Diagnose independent prerequisites in one
 pass in the actual local Codex task environment:
 
+Use `python` on Windows/PowerShell and `python3` on macOS/Linux, matching
+rendered Skills. Commands below use the Windows launcher; substitute `python3`
+for every installer and assistance invocation on macOS/Linux.
+
 ```text
-codex --version
-git --version
 python -c "import sys, tomllib; assert sys.version_info >= (3, 11); print(sys.version)"
+git --version
 ```
 
-`codex` must be a normally resolvable executable, not only a shell alias or the
-Desktop application. Installed selector commands require the actual `python`
-command; having only `python3` or `py` is insufficient. Confirm the client supports
-native custom agents/subagents and the account can use `gpt-6-sol` and
-`gpt-6-luna` at the five configured efforts (`low` through `max`). The capability
-probe in this exact source can verify direct CLI requests; those requests are not
-proof of native delegation. Never copy authentication or private configuration
-into a test home. GitHub HTTPS is required for source identity; first Daily
-selection additionally needs the public reference data source.
+For CLI also check `codex --version`; an alias alone is insufficient. For Desktop
+use its local shell-enabled task with `--client desktop`. A separate CLI is not
+required. Desktop model/effort availability is checked in that host after
+configuration; CLI assistance retains its direct capability precheck. Neither
+is native delegation proof until useful workers actually run.
 
-Missing prerequisites stop managed writes. Give the precise blocker and smallest
-next action. Do not install global dependencies, edit PATH persistently, change
+Confirm access to `gpt-6-sol` and `gpt-6-luna` at the configured efforts. Never copy
+authentication or private configuration into a test home. GitHub HTTPS is needed
+for source identity; first Daily selection also needs public reference data.
+Resolve commands in the actual app/terminal environment; GUI PATH, Windows app
+execution aliases, WSL and remote hosts may differ.
+
+Missing prerequisites stop dependent managed writes, not independent diagnosis
+or authorized recovery. Follow the recovery section below before handing off. Give
+the precise blocker and smallest next action if recovery cannot complete. Do not install global dependencies, edit PATH persistently, change
 credentials, proxy/certificate trust, sandbox or organization policy without
 authorization for that additional scope. Existing explicit authorization remains
 valid; no repeated confirmation is required for already authorized operations.
@@ -136,3 +142,43 @@ State is isolated in `gpt6-v4` under the existing state directory, bound to exac
 Disk configuration does not prove Desktop role loading. If a task still advertises GPT-5.6 custom roles, fully quit and restart Codex Desktop, then resume that task's native acceptance. Do not override model parameters or call old workers. Report shell CLI and Desktop capabilities separately. Preserve the transaction backup path from the installer receipt; old state is retained and rollback still prevalidates both roots and all ownership hashes.
 
 Publication verification checks backend identities, scores, scales and latency against the exact hashed archive. Sol frontend, reasoning and general views additionally require their matching benchmark-index records and hashed archives; a missing or mismatched view cannot become a quality-only choice. The new `gpt6-v4` cache requires publication verification version 1. Earlier `gpt6-v3` caches remain untouched and cannot authorize fallback.
+
+## Assistance and recovery
+
+Continue until installation is verified or a specific external condition prevents
+progress. Do not merely print an error or repeat the same failed install. Preserve
+a failed checkpoint for resumption.
+
+1. Identify OS, CLI/Desktop, actual host, both roots and existing manifest. Check
+   independent prerequisites together. WSL and remote hosts are separate installs.
+2. Locate existing Python/Git before proposing packages. Correct shell quoting
+   and task-local command resolution; retry transient downloads at most three
+   times. Never replace a missing exact archive with another batch.
+3. Prepare concrete official repair commands and verification. New dependencies,
+   persistent PATH/proxy/certificate or privilege changes require authorization
+   for that scope; reuse existing authorization. Do not copy secrets, disable TLS,
+   change sandbox rules, delete conflicts or weaken ownership checks.
+4. Recheck affected prerequisites. A temporary PATH workaround must also work in
+   the normally launched client before claiming readiness.
+5. Run dry-run/apply after source/root/ownership gates pass. Reload as needed,
+   then use installed Skills for status and useful worker verification. Report
+   configuration, native execution and unrun checks separately.
+6. If login, restart, permission or an upstream outage remains, report attempts,
+   exact failure, one smallest user action and a resume prompt. Continue from
+   that checkpoint, preserving valid files and evidence.
+
+From the verified checkout (use `python3` on macOS/Linux):
+
+```text
+python scripts/install_assist.py check --client <cli-or-desktop> --codex-home <CODEX_HOME>
+python scripts/install_assist.py plan --client <cli-or-desktop> --codex-home <CODEX_HOME>
+python scripts/install_assist.py recover --client <cli-or-desktop> --codex-home <CODEX_HOME> --approve <EXACT_APPROVED_PLAN_ID>
+python scripts/install_assist.py report --client <cli-or-desktop> --codex-home <CODEX_HOME> --format markdown
+```
+
+A plan identifier detects drift; it is not user authorization. Run `recover` only
+when its concrete actions are authorized. If missing tools prevent the helper
+from starting, the supervising Codex must diagnose them using its available local
+shell and official instructions, then resume the helper. Desktop assistance leaves
+capability `NOT_CHECKED` and requires host-native acceptance after installation;
+selecting that mode never creates a runtime PASS.

@@ -27,6 +27,15 @@ preserved. `--workers --snapshot` requires the same complete indexed publication
 bundle as the network path, not an API-only document or preselected role. Offline
 fixture results are test evidence; they never attest a native runtime.
 
+Installation assistance distinguishes `--client cli` from `--client desktop`.
+CLI keeps its direct capability precheck; Desktop configuration does not require
+an unrelated CLI executable and leaves capability NOT_CHECKED until useful native
+acceptance. Both preserve source, root, inventory, ownership and transaction gates.
+Rendered commands use `python` on Windows/PowerShell and `python3` on macOS/Linux;
+path quoting protects shell metacharacters. Authorized recovery rechecks affected
+prerequisites and retains a concrete resume point; it never changes credentials,
+proxy trust or system settings implicitly.
+
 The versioned sections below retain their original evidence labels and dates.
 
 ---

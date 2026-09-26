@@ -1,3 +1,45 @@
+# GPT-6 v4.3.0 cross-client release checkpoint — 2026-09-26
+
+v4.3.0 remains an unpublished candidate. The user authorized publication after
+acceptance and requested reliable Windows/macOS, CLI/Desktop setup with active
+recovery. This checkpoint preserves the earlier evidence below; it does not turn
+configuration, mocked preflight or CI into native execution proof.
+
+- **PASS — source and fake-home:** 472 standard-library tests in 103.983 seconds.
+  Six new tests cover the Windows/macOS/Linux and CLI/Desktop preflight matrix,
+  missing dependencies, source verification, recovery-plan client identity,
+  Desktop's separate native gate, and actual-shell execution of rendered commands
+  with spaces, dollar signs, backticks and apostrophes in paths. Windows uses
+  `python`; macOS/Linux use `python3`. Desktop setup requires no separate CLI.
+- **PASS — public documentation:** both homepages are 84 lines; both installation
+  guides are 78 lines. Six current documents passed GitHub Markdown rendering;
+  navigation, immutable historical links, privacy checks and issue-form YAML
+  parsing passed. Rendering is not a native installation test.
+- **PASS — prior exact candidate CI and real installation:** repair commit
+  `3a42719448a2320ee9ccd5ec30f5738e3e2eba1f` passed
+  [Windows, Ubuntu and macOS CI](https://github.com/SuperDaddyV/codex-native-workers/actions/runs/35988146575).
+  Its transaction changed six managed files; a matching repeat wrote nothing and
+  created no backup. All 15 owned payload hashes passed; ten preserved files kept
+  their hashes and timestamps. These results identify that commit only.
+- **BLOCKED — installed native selection:** the one installed selection at
+  2026-09-26 17:40:39 Beijing time returned both families unavailable. API and index
+  were reachable, but the indexed exact archive for batch
+  `evaluation-e4d046fe829a446b0ab74f613b34735d643c3cfbd294a1a73940071377e16645`
+  returned HTTP 404. The latest alias named a different batch and was rejected.
+  No archive substitution, state import or native child was used.
+- **NOT RUN at this pre-commit checkpoint:** exact-commit CI and real installation
+  of the cross-client changes. Record their final commit, checks and installation
+  receipt in the candidate pull request. Useful native GPT-6 Sol/Luna work remains
+  blocked by data selection; Stable publication depends on that acceptance.
+
+Local evidence is under `.var/v430-release-20260926/`, including the full test log,
+rendered-document hashes, transactional receipts and sanitized acquisition results.
+Do not publish raw local receipts containing private paths. macOS/CLI/Desktop
+end-user native installation coverage and an installation success rate have not
+been measured. Host isolation and maximum capacity retain their historical limits.
+
+---
+
 # GPT-6 v4.3.0 local publication-verification repair — 2026-09-24
 
 This is uncommitted repository work on top of candidate

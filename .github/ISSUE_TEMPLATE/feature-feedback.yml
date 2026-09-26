@@ -15,8 +15,9 @@ body:
     id: release_channel
     attributes:
       label: Release channel
-      description: Which published target does this feedback concern?
+      description: Which version or candidate does this feedback concern?
       options:
+        - "Candidate (v4.3.0, unpublished)"
         - "Current Stable (v4.2.0)"
         - "Previous Preview (v4.2.0-rc1)"
         - "Legacy Stable (v4.1.4)"

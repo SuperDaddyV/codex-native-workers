@@ -11,7 +11,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from scripts.child_environment import build_process_environment
-from scripts.install import MANIFEST_RELATIVE, VERSION
+from scripts.install import MANIFEST_RELATIVE, VERSION, python_command
 from scripts.install_assist import (
     AssistError,
     CommandOutcome,
@@ -508,7 +508,7 @@ class SnapshotAndReportTests(unittest.TestCase):
                 self.assertEqual(after, before)
 
     def test_literal_python_real_command_passes_read_only(self):
-        executable = shutil.which("python")
+        executable = shutil.which(python_command())
         self.assertIsNotNone(executable)
         environment = build_process_environment()
         observed = []

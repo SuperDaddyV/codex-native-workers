@@ -9,6 +9,9 @@
 - Bind actual selection scores and backend latency to hashed archives; reject mismatches instead of treating them as quality-only.
 - Verify each Sol view against the public benchmark index and its exact archive; failures disable only that view and its dependencies.
 - Preserve pre-repair GPT-6 caches under `gpt6-v3`; require verification version 1 in new `gpt6-v4` state and reject API-only offline Worker inputs.
+- Support Desktop configuration without requiring a separate CLI; preserve CLI capability checks and explicit unrun Desktop-native status.
+- Align macOS/Linux Skills and preflight on `python3`, and quote Windows PowerShell paths safely.
+- Simplify bilingual homepages and installation help, move historical versions to a dedicated guide, and make recovery/resumption explicit.
 - Required native GPT-6 acceptance, exact-commit CI and immutable publication are recorded only when actually complete.
 
 # Changelog

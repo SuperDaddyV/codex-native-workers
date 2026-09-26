@@ -1,4 +1,4 @@
-# v4.3.0 GPT-6 migration — active baseline, 2026-09-24
+# v4.3.0 GPT-6 migration — active baseline, 2026-09-26
 
 Current release instruction, 2026-09-24: the user authorizes GitHub publication
 after required checks, and requests concise, plain-language public pages with
@@ -14,6 +14,22 @@ then simplify bilingual README/installation pages and retain detailed contracts
 and historical evidence in their dedicated documents. Validate rendered Markdown,
 navigation and immutable installation links. Record final identities and current
 PASS/BLOCKED/NOT RUN results separately from the checkpoints below.
+
+2026-09-26 continuation: user explicitly requires robust Windows/macOS and
+CLI/Desktop installation with proactive bounded recovery by the installing Codex.
+Implement client-aware assistance, platform-matched Python launchers and safe
+shell quoting, concise public pages, and regression coverage without weakening
+source or ownership gates. Three-platform CI for repair commit 3a42719 passed;
+its real-home installation and preservation/idempotence passed. Today's one
+installed selection returned both families unavailable: the exact public archive
+returns HTTP 404, while the latest alias is a different batch. Native and Stable
+publication remain blocked; do not substitute the alias or imported local data.
+
+Cross-client source checkpoint: 472 tests passed, the six main user documents
+passed GitHub Markdown rendering, and all issue forms parsed as YAML. Prepare an
+exact candidate commit, run three-platform CI, apply the authorized transactional
+candidate update and record final evidence in the candidate pull request. Keep
+the candidate pull request in draft while useful installed native Sol/Luna work is blocked.
 
 ## Previous repair checkpoint
 

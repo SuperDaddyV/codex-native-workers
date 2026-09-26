@@ -95,7 +95,7 @@ class GlobalPolicyTests(unittest.TestCase):
 
     def test_worker_and_status_commands_are_rendered_only_in_their_skills(self):
         windows_home = r"C:\Program Data\Codex Home"
-        command = r'python "C:\Program Data\Codex Home\sol-luna-v4\selector.py"'
+        command = "python 'C:\\Program Data\\Codex Home\\sol-luna-v4\\selector.py'"
         delegate = render_delegate_skill(
             DELEGATE_SKILL, windows_home, platform_name="Windows"
         )

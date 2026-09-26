@@ -420,66 +420,35 @@ def build_plan(
     }
 
 
+def python_command(platform_name: str | None = None) -> str:
+    """Match the interpreter checked by assistance and used by installed Skills."""
+    current = platform.system() if platform_name is None else platform_name
+    if current not in SUPPORTED_PLATFORMS:
+        raise InstallerError("UNSUPPORTED_PLATFORM", "managed payload platform is unsupported")
+    return "python" if current == "Windows" else "python3"
+
+
 def _render_selector_commands(
     codex_home: str | Path,
     *,
     platform_name: str | None = None,
 ) -> tuple[str, str]:
     current_platform = platform.system() if platform_name is None else platform_name
-    if current_platform not in SUPPORTED_PLATFORMS:
-        raise InstallerError("UNSUPPORTED_PLATFORM", "managed payload platform is unsupported")
+    launcher = python_command(current_platform)
     raw_home = str(codex_home)
     if current_platform == "Windows":
         home = PureWindowsPath(raw_home)
-        selector = str(home / "sol-luna-v4" / "selector.py")
-        state = str(home / "sol-luna-v4" / "state")
-        command = subprocess.list2cmdline(
-            [
-                "python",
-                selector,
-                "--state-dir",
-                state,
-                "--ensure-daily",
-                "--print-selection",
-            ]
-        )
-        status_command = subprocess.list2cmdline(
-            [
-                "python",
-                selector,
-                "--status-json",
-                "--codex-home",
-                str(home),
-                "--state-dir",
-                state,
-            ]
-        )
+        # Windows instructions target PowerShell. Single quotes also protect
+        # dollar signs, backticks and apostrophes in user-controlled paths.
+        quote = lambda value: "'" + value.replace("'", "''") + "'"
     else:
         home = PurePosixPath(raw_home.replace("\\", "/"))
-        selector = str(home / "sol-luna-v4" / "selector.py")
-        state = str(home / "sol-luna-v4" / "state")
-        command = shlex.join(
-            [
-                "python",
-                selector,
-                "--state-dir",
-                state,
-                "--ensure-daily",
-                "--print-selection",
-            ]
-        )
-        status_command = shlex.join(
-            [
-                "python",
-                selector,
-                "--status-json",
-                "--codex-home",
-                str(home),
-                "--state-dir",
-                state,
-            ]
-        )
-    return command, status_command
+        quote = shlex.quote
+    selector = quote(str(home / "sol-luna-v4" / "selector.py"))
+    state = quote(str(home / "sol-luna-v4" / "state"))
+    command = f"{launcher} {selector} --state-dir {state} --ensure-daily --print-selection"
+    status = f"{launcher} {selector} --status-json --codex-home {quote(str(home))} --state-dir {state}"
+    return command, status
 
 
 def render_global_policy(

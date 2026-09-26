@@ -24,7 +24,7 @@ body:
     id: codex_client_version
     attributes:
       label: Codex client/version
-      description: Enter the Codex client and version, or Unknown if you do not know it.
+      description: Specify Desktop or CLI, its version, and local/WSL/remote execution. Enter Unknown if needed.
       placeholder: Codex Desktop 1.x / Unknown
     validations:
       required: true
@@ -33,7 +33,7 @@ body:
     id: python_version
     attributes:
       label: Python version
-      description: Enter the Python version, or Unknown if it is not relevant or not known.
+      description: "Report the actual Skill launcher: python on Windows, python3 on macOS/Linux. Include its version or Unknown."
       placeholder: Python 3.11 / Unknown
     validations:
       required: true
@@ -42,8 +42,9 @@ body:
     id: release_channel
     attributes:
       label: Release channel
-      description: Which published target did you test?
+      description: Which version or candidate did you test?
       options:
+        - "Candidate (v4.3.0, unpublished)"
         - "Current Stable (v4.2.0)"
         - "Previous Preview (v4.2.0-rc1)"
         - "Legacy Stable (v4.1.4)"

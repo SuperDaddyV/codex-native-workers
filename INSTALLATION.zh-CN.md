@@ -1,99 +1,78 @@
-# 安装与排错 — Codex Native Workers
+# 安装与排错
 
-[English](INSTALLATION.md) · [选择版本](README.zh-CN.md#选择版本)
+[English](INSTALLATION.md) · [返回首页](README.zh-CN.md)
 
-**候选说明：** v4.3.0 正待验收，尚未发布。下述公开安装流程以已核验正式 Release 为前提；当前已发布正式版仍是 v4.2.0。
+**v4.3.0 尚未发布，当前正式版仍为 v4.2.0。** 本页用于 v4.3.0 候选。先复制[首页提示词](README.zh-CN.md#安装或升级)，再执行经核验发布 commit 中的 [NATIVE_WORKERS_SETUP.md](NATIVE_WORKERS_SETUP.md)。
 
-请复制 README 中的完整安装提示词。本页解释前置检查和恢复步骤，不是替代安装器，也不授权从 `master` 安装。
-当前安装以 [v4.3.0 正式版合同](NATIVE_WORKERS_SETUP.md)为准，执行经核验 Release commit 中的那份。历史版本保留自己的不可变合同，不要用 v4.1.4 合同安装 v4.3.0 源码。
+## 先认准环境
 
-## 1. 选择当前正式版
-
-| 当前情况 | 应该怎么做 |
+| 环境 | 检查方式 |
 | --- | --- |
-| 新用户 | 使用 README 的 **v4.3.0 正式版**提示词，增加 Sol／Luna 两类 worker，保留用户选择的主脑。 |
-| 已安装 v4.1.4 或 v4.2.0-rc1 | 使用同一个提示词升级现有安装，保留用户内容。 |
-| 已安装 v4.3.0 | 与目标匹配时不重复写入、不新建备份；有疑问时检查状态。 |
-| 明确需要历史版本 | 使用 README“历史版本”中的对应不可变合同，不自动降级。 |
+| Windows 桌面端 | 在桌面端本地任务中使用 PowerShell、`python` 和 Git，无需另装 CLI。 |
+| Windows CLI | 使用实际运行 Codex 的 PowerShell；另查 `codex --version`。 |
+| macOS 桌面端 | 在桌面端本地任务中使用 `python3` 和 Git；应用与终端的 PATH 可能不同。 |
+| macOS CLI | 使用实际运行 Codex 的终端，检查 `python3`、Git 和 `codex --version`。 |
+| Linux／WSL／远程主机 | 安装在任务实际执行的主机；WSL 与 Windows 的目录、依赖和登录分别核对。 |
 
-GitHub 的 **Latest** 指向正式版 v4.3.0。Source code ZIP 不是一键安装包，不要先安装旧版本，也不要手工复制托管文件。仓库现名为 `codex-native-workers`；安装路径、托管标记和 Skill 名称保留旧标识以兼容现有用户。
-
-## 2. 在 Codex 实际使用的环境中检查
-
-让本地 Codex 任务在它自己的 shell 中执行以下只读检查。在另一个终端、Windows 用户或 WSL 环境中通过，不代表当前任务已经就绪。
+Python 要求 3.11+ 并包含 `tomllib`。在当前任务环境验证 Skill 真正调用的命令：
 
 ```text
-codex --version
-git --version
-python -c "import sys, tomllib; assert sys.version_info >= (3, 11); print(sys.version)"
+Windows: python -c "import sys, tomllib; assert sys.version_info >= (3, 11); print(sys.version)"
+macOS/Linux: python3 -c "import sys, tomllib; assert sys.version_info >= (3, 11); print(sys.version)"
+所有环境: git --version
+仅 CLI: codex --version
 ```
 
-- `codex` 和 Git 必须可执行。仅安装 Desktop，不能证明当前任务的 PATH 能找到 CLI。缺少 CLI 时参考 [Codex 官方安装说明](https://learn.chatgpt.com/docs/codex/cli)；安装依赖或持久修改环境需要授权。
-- **必须检查名为 `python` 的命令。** 已发布的 policy／Skill 选择器命令固定使用它。仅有 `py`、`python3`、只在另一个终端生效的 alias，或用其他解释器启动安装器，都不够。apply 前必须确认当前环境的 `python` 为 3.11+ 且能导入 `tomllib`。不要通过修改已安装的托管命令掩盖这个问题。
-- 本地客户端必须支持[原生 custom agents 和 subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents)。通过 Codex 正常界面或 CLI 登录；本项目不提供模型权限或额度。v4.3.0 需要 `gpt-6-sol`、`gpt-6-luna` 各自的 `low`、`medium`、`high`、`xhigh`、`max` 五档。CLI／模型预检不等于原生 worker 已运行。
-- 任务需要通过 HTTPS 访问 GitHub，核验 Release 和源码；首次 Daily 选择还需要 ModelDial 的公开数据。基准网站可访问和账号有模型权限是两回事。不要为了通过检查更改代理、证书信任、凭据或组织策略。
-- 写入前确认实际客户端使用的绝对 `CODEX_HOME` 和用户 Skill 根目录。通常为 `<HOME>/.codex` 与 `<HOME>/.agents/skills`；自定义 `CODEX_HOME` 必须显式处理。升级时沿用现有 manifest 记录的 Skill 根目录，不要装进临时 checkout 或其他用户目录。WSL 应按独立 Linux 环境处理。
+`py` 可辅助诊断 Windows 安装，但不能证明 `python` 可用。macOS 无需额外配置 `python` 别名。桌面端与 CLI 的角色加载也须分别验证。[官方子代理说明](https://learn.chatgpt.com/docs/agent-configuration/subagents)
 
-本项目不承诺一个通用的 Desktop 最低版本，也不声称所有平台都完成原生运行验证。角色加载失败时，应记录实际客户端版本和错误。
+## 安装步骤
 
-## 3. 安装一次，分阶段确认
+1. 核验正式 Release、不可变 tag 和精确 commit，不从可变分支直接安装。
+2. 确认真实 `CODEX_HOME` 与 `<SKILLS_ROOT>`；升级沿用 manifest 记录的根目录。
+3. 收集依赖与网络问题，先处理可恢复项，再检查 dry-run 的实际变更。
+4. 事务安装、备份、核对 hash。重复执行应为 `IDEMPOTENT_PASS`，零写入、零新增备份。
+5. 重载客户端，分别验证安装完整性与真实 Sol/Luna 工作；保留主模型、无关内容和旧缓存。
 
-把所选 README 提示词复制到能执行本地 shell、且获准修改本项目用户级文件的 Codex 任务中。任务应核验已发布 Release，取得锁定 commit 的干净 detached 源码，检查 dry-run，再执行事务安装并保留精确备份位置。纯网页聊天不能完成这些本地写入；系统依赖修复是另一项操作。
+默认根目录为用户目录下的 `.codex` 与 `.agents/skills`，但不能覆盖实际环境或已有 manifest。路径必须按对应 shell 正确加引号。安装器通过 `--source-commit` 记录来源；Source code 压缩包不是一键安装器。
 
-合同中带 `<CODEX_HOME>`、`<SKILLS_ROOT>` 等名称的命令是模板。Codex 必须替换为核验后的绝对路径，并按实际 shell 正确引用，尤其是含空格的路径；不要把占位符原样执行。
+## 失败后让 Codex 继续处理
 
-v4.3.0 管理 Global AGENTS 托管块、归它所有的 Codex agent 配置、10 个角色文件、2 个选择器文件、3 个 Skills 及 manifest。它保留无关用户内容，不需要修改业务项目代码。dry-run、apply 和恢复都要显式使用同一组根目录；备份路径保留在本地。
-
-| 检查点 | 证据及含义 |
-| --- | --- |
-| 源码身份 | 已发布 `v4.3.0` 正式 Release，tag 解析为其精确 40-hex commit，checkout 干净且 detached，并再次核对远端 tag。后续文档 commit 不是这个 runtime 的源码。 |
-| dry-run／apply | 变更路径符合预期，事务及备份验证完整。冲突应在覆盖前阻断安装。 |
-| 安装身份 | 版本／source 正确，12 个 payload、3 个 Skills 与托管块完整；第二次匹配的 apply 为 `IDEMPOTENT_PASS`，不写文件、不新增备份。 |
-| 只读状态 | 请求“检查 Sol/Luna 状态”。v4.3.0 通常显示 `Status Healthy`、`Agents 10/10 Ready`、`Skills 3/3 Ready`、`leaf_config Ready`，这些都是配置结果。旧 v4.1.4 只有 5 个 Luna agent，状态结构不同。 |
-| 首次有价值的委派 | 宿主尚未加载角色时，重载并新开任务。按已安装的 `sol-luna-delegate` 选择一次并复用结果，检查直属 Sol／Luna 的有用产出，由 Coordinator 复核。 |
-
-刚装完出现 `Today Selection not initialized` 可以是正常情况。状态 Skill 只读，不拉取数据，也不初始化选择；首次值得执行的委派才初始化 Daily 状态。选择缺失／无效或角色不可用时，由 Coordinator 保留工作并说明原因，不要重复调用选择器或猜测角色来凑验收通过。
-
-diagnostic schema 4 有意把原生委派、工具隔离、调用防护和最大并发显示为 `Not checked`，因为状态读取器没有运行这些测试。实际运行证据应单独记录在任务结果中。单个 worker 成功、一行 receipt，或旧版只测 Luna 的 smoke，都不能证明 v4.3.0 两个 worker 家族已验收。
-
-## 4. 常见问题与下一步
-
-| 现象 | 下一步 |
-| --- | --- |
-| 找不到 `codex`／无法运行 | 在同一任务环境中检查命令定位；按官方安装说明或经明确授权修复 PATH，然后重查失败项。 |
-| 找不到 `python`、版本不符或缺少 `tomllib` | 经授权使当前环境中真正的 `python` 命令可用。只验证 `python3`／`py` 不能解决此问题。 |
-| 角色／模型／effort 不支持 | 核对账号权限和精确客户端错误；安装后需要时重载。工作暂由 Coordinator 执行，不静默换家族或覆盖已选档位。 |
-| GitHub 或 ModelDial 不可访问 | 保留简短错误，访问恢复后再试。首次使用可能没有可复用的有效选择；不要关闭 HTTPS 校验或伪造数据。 |
-| `OWNERSHIP_CONFLICT`、hash 不符或 TOML 无效 | 停止并在本地检查报错文件。不要删除 manifest、改 hash 或覆盖用户内容；同版本重装不能修复所有权冲突。 |
-| 非空 `AGENTS.override.md`，或用户已有 agent 配置／同名文件冲突 | 这是安装器有意阻断。先确定如何保留、协调用户配置，再继续；不要自动删除。 |
-| Skill 根目录不匹配 | 沿用现有 manifest 的绝对 Skill 根目录；无法与实际客户端对应时停止，不要把升级重定向到另一个 home。 |
-| 配置健康，但当前任务找不到角色／Skills | 确认任务使用刚检查的根目录，重载客户端并新开任务。源码 checkout 或 `.var` 副本不是已安装权威来源。 |
-| 只看到 Luna | 先看版本：旧 v4.1.4 不安装 Sol 子代理。v4.3.0 也可能因任务适合 Luna 而只用 Luna；状态健康、模型可用都不意味着必须用 Sol。 |
-| 没有 worker | 小任务或没有独立边界的工作由 Coordinator 执行。验证两个家族时，可明确要求有价值且互相独立的 Sol 诊断与 Luna 检查。 |
-| worker 能看到委派工具 | v4.3.0 不支持强递归隔离保证。工具可见不等于嵌套调用成功；不要声称或依赖宿主隔离。 |
-
-求助时提供渠道／版本、OS、Codex／Python 版本、失败检查点、简短错误和复现步骤。使用 [Bug Report](https://github.com/SuperDaddyV/codex-native-workers/issues/new?template=bug-report.yml) 或 [Compatibility Report](https://github.com/SuperDaddyV/codex-native-workers/issues/new?template=compatibility-report.yml)。删除密钥、账号信息和私有路径，不要上传整个 `CODEX_HOME`。
+在同一个任务中发送：
 
 ```text
-继续当前目标版本的安装。先读取最后失败的检查点，说明精确错误、可能原因和最小下一步。
-保留已经核验的源码、现有安装根目录和无关用户内容。修复后只重查受影响的前置条件。
-遇到所有权冲突就停止，不要为了通过而从头重装、降级、覆盖文件或修改系统设置。
+继续安装。读取失败点，主动检查当前客户端、Python、Git、根目录、权限和网络。
+在已有授权内定位已安装程序、修正当前任务的命令和引号、重新获取失败的临时下载，修复后只重查受影响步骤。
+新增依赖、永久 PATH 修改、登录或重启需要我操作时，说明确切动作与原因；能执行且已获授权的直接执行。
+不要反复重装、覆盖所有权冲突、关闭 TLS 校验或修改代理/证书来强行通过。
+继续到安装与运行分别验证；确实受阻时说明已尝试的方法、一个最小操作和续接提示词。
 ```
 
-## 5. 恢复与证据边界
+Codex 可运行 `scripts/install_assist.py check/plan/report`。桌面端传 `--client desktop`，CLI 传 `--client cli`，同时指定真实 `--codex-home`。`recover` 只执行经核对且已授权的修复方案并复查。[详细命令](NATIVE_WORKERS_SETUP.md#assistance-and-recovery)
 
-只在用户要求时执行 rollback 或 uninstall。使用已核验版本的安装器；回滚使用该次安装返回的精确事务备份，恢复使用同一组显式根目录。v4.3.0 恢复必须提供两个根目录，不接受 `--source-commit`；旧 v4.1.4 使用其 setup 合同中的单根目录命令。成功回滚会消耗该备份。两种流程都会验证所有权并保留无关内容。遵循对应不可变版本合同，不要随意换源码压缩包、手动删除角色或移除 manifest 来重置所有权。恢复后重载客户端。
+| 问题 | Codex 应如何处理 |
+| --- | --- |
+| Python／Git 缺失 | 先定位已有安装、核对应用 PATH；确实缺失时准备官方安装方案，获授权后执行并验证。 |
+| 桌面端找不到 `codex` | 使用 Desktop 流程，不仅因此要求另装 CLI。 |
+| GitHub 连接／下载失败 | 保留有效源码与安装，有限重试；区分网络、认证、证书和身份校验问题。 |
+| ModelDial 连接重置／归档 404／hash 不符 | 分别报告安装和数据选择；只用合格缓存，否则主代理接手。不得拼接批次。 |
+| `OWNERSHIP_CONFLICT`／manifest、TOML 或 hash 错误 | 检查具体冲突，提出可审阅修复；保留用户内容，不删 manifest、不改 hash。 |
+| `AGENTS.override.md`／同名角色冲突 | 说明具体阻断并协调已有指令，不自动删除。 |
+| Skill 根目录不符 | 核对 manifest 与实际客户端，不转移到另一个 home 强装。 |
+| 角色未加载／仍是旧模型 | 核验安装身份后完整退出并重启相应客户端，必要时新开任务。 |
+| 只有 Luna／没有 worker | 先判断任务是否值得委派，不强行创建子代理。 |
 
-历史 [v4.2.0 验证记录](https://github.com/SuperDaddyV/codex-native-workers/releases/download/v4.2.0/native-workers-v4.2.0-validation.json)绑定该版本的精确发布源码；v4.3.0 在验收与发布前仅提供候选证据。历史 [rc1 验证记录](https://github.com/SuperDaddyV/codex-native-workers/releases/download/v4.2.0-rc1/native-workers-rc1-validation.json)包含 Windows、Ubuntu、macOS 源码 CI 和一组 Windows 已安装／原生运行场景。rc1 发布时每个平台发现 430 项测试：Windows 全部通过；Ubuntu／macOS 跳过 13 项 Windows junction 测试，其余通过。这不等于所有平台都完成原生安装验收，也不是用户安装成功率统计。强递归隔离、六 worker 容量、实际账单／额度节省仍不受支持或未验证；各项检查见[运行证据](RUNTIME_TESTS.md)。
+临时 PATH 修复后，还须验证正常启动的客户端能调用依赖；否则说明重启或持久修复待完成，不能宣布成功。
 
-## GPT-6 升级与状态
+## 如何判断成功
 
-活动角色绑定 `gpt-6-sol`／`gpt-6-luna`，保留五档 effort，Sol 四视图及 Luna Daily。Coordinator 仍由用户选择。模型合同集中在 `src/worker_selector.py`，安装 manifest 为 schema 4。
+- **安装完成：** 角色 10/10、Skills 3/3、所有权与配置校验通过，备份已记录。
+- **运行验证通过：** 实际宿主加载 GPT-6 角色，两家族完成有用工作，主代理复核结果。
+- **未验证：** 保留 `Not checked`／`NOT RUN`；`Today Selection not initialized` 是首次选档前的正常状态。
 
-新状态写入现有 state 目录下的 `gpt6-v4`，绑定精确模型、评分轴、五档 effort 和选择策略版本 2。旧 GPT-5.6 Daily／LKG 原样保留，不能自动回退使用。缺少有效 GPT-6 数据与同代缓存时，由 Coordinator 接手。缺少完整可比成本证据时明确使用 `quality_only`，不声称本机账单或额度收益。
+三平台自动化测试不等于所有客户端的原生验收，也不是用户安装成功率统计。[验证记录](RUNTIME_TESTS.md)单独列出覆盖范围。强递归隔离、六 worker 容量和额度节省不作保证。
 
-升级后，磁盘角色正确不等于桌面宿主已加载。若任务仍显示 GPT-5.6 自定义角色，请完全退出并重启 Codex Desktop，再回到原任务继续原生验收；不要覆盖模型参数或调用旧 worker。shell CLI 与桌面宿主能力分别核对。事务备份路径以安装回执为准；旧状态不删除，回滚仍执行全部所有权及双根目录预验证。
+## 回滚、卸载与反馈
 
-如果今天失败的流程已缓存两家族均 unavailable，普通 Daily 调用会保留该结果。用户确认阻断条件恢复后，已安装委派 Skill 允许启动一次显式恢复流程：先保留失败缓存原文及 hash，再给唯一的选择命令追加 `--refresh-workers`。所有 child 共用该结果；不要同时运行普通选择与刷新选择，也不要拿源码 checkout 的缓存替换已安装状态。
+要求 Codex 使用精确事务备份回滚，或按同一版本合同卸载，并指定原有两个根目录。恢复不接受 `--source-commit`；成功回滚会消耗备份。不要手动删除角色、Skills 或 manifest。
 
-发布数据校验会逐项核对后端档位的身份、分数、量纲和耗时；Sol 前端、推理及综合视图还必须匹配各自的分榜索引与完整快照。缺少证据或数据不一致的视图不能降级成 quality-only 后继续选档。新 `gpt6-v4` 缓存要求发布校验版本 1；此前的 `gpt6-v3` 缓存原样保留，不能用于自动回退。
+[报告问题](https://github.com/SuperDaddyV/codex-native-workers/issues/new?template=bug-report.yml)时提供系统、客户端、版本、简短错误、已尝试步骤和失败点。勿上传凭据、私人路径或整个 `CODEX_HOME`。[历史版本](VERSIONS.md)

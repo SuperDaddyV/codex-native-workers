@@ -32,6 +32,7 @@ from scripts.install import (  # noqa: E402
     install as transactional_install,
     resolve_codex_home,
     resolve_skills_root,
+    python_command,
 )
 from scripts.child_environment import (  # noqa: E402
     build_child_environment,
@@ -235,8 +236,9 @@ def _python_check(
     which: Callable[[str], str | None],
     runner: Runner,
     environment: Mapping[str, str],
+    platform_name: str | None = None,
 ) -> dict:
-    executable = which("python")
+    executable = which(python_command(platform_name))
     if executable is None:
         return {"status": "MISSING", "version": None}
     script = (
@@ -376,6 +378,7 @@ def collect_snapshot(
     approval_policy: str,
     sandbox_mode: str,
     network_attempts: int = 3,
+    client: str = "cli",
     platform_name: str | None = None,
     distro_id: str | None = None,
     wsl: bool | None = None,
@@ -383,6 +386,8 @@ def collect_snapshot(
     runner: Runner = run_command,
     sleeper: Callable[[float], None] = time.sleep,
 ) -> dict:
+    if client not in {"cli", "desktop"}:
+        raise AssistError("CLIENT_INVALID")
     platform_name = platform.system() if platform_name is None else platform_name
     if platform_name == "Linux" and distro_id is None:
         distro_id = _linux_distro_id()
@@ -393,12 +398,9 @@ def collect_snapshot(
     local_environment = build_process_environment()
     codex_environment = build_child_environment(codex_home=codex_home)
     network_environment = build_process_environment(transport=True)
-    codex = _tool_check(
-        "codex",
-        "codex",
-        which=which,
-        runner=runner,
-        environment=codex_environment,
+    codex = (
+        _tool_check("codex", "codex", which=which, runner=runner, environment=codex_environment)
+        if client == "cli" else {"status": "NOT_REQUIRED", "version": None}
     )
     git = _tool_check(
         "git",
@@ -407,10 +409,9 @@ def collect_snapshot(
         runner=runner,
         environment=local_environment,
     )
-    python = _python_check(
-        which=which,
-        runner=runner,
-        environment=local_environment,
+    python = (
+        _python_check(which=which, runner=runner, environment=local_environment, platform_name=platform_name)
+        if platform_name in SUPPORTED_PLATFORMS else {"status": "UNSUPPORTED", "version": None}
     )
     github = _github_https_check(
         git["status"] == "PASS",
@@ -424,7 +425,7 @@ def collect_snapshot(
     blockers = []
     if platform_name not in SUPPORTED_PLATFORMS:
         blockers.append("UNSUPPORTED_PLATFORM")
-    if codex["status"] != "PASS":
+    if client == "cli" and codex["status"] != "PASS":
         blockers.append("CODEX_CLI_MISSING_OR_UNUSABLE")
     if python["status"] != "PASS":
         blockers.append("PYTHON_MISSING_OR_UNSUPPORTED")
@@ -442,6 +443,7 @@ def collect_snapshot(
         "schema": ASSIST_SCHEMA,
         "target_version": VERSION,
         "platform": platform_name,
+        "client": client,
         "distro": distro_id,
         "wsl": bool(wsl),
         "approval_policy": approval_policy,
@@ -645,6 +647,7 @@ def build_recovery_plan(snapshot: Mapping[str, object], catalog: Mapping[str, ob
         "schema": ASSIST_SCHEMA,
         "target_version": VERSION,
         "platform": snapshot["platform"],
+        "client": snapshot.get("client", "cli"),
         "distro": snapshot.get("distro"),
         "approval_policy": snapshot["approval_policy"],
         "sandbox_mode": snapshot["sandbox_mode"],
@@ -662,6 +665,7 @@ def build_recovery_plan(snapshot: Mapping[str, object], catalog: Mapping[str, ob
         "ready": bool(snapshot["ready"]),
         "environment": {
             "platform": snapshot["platform"],
+            "client": snapshot.get("client", "cli"),
             "distro": snapshot.get("distro"),
             "wsl": snapshot["wsl"],
             "approval_policy": snapshot["approval_policy"],
@@ -920,116 +924,127 @@ def install_workflow(
             "writes_performed": "NO",
         }
 
-    capability_probe = run_probe if capability_probe is None else capability_probe
-    try:
-        capability = capability_probe(
-            "codex",
-            capability_timeout,
-            codex_home=codex_home,
-        )
-    except Exception:
-        return {
-            "schema": ASSIST_SCHEMA,
-            "target_version": VERSION,
-            "phase": "NEEDS_USER_ACTION",
-            "status": "NEEDS_USER_ACTION",
-            "reason_code": "LUNA_CAPABILITY_PRECHECK_FAILED",
-            "writes_performed": "NO",
-            "resume": _resume_block(
-                "CAPABILITY_PRECHECK", "LUNA_CAPABILITY_PRECHECK_FAILED"
-            ),
+    client = snapshot.get("client", "cli")
+    if client not in {"cli", "desktop"}:
+        raise AssistError("CLIENT_INVALID")
+    if client == "desktop":
+        capability_summary = {
+            "status": "NOT_CHECKED",
+            "reason_code": "DESKTOP_NATIVE_ACCEPTANCE_REQUIRED",
+            "all_models_supported": False,
+            "results": [], "sol_results": [],
         }
-    raw_results = capability.get("results", []) if isinstance(capability, Mapping) else []
-    if not isinstance(raw_results, list):
-        raw_results = []
-    raw_sol_results = (
-        capability.get("sol_results", []) if isinstance(capability, Mapping) else []
-    )
-    if not isinstance(raw_sol_results, list):
-        raw_sol_results = []
-
-    def summarize_results(results: list) -> list[dict]:
-        return [
-            {
-                "model": item.get("model")
-                if isinstance(item.get("model"), str)
-                and item.get("model") in {LUNA_MODEL, SOL_MODEL}
-                else None,
-                "effort": item.get("effort"),
-                "supported": item.get("supported") is True,
-                "response_exact": item.get("response_exact") is True,
-                "exit_code": (
-                    item.get("exit_code")
-                    if isinstance(item.get("exit_code"), int)
-                    and not isinstance(item.get("exit_code"), bool)
-                    else None
+    else:
+        capability_probe = run_probe if capability_probe is None else capability_probe
+        try:
+            capability = capability_probe(
+                "codex",
+                capability_timeout,
+                codex_home=codex_home,
+            )
+        except Exception:
+            return {
+                "schema": ASSIST_SCHEMA,
+                "target_version": VERSION,
+                "phase": "NEEDS_USER_ACTION",
+                "status": "NEEDS_USER_ACTION",
+                "reason_code": "LUNA_CAPABILITY_PRECHECK_FAILED",
+                "writes_performed": "NO",
+                "resume": _resume_block(
+                    "CAPABILITY_PRECHECK", "LUNA_CAPABILITY_PRECHECK_FAILED"
                 ),
             }
-            for item in results
-            if isinstance(item, dict)
-        ]
+        raw_results = capability.get("results", []) if isinstance(capability, Mapping) else []
+        if not isinstance(raw_results, list):
+            raw_results = []
+        raw_sol_results = (
+            capability.get("sol_results", []) if isinstance(capability, Mapping) else []
+        )
+        if not isinstance(raw_sol_results, list):
+            raw_sol_results = []
 
-    capability_summary = {
-        "model": capability.get("model")
-        if isinstance(capability, Mapping)
-        and capability.get("model") == LUNA_MODEL
-        else None,
-        "sol_model": capability.get("sol_model")
-        if isinstance(capability, Mapping)
-        and capability.get("sol_model") == SOL_MODEL
-        else None,
-        "all_supported": capability.get("all_supported") is True
-        if isinstance(capability, Mapping)
-        else False,
-        "sol_all_supported": capability.get("sol_all_supported") is True
-        if isinstance(capability, Mapping)
-        else False,
-        "all_models_supported": capability.get("all_models_supported") is True
-        if isinstance(capability, Mapping)
-        else False,
-        "results": summarize_results(raw_results),
-        "sol_results": summarize_results(raw_sol_results),
-    }
-    expected_efforts = set(EFFORTS)
-
-    def complete_model_evidence(results: list[dict], model: str) -> bool:
-        observed_efforts = {
-            item["effort"] for item in results if isinstance(item["effort"], str)
-        }
-        return (
-            len(results) == len(expected_efforts)
-            and observed_efforts == expected_efforts
-            and all(
-                item["model"] == model
-                and item["supported"]
-                and item["exit_code"] == 0
+        def summarize_results(results: list) -> list[dict]:
+            return [
+                {
+                    "model": item.get("model")
+                    if isinstance(item.get("model"), str)
+                    and item.get("model") in {LUNA_MODEL, SOL_MODEL}
+                    else None,
+                    "effort": item.get("effort"),
+                    "supported": item.get("supported") is True,
+                    "response_exact": item.get("response_exact") is True,
+                    "exit_code": (
+                        item.get("exit_code")
+                        if isinstance(item.get("exit_code"), int)
+                        and not isinstance(item.get("exit_code"), bool)
+                        else None
+                    ),
+                }
                 for item in results
-            )
-        )
+                if isinstance(item, dict)
+            ]
 
-    if (
-        capability_summary["model"] != LUNA_MODEL
-        or capability_summary["sol_model"] != SOL_MODEL
-        or not capability_summary["all_supported"]
-        or not capability_summary["sol_all_supported"]
-        or not capability_summary["all_models_supported"]
-        or not complete_model_evidence(
-            capability_summary["results"], LUNA_MODEL
-        )
-        or not complete_model_evidence(
-            capability_summary["sol_results"], SOL_MODEL
-        )
-    ):
-        return {
-            "schema": ASSIST_SCHEMA,
-            "target_version": VERSION,
-            "phase": "NEEDS_USER_ACTION",
-            "status": "NEEDS_USER_ACTION",
-            "reason_code": "LUNA_CAPABILITY_UNAVAILABLE",
-            "capability": capability_summary,
-            "writes_performed": "NO",
-            "resume": _resume_block("CAPABILITY_PRECHECK", "LUNA_CAPABILITY_UNAVAILABLE"),
+        capability_summary = {
+            "model": capability.get("model")
+            if isinstance(capability, Mapping)
+            and capability.get("model") == LUNA_MODEL
+            else None,
+            "sol_model": capability.get("sol_model")
+            if isinstance(capability, Mapping)
+            and capability.get("sol_model") == SOL_MODEL
+            else None,
+            "all_supported": capability.get("all_supported") is True
+            if isinstance(capability, Mapping)
+            else False,
+            "sol_all_supported": capability.get("sol_all_supported") is True
+            if isinstance(capability, Mapping)
+            else False,
+            "all_models_supported": capability.get("all_models_supported") is True
+            if isinstance(capability, Mapping)
+            else False,
+            "results": summarize_results(raw_results),
+            "sol_results": summarize_results(raw_sol_results),
         }
+        expected_efforts = set(EFFORTS)
+
+        def complete_model_evidence(results: list[dict], model: str) -> bool:
+            observed_efforts = {
+                item["effort"] for item in results if isinstance(item["effort"], str)
+            }
+            return (
+                len(results) == len(expected_efforts)
+                and observed_efforts == expected_efforts
+                and all(
+                    item["model"] == model
+                    and item["supported"]
+                    and item["exit_code"] == 0
+                    for item in results
+                )
+            )
+
+        if (
+            capability_summary["model"] != LUNA_MODEL
+            or capability_summary["sol_model"] != SOL_MODEL
+            or not capability_summary["all_supported"]
+            or not capability_summary["sol_all_supported"]
+            or not capability_summary["all_models_supported"]
+            or not complete_model_evidence(
+                capability_summary["results"], LUNA_MODEL
+            )
+            or not complete_model_evidence(
+                capability_summary["sol_results"], SOL_MODEL
+            )
+        ):
+            return {
+                "schema": ASSIST_SCHEMA,
+                "target_version": VERSION,
+                "phase": "NEEDS_USER_ACTION",
+                "status": "NEEDS_USER_ACTION",
+                "reason_code": "LUNA_CAPABILITY_UNAVAILABLE",
+                "capability": capability_summary,
+                "writes_performed": "NO",
+                "resume": _resume_block("CAPABILITY_PRECHECK", "LUNA_CAPABILITY_UNAVAILABLE"),
+            }
 
     dry_runner = dry_run_install if dry_runner is None else dry_runner
     try:
@@ -1150,6 +1165,7 @@ def make_support_report(snapshot: Mapping[str, object], plan: Mapping[str, objec
         "phase": plan["phase"],
         "reason_codes": list(plan["blockers"]),
         "platform": snapshot["platform"],
+        "client": snapshot.get("client", "cli"),
         "distro": snapshot.get("distro"),
         "wsl": bool(snapshot["wsl"]),
         "approval_policy": snapshot["approval_policy"],
@@ -1188,6 +1204,7 @@ def render_support_markdown(report: Mapping[str, object]) -> str:
         f"- Phase: `{report['phase']}`",
         f"- Reasons: `{reasons}`",
         f"- Platform: `{report['platform']}`",
+        f"- Client: `{report.get('client', 'cli')}`",
         f"- Distro: `{report['distro'] or 'N/A'}`",
         f"- WSL: `{'YES' if report['wsl'] else 'NO'}`",
         f"- Approval policy: `{report['approval_policy']}`",
@@ -1301,6 +1318,10 @@ def _tool_report_line(tool: Mapping[str, object]) -> str:
 def _add_context_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--codex-home", required=True)
     parser.add_argument(
+        "--client", choices=("cli", "desktop"), default="cli",
+        help="Actual installing client; Desktop native acceptance remains separate.",
+    )
+    parser.add_argument(
         "--approval-policy",
         choices=SUPPORTED_APPROVAL_POLICIES,
         default="unknown",
@@ -1323,6 +1344,7 @@ def _snapshot_from_args(args: argparse.Namespace) -> tuple[Path, dict, dict]:
         approval_policy=args.approval_policy,
         sandbox_mode=args.sandbox_mode,
         network_attempts=args.network_attempts,
+        client=args.client,
     )
     catalog = load_catalog()
     plan = build_recovery_plan(snapshot, catalog)

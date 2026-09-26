@@ -854,16 +854,18 @@ class CompatibilitySmokeTests(unittest.TestCase):
     def test_documentation_bounds_legacy_smoke_and_routes_current_product_to_runtime_checks(self):
         english = (ROOT / "README.md").read_text(encoding="utf-8")
         chinese = (ROOT / "README.zh-CN.md").read_text(encoding="utf-8")
+        history = (ROOT / "VERSIONS.md").read_text(encoding="utf-8")
 
         for content in (english, chinese):
             self.assertIn("RUNTIME_TESTS.md", content)
+            self.assertIn("VERSIONS.md", content)
             self.assertNotIn("O1–O10", content)
         self.assertIn(
-            "historical compatibility smoke exercises Luna-only behavior", english
+            "historical compatibility smoke exercises Luna-only behavior", history
         )
-        self.assertIn("not acceptance of the two-family v4.2 product", english)
-        self.assertIn("历史 compatibility smoke 只覆盖 Luna-only 行为", chinese)
-        self.assertIn("不是双 family v4.2 产品的验收", chinese)
+        self.assertIn("not acceptance of the two-family v4.2 product", " ".join(history.split()))
+        self.assertIn("历史 compatibility smoke 只覆盖 Luna-only 行为", history)
+        self.assertIn("不是双 family v4.2 产品的验收", history)
 
 
 if __name__ == "__main__":
