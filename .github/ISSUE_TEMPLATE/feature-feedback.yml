@@ -1,11 +1,11 @@
 name: Feature request / feedback
-description: Suggest a focused improvement for current Stable v4.3.1, the previous v4.2.0-rc1 Preview, or legacy Stable v4.1.4
+description: Suggest a focused improvement for current and previous Codex Native Workers releases
 title: "[Feature request / feedback]: "
 body:
   - type: markdown
     attributes:
       value: |
-        Feature feedback is welcome for current Stable v4.3.1, the previous v4.2.0-rc1 Preview, or legacy Stable v4.1.4. Say which target the suggestion concerns when it is version-specific. Stable does not guarantee host-enforced recursive isolation.
+        Feature feedback is welcome for current and previous Codex Native Workers releases. Say which target the suggestion concerns when it is version-specific. Stable does not guarantee host-enforced recursive isolation.
 
         **Non-guarantee notice.** Feature feedback does not guarantee implementation, roadmap inclusion, compatibility, support, or a delivery timeline. Suggestions remain subject to project scope, evidence, review, and maintainer acceptance.
 

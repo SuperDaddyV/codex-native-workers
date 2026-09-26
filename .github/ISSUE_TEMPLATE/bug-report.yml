@@ -1,11 +1,11 @@
 name: Bug report
-description: Report a reproducible problem in current Stable v4.3.1, the previous v4.2.0-rc1 Preview, or legacy Stable v4.1.4
+description: Report a reproducible problem in current and previous Codex Native Workers releases
 title: "[Bug]: "
 body:
   - type: markdown
     attributes:
       value: |
-        Thank you for helping improve current Stable v4.3.1, the previous v4.2.0-rc1 Preview, or legacy Stable v4.1.4.
+        Thank you for helping improve current and previous Codex Native Workers releases.
 
         Use this form for install, upgrade, selector, Coordinator/Workers delegation, Receipt classification, rollback, uninstall, or another deterministic runtime problem. v4.3.x uses GPT-6 Sol/Luna with live, cached or explicit basic routing; v4.2.0 and its rc1 Preview use the previous model generation; v4.1.4 legacy reports may be Luna-only. Report configuration/status evidence separately from actual native execution; include live/cached/basic routing in the relevant context. Stable does not guarantee host-enforced recursive isolation.
 

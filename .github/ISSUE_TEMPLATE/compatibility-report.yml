@@ -1,11 +1,11 @@
 name: Compatibility report
-description: Report compatibility with current Stable v4.3.1, the previous v4.2.0-rc1 Preview, or legacy Stable v4.1.4
+description: Report compatibility with current and previous Codex Native Workers releases
 title: "[Compatibility]: "
 body:
   - type: markdown
     attributes:
       value: |
-        Success reports are welcome. They help us understand OS compatibility, fresh installs, upgrades, Sol and Luna delegation, and current Coordinator/Workers Receipt or legacy Delegation Receipt behavior across current Stable v4.3.1, the previous v4.2.0-rc1 Preview, and legacy Stable v4.1.4. Reports are public GitHub Issues only.
+        Success reports are welcome. They help us understand OS compatibility, fresh installs, upgrades, Sol and Luna delegation, and current Coordinator/Workers Receipt or legacy Delegation Receipt behavior across current and previous Codex Native Workers releases. Reports are public GitHub Issues only.
 
         Stable describes the tested configuration, routing, and transactional installation product; it does not guarantee host-enforced recursive isolation. Keep configuration/status evidence separate from actual native execution.
 

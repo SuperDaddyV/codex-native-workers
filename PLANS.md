@@ -16,6 +16,17 @@ review before Stable publication. Preserve the prior Daily bytes before refresh;
 never import isolated diagnostic data into installed state. Record exact release
 identities and source/installed/native evidence separately in the validation asset.
 
+## v4.3.1 acceptance scope
+
+Targeted live requests now fetch all three affected archives with unchanged strict
+checks; saved-response replay exercises the complete request path. The single
+installed recovery selection remains mixed live/basic because of external
+availability. Retain the approved three-tier product contract: disclose this
+limit, preserve failed probes and require core, transaction, native and exact-source
+CI evidence. Publication must not claim complete live Daily recovery. Native
+Sol/Luna reviews completed; the Issue description omission was corrected. Final
+release identities and installed provenance belong in the validation asset.
+
 ## Previous v4.3.0 baseline
 
 ## Authorized three-tier routing — 2026-09-26

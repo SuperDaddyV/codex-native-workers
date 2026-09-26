@@ -1,3 +1,41 @@
+# GPT-6 v4.3.1 patch acceptance — 2026-09-26
+
+The URL-type repair has source, transaction and useful native evidence. Strict
+publication/hash/score checks and the approved live/cache/basic routing contract
+are unchanged. External availability remains separate from core patch acceptance.
+
+- **PASS — source and fake-home:** 485 tests; focused regression fails with the
+  original parsed-object return and passes with the validated string return.
+- **PASS — targeted live archive requests:** all three affected frontend,
+  knowledge/reasoning and overall endpoints were fetched through the repaired
+  production URL helper and HTTP client. Their bytes match the previously
+  verified hashes. Saved-response replay separately covers seven requests and
+  five verified routes; it is not fresh network evidence.
+- **PASS — installed candidate:** transaction changed two runtime files and the
+  manifest; all 15 owned hashes passed. Thirteen configuration/state files were
+  preserved before the separately authorized single recovery selection. Repeated
+  apply made zero writes and no backup. The Global block remains 2043 bytes.
+- **PASS — useful Windows Desktop native work:** the single installed selection
+  returned live `luna_xhigh` and backend `sol_xhigh`; both completed bounded reviews
+  with observed overlap. Sol checked the regression against the original defect.
+  Luna found an incomplete version list in the Issue descriptions; descriptions
+  now cover current and previous releases, with exact versions in the dropdown.
+  Host-advertised models and matching installed TOML hashes support attribution;
+  independent backend model identity was not inspected.
+- **LIMITED — full live recovery:** complete fresh probes encountered connection
+  resets before HTTP. Installed general/frontend/reasoning routes remain basic,
+  while Luna/backend are live. Targeted archive success does not prove all-view
+  Daily recovery. No diagnostic cache was imported and selection was not repeated.
+- **NOT RUN — other native clients, six-worker capacity and nested enforcement.**
+  Historical tool-isolation failure remains unchanged; no local savings claim.
+
+The [v4.3.1 validation asset](https://github.com/SuperDaddyV/codex-native-workers/releases/download/v4.3.1/native-workers-v4.3.1-validation.json)
+records the final exact source, three-platform CI, installed manifest and scope.
+This document is not proof that a Release has been published. Earlier checkpoints
+below retain the observed failures and their evidence boundaries.
+
+---
+
 # GPT-6 v4.3.1 archive acquisition checkpoint — 2026-09-26
 
 The patch returns a validated benchmark archive URL as a string. It retains all
