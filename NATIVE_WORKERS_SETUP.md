@@ -39,7 +39,8 @@ is native delegation proof until useful workers actually run.
 
 Confirm access to `gpt-6-sol` and `gpt-6-luna` at the configured efforts. Never copy
 authentication or private configuration into a test home. GitHub HTTPS is needed
-for source identity; first Daily selection also needs public reference data.
+for source identity; Radar selection also needs public reference data. Missing
+reference data permits explicit basic routing after installed/host role checks.
 Resolve commands in the actual app/terminal environment; GUI PATH, Windows app
 execution aliases, WSL and remote hosts may differ.
 
@@ -137,11 +138,28 @@ rewrite immutable tags to recover. Reload after recovery.
 
 Active roles pin `gpt-6-sol` / `gpt-6-luna`; all five efforts, four Sol views and one Luna Daily remain dynamic. The Coordinator remains user-selected. `src/worker_selector.py` centralizes the model contract; the installer writes manifest schema 4 with the same strict inventory and two-root rollback checks.
 
-State is isolated in `gpt6-v4` under the existing state directory, bound to exact models, score axes, efforts and selection policy 2. Old GPT-5.6 Daily/LKG files remain untouched and cannot become GPT-6 fallbacks. Missing valid GPT-6 data and same-generation cache means Coordinator ownership. Missing complete comparable cost evidence means explicit `quality_only`, never a claim of local billing or quota savings.
+State is isolated in `gpt6-v4` under the existing state directory, bound to exact models, score axes, efforts and selection policy 2. Old GPT-5.6 Daily/LKG files remain untouched and cannot become GPT-6 fallbacks. Missing valid GPT-6 data and same-generation cache means explicit task-based basic routing under routing policy 1, subject to intact installed and host-advertised exact roles. Role or account failures still require Coordinator ownership. Missing complete comparable cost evidence means explicit `quality_only`, never a claim of local billing or quota savings.
 
 Disk configuration does not prove Desktop role loading. If a task still advertises GPT-5.6 custom roles, fully quit and restart Codex Desktop, then resume that task's native acceptance. Do not override model parameters or call old workers. Report shell CLI and Desktop capabilities separately. Preserve the transaction backup path from the installer receipt; old state is retained and rollback still prevalidates both roots and all ownership hashes.
 
 Publication verification checks backend identities, scores, scales and latency against the exact hashed archive. Sol frontend, reasoning and general views additionally require their matching benchmark-index records and hashed archives; a missing or mismatched view cannot become a quality-only choice. The new `gpt6-v4` cache requires publication verification version 1. Earlier `gpt6-v3` caches remain untouched and cannot authorize fallback.
+
+## Three-tier task routing
+
+The installed delegation Skill reads one versioned `routing` contract per workflow.
+Verified live data wins, then qualified same-generation cache, then basic mode for
+the affected family/view. Each cached view keeps its complete original snapshot;
+never recompute general scores from different batches. Existing reference statuses
+remain unchanged, including rejected publication evidence.
+
+Basic mode has `evidence_scope: no_benchmark`, allowed roles and no selected effort.
+The Coordinator intersects them with intact installed definitions and actual
+host-advertised GPT-6 model/effort, chooses by task difficulty and reports that
+Radar optimization was not used. No role match means retained work. It does not
+change families, bypass model checks, claim cost savings or populate benchmark LKG.
+Useful native work may pass under disclosed basic mode while live Radar acceptance
+is blocked. A later Daily selection prefers verified live data again; same-day
+recovery follows the installed Skill's single-refresh rule.
 
 ## Assistance and recovery
 

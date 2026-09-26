@@ -112,6 +112,18 @@ class SkillPayloadTests(unittest.TestCase):
         self.assertNotIn("native_runtime", schema4)
         self.assertIn("Schema 4 omits the legacy leaf/runtime keys", schema4)
 
+    def test_basic_routing_is_explicit_bounded_and_has_no_fixed_effort(self):
+        delegate, _ = read_frontmatter(SKILL_PATHS["sol-luna-delegate"])
+        for phrase in ("routing.policy_version = 1", "mode: basic", "evidence_scope: no_benchmark",
+                       "no selected role or fixed default effort", "host_check_required: true",
+                       "Intersect returned roles", "not account or runtime proof",
+                       "if an actual invocation fails, retain the work", "never become LKG benchmark evidence"):
+            self.assertIn(phrase, delegate)
+        status, _ = read_frontmatter(SKILL_PATHS["sol-luna-status"])
+        self.assertIn("Per task", status)
+        self.assertIn("missing or invalid routing contract never authorizes a basic route", status)
+        self.assertNotIn("No valid same-generation data/cache means Coordinator ownership", delegate)
+
     def test_upgrade_requires_immutable_target_and_authorized_apply(self):
         content, _ = read_frontmatter(SKILL_PATHS["sol-luna-upgrade"])
         for invariant in (

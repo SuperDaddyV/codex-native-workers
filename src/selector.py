@@ -42,6 +42,8 @@ MODELDIAL_BENCHMARK_INDEX_URL = "https://modeldial.com/data/benchmark-snapshots/
 MODELDIAL_ALLOWED_HOSTS = frozenset({"modeldial.com", "reference.modeldial.com"})
 MAX_SNAPSHOT_BYTES = 2 * 1024 * 1024
 API_CLOCK_SKEW = timedelta(minutes=10)
+ROUTING_POLICY_VERSION = 1
+SOL_VIEWS = ("general", "backend", "frontend", "reasoning")
 NO_PROFILE_STATUS = "NO_LUNA_PROFILE_AVAILABLE"
 LOCK_TIMEOUT_SECONDS = 30.0
 MANIFEST_RELATIVE = Path("sol-luna-v4/install-manifest.json")
@@ -196,6 +198,43 @@ def _verified_worker_data(data: Mapping[str, Any], *, now: datetime | None = Non
     return verified
 
 
+def worker_routing(profile: Mapping[str, Any]) -> dict[str, Any]:
+    """Describe task routing without inventing a benchmark-selected basic role.
+
+    Allowed roles are configuration candidates, not observed host capability.
+    The installed Skill must intersect them with the host's exact native roles.
+    """
+    def route(family, choice, fallback=False):
+        model = LUNA_MODEL if family == "luna" else REFERENCE_MODEL
+        roles = [f"{family}_{effort}" for effort in profile[f"supported_{family}"]]
+        result = {"model": model, "allowed_roles": roles, "host_check_required": True}
+        if choice.get("status") == "ready":
+            result.update(
+                mode="cached" if choice.get("fallback", fallback) else "live",
+                evidence_scope="reference_only",
+                selected_role=choice["selected_role"],
+                selected_effort=choice["selected_effort"],
+            )
+        else:
+            result.update(mode="basic", evidence_scope="no_benchmark",
+                          reason_code="NO_VERIFIED_REFERENCE_FOR_TASK")
+        return result
+
+    sol = profile["sol"]
+    return {
+        "policy_version": ROUTING_POLICY_VERSION,
+        "luna": route("luna", profile["luna"]),
+        "sol": {"views": {
+            name: route("sol", sol.get("views", {}).get(name, {}), sol.get("fallback", False))
+            for name in SOL_VIEWS
+        }},
+    }
+
+
+def _with_worker_routing(profile: Mapping[str, Any]) -> dict[str, Any]:
+    return _seal_cache({**profile, "routing": worker_routing(profile)})
+
+
 def _worker_record_valid(value: Any) -> bool:
     if not isinstance(value, Mapping) or value.get("worker_profile_schema_version") != WORKER_PROFILE_SCHEMA_VERSION:
         return False
@@ -214,6 +253,19 @@ def _worker_record_valid(value: Any) -> bool:
         item = value.get(family)
         if not isinstance(item, Mapping) or item.get("status") not in ("ready", "unavailable"):
             return False
+        if "fallback" in item and not isinstance(item["fallback"], bool):
+            return False
+        if family == "sol" and (not isinstance(item.get("views", {}), Mapping)
+                                or any(name not in SOL_VIEWS for name in item.get("views", {}))):
+            return False
+        if family == "sol":
+            for row in item.get("views", {}).values():
+                if not isinstance(row, Mapping) or row.get("status") not in ("ready", "unavailable"):
+                    return False
+                if "fallback" in row and not isinstance(row["fallback"], bool):
+                    return False
+                if item["status"] == "unavailable" and row["status"] == "ready":
+                    return False
         if item["status"] == "ready":
             if item.get("model") != (LUNA_MODEL if family == "luna" else REFERENCE_MODEL):
                 return False
@@ -233,7 +285,9 @@ def _worker_record_valid(value: Any) -> bool:
                 effort = row.get("selected_effort")
                 if row.get("status") != "ready" or effort not in supported or row.get("selected_role") != f"{family}_{effort}":
                     return False
-    return True
+    # Earlier schema-3 Daily records remain readable. Any new routing contract
+    # must exactly match the reference results and configured supported roles.
+    return "routing" not in value or json.dumps(value["routing"], sort_keys=True) == json.dumps(worker_routing(value), sort_keys=True)
 
 
 def ensure_worker_profile(
@@ -256,7 +310,7 @@ def ensure_worker_profile(
             # A changed explicit capability set requires re-selection, never a
             # silently unsupported cached native role.
             if existing.get("supported_sol") == list(supported_sol) and existing.get("supported_luna") == list(supported_luna):
-                return dict(existing)
+                return _with_worker_routing(existing)
         if live_data is None and live_fetcher is not None:
             try:
                 live_data = live_fetcher()
@@ -300,15 +354,19 @@ def ensure_worker_profile(
             cache["luna"] = valid
             break
         sol = _sol_module()
-        sol_candidates = []
-        if isinstance(data.get("sol_snapshot"), Mapping):
-            sol_candidates.append((data["sol_snapshot"], False))
-        if previous.get("sol") is not None:
-            sol_candidates.append((previous["sol"], True))
-        for snapshot, fallback in sol_candidates:
+        cached_views = previous.get("sol_views", {})
+        cached_views = cached_views if isinstance(cached_views, Mapping) else {}
+        live_sol = data.get("sol_snapshot")
+        snapshots = [(live_sol, False, None), (previous.get("sol"), True, None)]
+        snapshots.extend((cached_views.get(name), True, name) for name in SOL_VIEWS)
+        selected_views = {}
+        selected_snapshot = {}
+        base_choice = None
+        next_cached_views = dict(cached_views)
+        for snapshot, fallback, only_view in snapshots:
             try:
                 if not isinstance(snapshot, Mapping):
-                    raise ValueError("invalid Sol snapshot")
+                    continue
                 timestamps = [snapshot.get("generated_at")]
                 batch = snapshot.get("batch")
                 if isinstance(batch, Mapping):
@@ -324,21 +382,48 @@ def ensure_worker_profile(
                         raise ValueError("future Sol publication")
                 choice = sol.select_sol(snapshot, supported_efforts=supported_sol, quality_gap=2.0)
                 views = choice.get("views", {})
-                if not isinstance(views, Mapping) or not any(isinstance(row, Mapping) and row.get("selected_role") for row in views.values()):
-                    if not fallback and isinstance(views, Mapping):
-                        result["sol"] = {**choice, "status": "unavailable", "fallback": False}
+                if not isinstance(views, Mapping):
                     continue
             except (ValueError, TypeError, KeyError):
                 continue
+            if base_choice is None:
+                base_choice = choice
+            for name in SOL_VIEWS:
+                if only_view is not None and name != only_view:
+                    continue
+                row = views.get(name)
+                if name in selected_views or not isinstance(row, Mapping) or row.get("status") != "ready":
+                    continue
+                selected_views[name] = {**row, "fallback": fallback}
+                selected_snapshot[name] = snapshot
+                next_cached_views[name] = snapshot
+            if not fallback and any(isinstance(row, Mapping) and row.get("status") == "ready" for row in views.values()):
+                cache["sol"] = snapshot
+        if next_cached_views:
+            cache["sol_views"] = next_cached_views
+        if selected_views:
+            views = {name: selected_views.get(name, (base_choice or {}).get("views", {}).get(name, {"status": "unavailable"})) for name in SOL_VIEWS}
             result["sol"] = {
-                **choice, "status": "ready", "model": REFERENCE_MODEL, "fallback": fallback,
+                **base_choice, "status": "ready", "model": REFERENCE_MODEL,
+                "fallback": all(row["fallback"] for row in selected_views.values()),
                 "allowed_roles": [f"sol_{effort}" for effort in supported_sol],
-                "source_generated_at": snapshot.get("generated_at"),
+                "views": views,
             }
-            cache["sol"] = snapshot
-            break
+            # Each cached view remains one intact, previously verified snapshot.
+            # In particular, never synthesize a general score from mixed batches.
+            general = views["general"]
+            for key in ("selected_role", "selected_effort", "selected_score", "source_winner_effort",
+                        "source_winner_score", "capability_degraded", "selection_mode", "source_metadata"):
+                result["sol"][key] = general.get(key) if general.get("status") == "ready" else None
+            representative = "general" if "general" in selected_views else next(iter(selected_views))
+            for key in ("benchmark_provider", "benchmark_route", "evidence_scope"):
+                if key in selected_views[representative]:
+                    result["sol"][key] = selected_views[representative][key]
+            result["sol"]["source_generated_at"] = selected_snapshot[representative].get("generated_at")
+        elif base_choice is not None:
+            result["sol"] = {**base_choice, "status": "unavailable", "fallback": False}
         cache = _seal_cache(cache)
-        result = _seal_cache(result)
+        result = _with_worker_routing(result)
         if cache != previous:
             _write_json(lkg_path, cache)
         _write_json(daily, result)
@@ -1555,7 +1640,7 @@ def read_status(
         elif worker_read == "INVALID_CONTENT" or (worker_read == "OK" and not _worker_record_valid(raw_worker)):
             unavailable.append("WORKER_PROFILE_INVALID")
         elif worker_read == "OK" and _profile_date(raw_worker) == current.date().isoformat():
-            worker_profile = raw_worker
+            worker_profile = _with_worker_routing(raw_worker)
             # A current Worker profile is authoritative for schema 3. An unused
             # legacy daily file must not contaminate independent family health.
             misconfigured = [reason for reason in misconfigured if reason != "DAILY_PROFILE_READ_FAILED"]
@@ -1565,7 +1650,7 @@ def read_status(
             luna_choice = raw_worker["luna"]
             if luna_choice["status"] == "ready":
                 profile = luna_choice
-            selection_initialized = any(raw_worker[name]["status"] == "ready" for name in ("sol", "luna"))
+            selection_initialized = True  # Today's routing can be basic without a benchmark choice.
             for name in ("sol", "luna"):
                 choice = raw_worker[name]
                 if choice["status"] == "unavailable":
@@ -1574,8 +1659,13 @@ def read_status(
                     degraded.append("LKG_FALLBACK_ACTIVE")
                 if choice.get("capability_degraded"):
                     degraded.append("CAPABILITY_DEGRADED")
-            if not selection_initialized:
-                unavailable.append("NO_WORKER_PROFILE_AVAILABLE")
+            for name in ("sol", "luna"):
+                routes = ([worker_profile["routing"]["luna"]] if name == "luna" else
+                          list(worker_profile["routing"]["sol"]["views"].values()))
+                if any(row["mode"] == "basic" for row in routes):
+                    degraded.append(f"{name.upper()}_BASIC_ROUTING_ACTIVE")
+                if any(row["mode"] == "cached" for row in routes):
+                    degraded.append("LKG_FALLBACK_ACTIVE")
 
     if misconfigured:
         health = "Misconfigured"
@@ -1679,6 +1769,7 @@ def read_status(
             "workers": {"luna": {"status": "Not initialized"}, "sol": {"status": "Not initialized", "views": {}}},
         })
         if worker_profile:
+            diagnostic["routing"] = worker_profile["routing"]
             whitelist = ("model", "status", "selected_role", "selected_effort", "selection_mode", "fallback", "capability_degraded", "source_winner_effort", "quality_gap", "benchmark_provider", "benchmark_route", "evidence_scope")
             def safe_choice(row):
                 result = {key: row[key] for key in whitelist if key in row}
@@ -1778,7 +1869,7 @@ def main(argv: list[str] | None = None) -> int:
             print("NO_WORKER_PROFILE_AVAILABLE")
             return 3
         print(json.dumps(profile, ensure_ascii=False, sort_keys=True))
-        return 0 if any(profile[name]["status"] == "ready" for name in ("sol", "luna")) else 3
+        return 0  # Valid routing may be basic; reference status remains explicit.
 
     live_snapshot = None if args.live else _load_optional_snapshot(args.snapshot)
     should_fetch = args.live or (args.ensure_daily and args.snapshot is None)

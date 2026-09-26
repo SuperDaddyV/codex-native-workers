@@ -12,6 +12,15 @@ identities, protocol and hash must match; incomplete cost means quality-only.
 Native role loading, tool visibility, invocation guard and measured concurrency
 require separate live evidence. The Global managed block remains <= 2048 bytes.
 
+Routing policy 1 is separate from reference policy 2. It exposes live, cached or
+basic routes per family/view while retaining all publication failures. Basic mode
+returns allowed native roles with no chosen effort, requires installed/host model
+checks, and disclaims benchmark optimization. It never becomes benchmark LKG.
+Qualified per-view caches retain complete original snapshots; no mixed-batch
+synthesis of general scores is allowed. Same-day routing is reused without writes;
+new Daily selection can recover automatically. A Radar outage alone does not block
+useful native acceptance in explicitly reported basic mode.
+
 Publication verification version 1 binds every selected backend row to the full
 archive, including model/provider/route/effort, score, scale and latency. Other
 Sol views require the [benchmark index](https://modeldial.com/data/benchmark-snapshots/index.json)

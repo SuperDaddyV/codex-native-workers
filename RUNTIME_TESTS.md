@@ -1,3 +1,24 @@
+# GPT-6 v4.3.0 three-tier routing checkpoint — 2026-09-26
+
+The user approved explicit basic routing when verified live Radar and qualified
+cache are unavailable. The earlier archive 404 remains historical live-data
+evidence; it does not become a successful data check. Useful native acceptance
+may now run under a disclosed basic route with installed/host model checks.
+
+Source/fake-home checkpoint: **484 tests PASS in 104.911 seconds**. New coverage
+checks basic routing without fixed effort or invented benchmark evidence,
+live/cache priority, intact per-view cached fallback, next-day recovery, same-day
+zero-write reuse, malformed/forged routing rejection, read-only status and retained
+configuration failures. Original publication-binding regressions remain enabled.
+The Global policy and installer inventory remain unchanged. Basic mode is
+`no_benchmark`, not a quality-only reference choice or an LKG snapshot.
+
+At this checkpoint the new exact-candidate CI, transactional real-home update and
+useful native Sol/Luna checks are pending. Final evidence will identify their exact
+source and routing mode before release. Preserve the checkpoints below unchanged.
+
+---
+
 # GPT-6 v4.3.0 cross-client release checkpoint — 2026-09-26
 
 v4.3.0 remains an unpublished candidate. The user authorized publication after

@@ -54,7 +54,7 @@ Codex 可运行 `scripts/install_assist.py check/plan/report`。桌面端传 `--
 | Python／Git 缺失 | 先定位已有安装、核对应用 PATH；确实缺失时准备官方安装方案，获授权后执行并验证。 |
 | 桌面端找不到 `codex` | 使用 Desktop 流程，不仅因此要求另装 CLI。 |
 | GitHub 连接／下载失败 | 保留有效源码与安装，有限重试；区分网络、认证、证书和身份校验问题。 |
-| ModelDial 连接重置／归档 404／hash 不符 | 分别报告安装和数据选择；只用合格缓存，否则主代理接手。不得拼接批次。 |
+| ModelDial 连接重置／归档 404／hash 不符 | 优先合格缓存，再按明确的基础模式选择宿主可用角色；不得拼接批次或伪称雷达优化。 |
 | `OWNERSHIP_CONFLICT`／manifest、TOML 或 hash 错误 | 检查具体冲突，提出可审阅修复；保留用户内容，不删 manifest、不改 hash。 |
 | `AGENTS.override.md`／同名角色冲突 | 说明具体阻断并协调已有指令，不自动删除。 |
 | Skill 根目录不符 | 核对 manifest 与实际客户端，不转移到另一个 home 强装。 |
@@ -66,10 +66,12 @@ Codex 可运行 `scripts/install_assist.py check/plan/report`。桌面端传 `--
 ## 如何判断成功
 
 - **安装完成：** 角色 10/10、Skills 3/3、所有权与配置校验通过，备份已记录。
-- **运行验证通过：** 实际宿主加载 GPT-6 角色，两家族完成有用工作，主代理复核结果。
+- **运行验证通过：** 实际宿主加载 GPT-6 角色，两家族完成有用工作，主代理复核结果。注明实时、缓存或基础模式；基础模式通过不代表实时雷达已通过。
 - **未验证：** 保留 `Not checked`／`NOT RUN`；`Today Selection not initialized` 是首次选档前的正常状态。
 
 三平台自动化测试不等于所有客户端的原生验收，也不是用户安装成功率统计。[验证记录](RUNTIME_TESTS.md)单独列出覆盖范围。强递归隔离、六 worker 容量和额度节省不作保证。
+
+基础模式会显示 `Degraded` 和 `BASIC_ROUTING_ACTIVE` 原因，档位按任务选择。应查看具体原因；配置错误、原生角色不可用仍需处理，基础模式不会隐藏这些问题。
 
 ## 回滚、卸载与反馈
 

@@ -869,8 +869,10 @@ def _resume_block(phase: str, reason_code: str | None = None) -> str:
             f"Pending blocker: {pending}\n"
             "Prerequisite: complete any pending Codex reload\n"
             f"Action: {SELECTOR_INITIALIZATION_COMMAND}\n"
-            "Next proof: exit 0; selected_role is an allowed Sol or Luna worker "
-            "role and selected_effort matches that role\n"
+            "Next proof: exit 0; routing.policy_version = 1. For live/cached, "
+            "selected_role and selected_effort match; for basic, choose only "
+            "from allowed_roles after installed/host model checks and disclose "
+            "no Radar optimization\n"
             "Next phase: FRESH_TASK_SMOKE\n"
             "Scope: follow the dual-family Stable gates in RUNTIME_TESTS.md; "
             "a legacy one-Luna smoke does not verify Sol, mixed work, tool "
@@ -1260,8 +1262,8 @@ def render_card(payload: Mapping[str, object]) -> str:
             f"Version: {payload.get('target_version', VERSION)}\n"
             "Reason: DAILY_SELECTION_PROOF_REQUIRED\n"
             f"Action: {SELECTOR_INITIALIZATION_COMMAND}\n"
-            "Proof: exit 0; selected_role is an allowed Sol or Luna worker role "
-            "and selected_effort matches that role\n"
+            "Proof: exit 0; follow the installed delegation Skill routing contract, "
+            "including host-role checks and explicit basic-mode disclosure\n"
             "Next: start a new task for useful bounded dual-family Stable checks"
         )
     if phase == "NEEDS_USER_ACTION":

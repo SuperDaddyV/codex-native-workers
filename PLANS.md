@@ -1,5 +1,34 @@
 # v4.3.0 GPT-6 migration — active baseline, 2026-09-26
 
+## Authorized three-tier routing — 2026-09-26
+
+The user approved implementing live verified Radar -> qualified same-generation
+cache -> explicit task-based basic routing. This replaces the earlier rule that
+missing Radar/cache requires Coordinator ownership. Preserve all publication,
+installation, ownership and model checks. Never label basic routing as verified
+benchmark selection, cost optimization or native execution evidence.
+
+Keep reference results and LKG validation unchanged. Add a versioned routing
+contract derived from verified reference results and configured supported roles;
+basic mode returns allowed roles without a fixed selected effort. The Coordinator
+must intersect them with installed and host-advertised exact GPT-6 roles, choose
+by bounded task difficulty, and retain work if no matching role is available.
+No family substitution, model/effort override or worker recursion is permitted.
+Do not cache basic choices as last-good benchmark data. A new Daily selection
+automatically prefers verified live data, then qualified cache again.
+
+Update the three Skills, concise bilingual pages, status/assistance and regression
+tests without expanding the Global block. Verify mixed per-view/family modes,
+integrity rejection, recovery, same-day reuse, read-only status and lifecycle.
+Prior candidate c343122 has 472 tests, three-platform CI and real installation
+PASS; its native selection remained blocked. Preserve that historical evidence.
+Existing exact-candidate installation, commit/push and final publication authority
+continues. Accept useful native Sol and Luna work under the explicitly reported
+routing mode; do not require a live Radar outage to disappear for basic-mode
+acceptance. Record unavailable live-data coverage separately before release.
+
+## Previous cross-client checkpoint
+
 Current release instruction, 2026-09-24: the user authorizes GitHub publication
 after required checks, and requests concise, plain-language public pages with
 clear installation and navigation. This supersedes the earlier publication hold.

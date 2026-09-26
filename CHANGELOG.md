@@ -12,6 +12,8 @@
 - Support Desktop configuration without requiring a separate CLI; preserve CLI capability checks and explicit unrun Desktop-native status.
 - Align macOS/Linux Skills and preflight on `python3`, and quote Windows PowerShell paths safely.
 - Simplify bilingual homepages and installation help, move historical versions to a dedicated guide, and make recovery/resumption explicit.
+- Add explicit three-tier task routing: verified live Radar, qualified per-view cache, then basic mode with task-chosen roles and no benchmark claims or fixed Sol default.
+- Keep basic decisions out of benchmark caches; preserve intact cached views and strict source/hash/ownership checks.
 - Required native GPT-6 acceptance, exact-commit CI and immutable publication are recorded only when actually complete.
 
 # Changelog

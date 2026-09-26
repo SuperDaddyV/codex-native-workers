@@ -19,7 +19,7 @@ Let Codex share the work: you choose the coordinator, GPT-6 Sol handles demandin
 
 Small tasks stay with the coordinator. Larger tasks usually use 0–3 workers; only independent work runs in parallel. There is no fixed Sol quota.
 
-Verified public ModelDial data guides daily reasoning-effort choices instead of always using the highest effort. The coordinator reviews the results. Benchmark scores and reference costs do not establish local performance or guarantee quota savings.
+Verified public ModelDial data guides daily reasoning-effort choices. If unavailable, the project uses qualified cached data; without that, basic mode lets the coordinator choose an available role for each task and clearly reports that Radar optimization was not used. The coordinator reviews the results. Benchmark scores and reference costs do not establish local performance or guarantee quota savings.
 
 Installation adds 10 worker profiles, 3 Skills and at most 2 KiB of global rules. It preserves your coordinator settings, unrelated configuration and old caches, with transaction backups, rollback and uninstall support.
 
@@ -65,7 +65,7 @@ Check installation and execution separately:
 1. **Installation:** 10/10 agents, 3/3 Skills, and passing file/configuration checks.
 2. **Execution:** Sol and Luna each complete useful work in a real task, and the coordinator reviews it.
 
-`Today Selection not initialized` is normal before the first selection. `Not checked` means the corresponding check did not run. Healthy configuration is not runtime acceptance. The coordinator takes over when data is unavailable; fully quit and restart the relevant client if roles have not loaded.
+`Today Selection not initialized` is normal before the first selection. `Not checked` means the corresponding check did not run. Healthy configuration is not runtime acceptance. A Radar outage can use basic mode; unavailable or mismatched native roles stay with the coordinator. Fully quit and restart the relevant client if roles have not loaded.
 
 ## Common questions
 
