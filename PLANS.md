@@ -1,3 +1,15 @@
+# Compact homepage flow — active documentation scope, 2026-09-26
+
+The user approved a compact five-node homepage flow with collapsed decision rules
+and the public term 主脑模型 (lead model), retaining Coordinator as the technical
+name. Synchronize Chinese and English READMEs. Keep installation links and model,
+cache/basic fallback, review and capacity boundaries intact. Validate real diagram
+rendering, focused documentation checks and the required standard-library suite
+before publishing this documentation update. Preserve v4.3.1 and installed state;
+no runtime, version, global-policy or release change is needed.
+
+## Previous patch baseline
+
 # v4.3.1 archive acquisition repair — active baseline, 2026-09-26
 
 The user approved repairing the client defect found after ModelDial restored its

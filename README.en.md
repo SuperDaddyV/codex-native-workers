@@ -1,6 +1,6 @@
 # Codex Native Workers
 
-Let Codex share the work: you choose the coordinator, GPT-6 Sol handles demanding subtasks, and GPT-6 Luna handles clear, repeatable work.
+Let Codex share the work: you choose the lead model in Codex, GPT-6 Sol handles demanding subtasks, and GPT-6 Luna handles clear, repeatable work.
 
 [简体中文](README.md) · [Install & troubleshoot](INSTALLATION.md) · [Changes](CHANGELOG.md) · [Get help](https://github.com/SuperDaddyV/codex-native-workers/issues/new/choose)
 
@@ -13,15 +13,39 @@ Let Codex share the work: you choose the coordinator, GPT-6 Sol handles demandin
 
 | Role | Responsibility |
 | --- | --- |
-| Coordinator | Understands the request, plans, integrates results and accepts the final work. You choose the model; Astra is one option. |
+| Lead model (Coordinator) | Understands the request, plans, integrates results and accepts the final work. You choose the model; Astra is one option. |
 | GPT-6 Sol | Difficult but bounded diagnosis, implementation and cross-module work. |
 | GPT-6 Luna | Clear edits, extraction, focused checks and repetitive work. |
 
-Small tasks stay with the coordinator. Larger tasks usually use 0–3 workers; only independent work runs in parallel. There is no fixed Sol quota.
+```mermaid
+---
+config: {flowchart: {nodeSpacing: 16, rankSpacing: 20}}
+---
+flowchart LR
+    A{"Lead model<br/>Delegate?"} -->|No| B["Lead model executes"]
+    A -->|Yes| C["Choose Sol / Luna<br/>Select effort; check role"]
+    C --> D["Worker executes"]
+    B --> E["Lead model<br/>Reviews and delivers"]
+    D --> E
+```
 
-Verified public ModelDial data guides daily reasoning-effort choices. If unavailable, the project uses qualified cached data; without that, basic mode lets the coordinator choose an available role for each task and clearly reports that Radar optimization was not used. The coordinator reviews the results. Benchmark scores and reference costs do not establish local performance or guarantee quota savings.
+<details>
+<summary>Show decision rules</summary>
 
-Installation adds 10 worker profiles, 3 Skills and at most 2 KiB of global rules. It preserves your coordinator settings, unrelated configuration and old caches, with transaction backups, rollback and uninstall support.
+| Decision | Rule |
+| --- | --- |
+| Delegate? | Delegate only worthwhile, independent, bounded work. Small tasks stay with the lead model. |
+| Which family? | Sol handles difficult work; Luna handles clear, repetitive work. There is no fixed Sol quota. |
+| Which effort? | Verified ModelDial data → qualified cache → task-based basic mode. Basic mode explicitly reports that Radar optimization was not used; there is no fixed default effort. |
+| When to select? | Select once per delegation workflow and reuse the result; do not fetch separately for each worker. |
+| Unavailable? | The lead model retains work if a role is unavailable, its model mismatches or invocation fails. Do not silently switch families. |
+| How to execute? | Usually 0–3 workers; only independent work runs in parallel. The lead model reviews results before delivery. |
+
+</details>
+
+Benchmark scores and reference costs do not establish local performance or guarantee quota savings.
+
+Installation adds 10 worker profiles, 3 Skills and at most 2 KiB of global rules. It preserves your lead model settings, unrelated configuration and old caches, with transaction backups, rollback and uninstall support.
 
 ## Install or upgrade
 
@@ -36,7 +60,7 @@ is a published Stable release, resolve its immutable tag to an exact commit, and
 Identify Windows/macOS/Linux, Desktop or CLI, the actual CODEX_HOME and user Skill root.
 Diagnose dependencies, connectivity, permissions and the existing installation. Fix issues within the installation authorization, recheck and continue; do not merely list problems.
 For new system dependencies, persistent environment changes or a required login, explain the exact action and why it is needed. Do not request authorization already given.
-Preserve my coordinator, unrelated files and old state. Run dry-run, then the transactional installer; never bypass source or ownership checks.
+Preserve my lead model, unrelated files and old state. Run dry-run, then the transactional installer; never bypass source or ownership checks.
 Use the installed Skills to verify installation and actual worker use separately. If blocked, report attempts, the smallest next action and a resume prompt.
 ```
 
@@ -63,9 +87,9 @@ Efforts may change daily. `parallel` means execution actually overlapped in that
 Check installation and execution separately:
 
 1. **Installation:** 10/10 agents, 3/3 Skills, and passing file/configuration checks.
-2. **Execution:** Sol and Luna each complete useful work in a real task, and the coordinator reviews it.
+2. **Execution:** Sol and Luna each complete useful work in a real task, and the lead model reviews it.
 
-`Today Selection not initialized` is normal before the first selection. `Not checked` means the corresponding check did not run. Healthy configuration is not runtime acceptance. A Radar outage can use basic mode; unavailable or mismatched native roles stay with the coordinator. Fully quit and restart the relevant client if roles have not loaded.
+`Today Selection not initialized` is normal before the first selection. `Not checked` means the corresponding check did not run. Healthy configuration is not runtime acceptance. A Radar outage can use basic mode; unavailable or mismatched native roles stay with the lead model. Fully quit and restart the relevant client if roles have not loaded.
 
 ## Common questions
 
