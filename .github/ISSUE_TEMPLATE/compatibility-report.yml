@@ -44,9 +44,10 @@ body:
       label: Release channel
       description: Which version or candidate did you test?
       options:
-        - "Current Stable (v4.3.1)"
-        - "Previous Stable (v4.3.0)"
-        - "Previous Stable (v4.2.0)"
+        - "Current Stable (v4.4.0)"
+        - "Previous Stable (v4.3.1)"
+        - "Earlier Stable (v4.3.0)"
+        - "Earlier Stable (v4.2.0)"
         - "Previous Preview (v4.2.0-rc1)"
         - "Legacy Stable (v4.1.4)"
         - Other published version
@@ -79,7 +80,7 @@ body:
     attributes:
       label: Installed / tested version
       description: Enter the version actually installed or tested, including the exact tag or commit when available.
-      placeholder: v4.3.1 (or v4.3.0 / v4.2.0 / v4.2.0-rc1 / v4.1.4)
+      placeholder: v4.4.0 (or v4.3.1 / v4.3.0 / v4.2.0 / v4.2.0-rc1 / v4.1.4)
     validations:
       required: true
 

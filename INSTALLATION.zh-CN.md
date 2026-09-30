@@ -2,7 +2,7 @@
 
 [English](INSTALLATION.md) · [返回首页](README.md)
 
-**v4.3.1 · GPT-6。** 先复制[首页提示词](README.md#安装或升级)，再执行经核验发布 commit 中的 [NATIVE_WORKERS_SETUP.md](NATIVE_WORKERS_SETUP.md)。
+**v4.4.0 Stable · GPT-6.1 Sol + GPT-6 Luna。** 先复制[首页提示词](README.md#安装或升级)，再执行经核验发布 commit 中的 [NATIVE_WORKERS_SETUP.md](NATIVE_WORKERS_SETUP.md)。
 
 ## 先认准环境
 
@@ -31,7 +31,7 @@ macOS/Linux: python3 -c "import sys, tomllib; assert sys.version_info >= (3, 11)
 2. 确认真实 `CODEX_HOME` 与 `<SKILLS_ROOT>`；升级沿用 manifest 记录的根目录。
 3. 收集依赖与网络问题，先处理可恢复项，再检查 dry-run 的实际变更。
 4. 事务安装、备份、核对 hash。重复执行应为 `IDEMPOTENT_PASS`，零写入、零新增备份。
-5. 重载客户端，分别验证安装完整性与真实 Sol/Luna 工作；保留主模型、无关内容和旧缓存。
+5. 重载客户端，分别验证安装完整性与 GPT-6.1 Sol / GPT-6 Luna 的真实工作；保留当前会话的主脑模型与档位、无关内容和旧状态。
 
 默认根目录为用户目录下的 `.codex` 与 `.agents/skills`，但不能覆盖实际环境或已有 manifest。路径必须按对应 shell 正确加引号。安装器通过 `--source-commit` 记录来源；Source code 压缩包不是一键安装器。
 
@@ -58,7 +58,7 @@ Codex 可运行 `scripts/install_assist.py check/plan/report`。桌面端传 `--
 | `OWNERSHIP_CONFLICT`／manifest、TOML 或 hash 错误 | 检查具体冲突，提出可审阅修复；保留用户内容，不删 manifest、不改 hash。 |
 | `AGENTS.override.md`／同名角色冲突 | 说明具体阻断并协调已有指令，不自动删除。 |
 | Skill 根目录不符 | 核对 manifest 与实际客户端，不转移到另一个 home 强装。 |
-| 角色未加载／仍是旧模型 | 核验安装身份后完整退出并重启相应客户端，必要时新开任务。 |
+| 角色未加载／仍是旧模型 | 若桌面端仍显示 v4.4.0 之前的 GPT-6 Sol 或 GPT-5.6 角色，先核验安装身份，再完整退出并重启客户端，必要时新开任务。 |
 | 只有 Luna／没有 worker | 先判断任务是否值得委派，不强行创建子代理。 |
 
 临时 PATH 修复后，还须验证正常启动的客户端能调用依赖；否则说明重启或持久修复待完成，不能宣布成功。
@@ -66,7 +66,7 @@ Codex 可运行 `scripts/install_assist.py check/plan/report`。桌面端传 `--
 ## 如何判断成功
 
 - **安装完成：** 角色 10/10、Skills 3/3、所有权与配置校验通过，备份已记录。
-- **运行验证通过：** 实际宿主加载 GPT-6 角色，两家族完成有用工作，主代理复核结果。注明实时、缓存或基础模式；基础模式通过不代表实时雷达已通过。
+- **运行验证通过：** 实际宿主加载 GPT-6.1 Sol 与 GPT-6 Luna 角色，两家族完成有用工作，主脑复核结果。注明实时、缓存或基础模式；基础模式通过不代表实时雷达已通过。
 - **未验证：** 保留 `Not checked`／`NOT RUN`；`Today Selection not initialized` 是首次选档前的正常状态。
 
 三平台自动化测试不等于所有客户端的原生验收，也不是用户安装成功率统计。[验证记录](RUNTIME_TESTS.md)单独列出覆盖范围。强递归隔离、六 worker 容量和额度节省不作保证。

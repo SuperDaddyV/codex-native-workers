@@ -64,7 +64,7 @@ SKILL_FILES = (*SCHEMA2_SKILL_FILES, "sol-luna-delegate")
 MAX_CONCURRENT_THREADS = 6
 
 # Historical schema-4 contracts are accepted only for the exact versions that
-# published them. This permits a verified upgrade without accepting relabelled
+# used them. This permits a verified upgrade without accepting relabelled
 # model data or weakening ownership and inventory validation.
 _GPT6_STABLE_CONTRACT = {
     "models": {"sol": "gpt-6-sol", "luna": "gpt-6-luna"},
@@ -82,6 +82,10 @@ _GPT6_STABLE_CONTRACT = {
 _HISTORICAL_SCHEMA4_CONTRACTS = {
     "v4.3.0": _GPT6_STABLE_CONTRACT,
     "v4.3.1": _GPT6_STABLE_CONTRACT,
+    "v4.4.0-local.1": {
+        **_GPT6_STABLE_CONTRACT,
+        "models": {"sol": "gpt-6.1-sol", "luna": "gpt-6-luna"},
+    },
 }
 
 

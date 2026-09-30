@@ -1,4 +1,4 @@
-"""Local GPT-6.1 identity and old-cache rejection; synthetic evidence only."""
+"""Stable GPT-6.1 identity and old-cache rejection; synthetic evidence only."""
 import copy
 import json
 import tempfile
@@ -23,8 +23,9 @@ def old_publication():
 
 
 class Gpt61MigrationTests(unittest.TestCase):
-    def test_exact_trial_contract_and_unchanged_luna(self):
-        self.assertEqual(worker_selector.VERSION, 'v4.4.0-local.1')
+    def test_exact_stable_contract_and_unchanged_luna(self):
+        self.assertEqual(worker_selector.VERSION, 'v4.4.0')
+        self.assertEqual(selector.USER_AGENT, 'codex-native-workers/4.4.0')
         self.assertEqual(worker_selector.SOL_MODEL, 'gpt-6.1-sol')
         self.assertEqual(worker_selector.LUNA_MODEL, 'gpt-6-luna')
         self.assertEqual(worker_selector.CACHE_NAMESPACE, 'gpt61sol-v1')

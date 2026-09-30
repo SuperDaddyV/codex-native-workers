@@ -1,4 +1,23 @@
-# GPT-6 v4.3.1 active contract
+# GPT-6.1 Sol v4.4.0 active contract
+
+Active workers pin `gpt-6.1-sol` and `gpt-6-luna`; user-selected lead model and
+effort remain user-owned. Exact versioned manifest contracts, full inventories,
+owned hashes, immutable source checks and two-root rollback prevalidation apply
+to upgrades from both GPT-6 Stable and the GPT-6.1 local trial.
+
+New state uses `gpt61sol-v1`. Old GPT-6/GPT-5.6 state is preserved, not imported
+as a GPT-6.1 Sol benchmark. Missing matching public source/archive evidence means
+explicit basic routing, not a weaker validation gate or benchmark cost claim.
+
+Worker scopes remain bounded and reviewed. Profiles request no nested workers;
+this package does not guarantee host-enforced recursive isolation or capacity.
+Configuration, useful native work and measured host capabilities are distinct.
+
+The following versioned sections retain their historical contracts and failures.
+
+---
+
+# GPT-6 v4.3.1 historical contract
 
 The active model/effort contract lives in `src/worker_selector.py`: `gpt-6-sol`,
 `gpt-6-luna`, five efforts, four Sol views and one Luna Daily. User-selected

@@ -1,6 +1,6 @@
-# Codex Native Workers — v4.3.1 Stable installation contract
+# Codex Native Workers — v4.4.0 Stable installation contract
 
-This contract applies only to the published, non-draft, non-prerelease `v4.3.1`
+This contract applies only to the published, non-draft, non-prerelease `v4.4.0`
 Release in `SuperDaddyV/codex-native-workers`. This document or a tag alone is not
 publication evidence. The renamed repository retains the project's history;
 installed paths, managed markers and `sol-luna-*` Skill names remain compatible.
@@ -37,7 +37,7 @@ required. Desktop model/effort availability is checked in that host after
 configuration; CLI assistance retains its direct capability precheck. Neither
 is native delegation proof until useful workers actually run.
 
-Confirm access to `gpt-6-sol` and `gpt-6-luna` at the configured efforts. Never copy
+Confirm access to `gpt-6.1-sol` and `gpt-6-luna` at the configured efforts. Never copy
 authentication or private configuration into a test home. GitHub HTTPS is needed
 for source identity; Radar selection also needs public reference data. Missing
 reference data permits explicit basic routing after installed/host role checks.
@@ -53,19 +53,19 @@ valid; no repeated confirmation is required for already authorized operations.
 
 ## 2. Resolve the published immutable source
 
-1. Read `/repos/SuperDaddyV/codex-native-workers/releases/tags/v4.3.1`. Require
+1. Read `/repos/SuperDaddyV/codex-native-workers/releases/tags/v4.4.0`. Require
    `draft=false`, `prerelease=false`, and non-null `published_at`. Do not substitute
    an unpublished candidate, the newest prerelease, or `target_commitish`.
-2. Resolve the remote `v4.3.1` tag and peel an annotated/lightweight tag to one exact
+2. Resolve the remote `v4.4.0` tag and peel an annotated/lightweight tag to one exact
    40-hex commit. Acquire a clean detached checkout at that commit, then read the
    remote tag again. A change is `TAG_MOVED`: stop without installation writes.
 3. Read this contract from that exact commit. Require detached `HEAD`, the verified
    tag commit and the installer's `--source-commit` to match; require installer
-   `VERSION == "v4.3.1"`. Do not install from `master`, another moving branch or an
+   `VERSION == "v4.4.0"`. Do not install from `master`, another moving branch or an
    unverified tag. A later README/documentation commit is not the runtime source.
 4. The source and contract share the verified release commit, so no file is
    required to embed its own SHA. Do not use the old v4.1.4 setup/assisted contract
-   to apply v4.3.1 or substitute current source into an older pinned contract.
+   to apply v4.4.0 or substitute current source into an older pinned contract.
 
 ## 3. Apply one two-root transaction
 
@@ -134,15 +134,15 @@ removes only verified owned content and is not equivalent to rollback. An invali
 backup or ownership mismatch stops the operation. Never delete user files or
 rewrite immutable tags to recover. Reload after recovery.
 
-## GPT-6 migration and diagnostics
+## GPT-6.1 Stable model and diagnostics
 
-Active roles pin `gpt-6-sol` / `gpt-6-luna`; all five efforts, four Sol views and one Luna Daily remain dynamic. The Coordinator remains user-selected. `src/worker_selector.py` centralizes the model contract; the installer writes manifest schema 4 with the same strict inventory and two-root rollback checks.
+Active roles pin `gpt-6.1-sol` / `gpt-6-luna`; all five efforts, four Sol views and one Luna Daily remain dynamic. The Coordinator remains the model selected by the current session, including GPT-6.1 Sol at max. This does not set worker effort to max or switch the Coordinator to Astra. `src/worker_selector.py` centralizes the model contract; the installer writes manifest schema 4 with the same strict inventory and two-root rollback checks.
 
-State is isolated in `gpt6-v4` under the existing state directory, bound to exact models, score axes, efforts and selection policy 2. Old GPT-5.6 Daily/LKG files remain untouched and cannot become GPT-6 fallbacks. Missing valid GPT-6 data and same-generation cache means explicit task-based basic routing under routing policy 1, subject to intact installed and host-advertised exact roles. Role or account failures still require Coordinator ownership. Missing complete comparable cost evidence means explicit `quality_only`, never a claim of local billing or quota savings.
+Active state is isolated in `gpt61sol-v1` under the existing state directory, bound to exact models, score axes, efforts and selection policy 2. Historical `gpt6-v4`, `gpt6-v3`, and GPT-5.6 Daily/LKG state remain untouched. They cannot authorize new GPT-6.1 Sol selection. Missing valid Radar evidence or a qualified same-generation cache means supported, explicit task-based basic routing under routing policy 1, subject to intact installed and host-advertised exact roles. This does not make installation fail. Role or account failures still require Coordinator ownership. Missing complete comparable cost evidence means explicit `quality_only`, never a claim of local billing or quota savings.
 
-Disk configuration does not prove Desktop role loading. If a task still advertises GPT-5.6 custom roles, fully quit and restart Codex Desktop, then resume that task's native acceptance. Do not override model parameters or call old workers. Report shell CLI and Desktop capabilities separately. Preserve the transaction backup path from the installer receipt; old state is retained and rollback still prevalidates both roots and all ownership hashes.
+Disk configuration does not prove Desktop role loading. If a task still advertises pre-v4.4.0 GPT-6 Sol (`gpt-6-sol`) or GPT-5.6 custom roles, fully quit and restart Codex Desktop, then resume that task's native verification. Do not override model parameters or call old workers. Report shell CLI and Desktop capabilities separately. Preserve the transaction backup path from the installer receipt; old state is retained and rollback still prevalidates both roots and all ownership hashes.
 
-Publication verification checks backend identities, scores, scales and latency against the exact hashed archive. Sol frontend, reasoning and general views additionally require their matching benchmark-index records and hashed archives; a missing or mismatched view cannot become a quality-only choice. The new `gpt6-v4` cache requires publication verification version 1. Earlier `gpt6-v3` caches remain untouched and cannot authorize fallback.
+Publication verification checks backend identities, scores, scales and latency against the exact hashed archive. Sol frontend, reasoning and general views additionally require their matching benchmark-index records and hashed archives; a missing or mismatched view cannot become a quality-only choice. The `gpt61sol-v1` cache requires publication verification version 1. Historical `gpt6-v4` and `gpt6-v3` caches remain untouched and cannot authorize new Sol selection or fallback.
 
 ## Three-tier task routing
 
@@ -154,8 +154,8 @@ remain unchanged, including rejected publication evidence.
 
 Basic mode has `evidence_scope: no_benchmark`, allowed roles and no selected effort.
 The Coordinator intersects them with intact installed definitions and actual
-host-advertised GPT-6 model/effort, chooses by task difficulty and reports that
-Radar optimization was not used. No role match means retained work. It does not
+host-advertised GPT-6.1 Sol / GPT-6 Luna model and effort, chooses by task difficulty
+and reports that Radar optimization was not used. No role match means retained work. It does not
 change families, bypass model checks, claim cost savings or populate benchmark LKG.
 Useful native work may pass under disclosed basic mode while live Radar acceptance
 is blocked. A later Daily selection prefers verified live data again; same-day

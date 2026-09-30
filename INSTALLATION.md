@@ -2,7 +2,7 @@
 
 [简体中文](INSTALLATION.zh-CN.md) · [Home](README.en.md)
 
-**v4.3.1 · GPT-6.** Start with the [homepage prompt](README.en.md#install-or-upgrade), then follow [NATIVE_WORKERS_SETUP.md](NATIVE_WORKERS_SETUP.md) from the verified release commit.
+**v4.4.0 Stable · GPT-6.1 Sol + GPT-6 Luna.** Start with the [homepage prompt](README.en.md#install-or-upgrade), then follow [NATIVE_WORKERS_SETUP.md](NATIVE_WORKERS_SETUP.md) from the verified release commit.
 
 ## Identify the environment
 
@@ -31,7 +31,7 @@ Windows `py` can help diagnose Python but does not prove `python` works. macOS n
 2. Resolve the actual `CODEX_HOME` and `<SKILLS_ROOT>`; upgrades retain manifest-recorded roots.
 3. Gather prerequisite/network issues, resolve actionable failures, then inspect dry-run changes.
 4. Apply transactionally, keep the backup and verify hashes. A matching repeat is `IDEMPOTENT_PASS`: zero writes and no new backup.
-5. Reload, then verify installation and useful Sol/Luna work separately. Preserve the coordinator, unrelated content and old caches.
+5. Reload, then verify installation and useful GPT-6.1 Sol / GPT-6 Luna work separately. Preserve the current-session lead model and effort, unrelated content and old state.
 
 Default roots are `.codex` and `.agents/skills` under the user's home, but must not override the actual environment or existing manifest. Quote paths for the shell. The installer records source through `--source-commit`; Source code archives are not one-click installers.
 
@@ -58,7 +58,7 @@ Codex can run `scripts/install_assist.py check/plan/report` with `--client deskt
 | `OWNERSHIP_CONFLICT`, manifest / TOML / hash error | Inspect the conflict and propose a reviewable repair preserving user content. Never delete a manifest or forge hashes. |
 | `AGENTS.override.md` / agent-name conflict | Identify the blocker and reconcile existing instructions; do not delete automatically. |
 | Skill-root mismatch | Check the manifest against the actual client; do not redirect into another home. |
-| Unloaded roles / old models | Verify installation identity, fully quit and restart the relevant client, then start a new task if needed. |
+| Unloaded roles / old models | If Desktop still advertises pre-v4.4.0 GPT-6 Sol or GPT-5.6 roles, verify installation identity, fully quit and restart the client, then start a new task. |
 | Only Luna / no workers | Check whether delegation is worthwhile; do not force workers into small tasks. |
 
 After a temporary PATH fix, also verify dependencies in the normally launched client. Otherwise report the remaining restart or persistent repair rather than success.
@@ -66,7 +66,7 @@ After a temporary PATH fix, also verify dependencies in the normally launched cl
 ## What success means
 
 - **Installed:** 10/10 agents, 3/3 Skills, passing ownership/configuration checks, and a recorded backup.
-- **Runtime verified:** the actual host loads GPT-6 roles, both families perform useful work, and the coordinator reviews results. Report live, cached or basic routing; basic acceptance does not verify live Radar.
+- **Runtime verified:** the actual host loads GPT-6.1 Sol and GPT-6 Luna roles, both families perform useful work, and the Coordinator reviews results. Report live, cached or basic routing; basic acceptance does not verify live Radar.
 - **Unverified:** retain `Not checked` / `NOT RUN`. `Today Selection not initialized` is normal before the first selection.
 
 Three-platform automated tests are not native installation proof on all platforms or a measured user success rate. [Validation records](RUNTIME_TESTS.md) state coverage separately. Strong recursive isolation, six-worker capacity and quota savings are not guaranteed.

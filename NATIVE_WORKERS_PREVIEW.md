@@ -1,9 +1,10 @@
 # Codex Native Workers — v4.2.0-rc1 preview installation
 
-This contract applies only to `v4.2.0-rc1` from the published, non-draft GitHub
-Prerelease in `SuperDaddyV/codex-sol-luna-worker`. A branch checkout, this document
-alone, or a tag without a published Release is not installation authority.
-`v4.1.4` remains the default Stable target through its existing pinned contracts.
+Historical preview contract: this document applies only to `v4.2.0-rc1` from its
+published, non-draft GitHub Prerelease. The current default is the published
+`v4.4.0` Stable release; use [NATIVE_WORKERS_SETUP.md](NATIVE_WORKERS_SETUP.md).
+A branch checkout, this document alone, or a tag without a published Release is
+not installation authority. Keep this pinned contract for historical preview use.
 
 The preview provides native Sol/Luna profiles, validated task selection and
 transactional installation. Strong prevention of recursive worker delegation is

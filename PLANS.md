@@ -1,4 +1,28 @@
-# GPT-6.1 Sol local trial — active implementation scope, 2026-09-30
+# GPT-6.1 Sol v4.4.0 Stable — active publication scope, 2026-09-30
+
+The user reports a satisfactory local trial and explicitly requests publishing
+the update to GitHub. This supersedes the previous local-only publication limit.
+Prepare v4.4.0 Stable with GPT-6.1 Sol and GPT-6 Luna, preserve the user-selected
+Coordinator model/effort, and synchronize the concise Chinese homepage, English
+guide, immutable setup/install entry points, current version/security guidance,
+issue forms and repository description. Git commits, branches, PR, push, tag and
+Release publication for this update are authorized; never move existing tags.
+
+Keep gpt61sol-v1 and the installed Global policy unchanged. Accept the exact local
+trial schema-4 contract as a historical upgrade source, without weakening model,
+inventory, ownership, hash, rollback or publication validation. Preserve original
+historical fixtures and acceptance records. Require focused regressions, the full
+standard-library suite, exact-source Windows/macOS/Linux CI, fake-home trial and
+v4.3.1 migration/repeat/rollback, and useful bounded native Sol/Luna execution.
+Keep missing Radar data, isolation and capacity limits explicit. Trial results are
+historical; acquire current evidence and separate source, installed and native
+claims. Upgrade the authorized local product via the pinned final transaction,
+preserving all unrelated config and existing state. Export only sanitized release
+evidence; do not publish real-home paths, raw local logs or diagnostic caches.
+
+## Previous local-trial baseline
+
+# GPT-6.1 Sol local trial — 2026-09-30
 
 The user explicitly authorizes migrating the local Sol workers to GPT-6.1 Sol
 for a trial period, with no GitHub synchronization or publication. Prepare an

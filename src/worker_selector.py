@@ -18,7 +18,7 @@ from typing import Any
 
 # Single active model/effort contract, shared by both selectors, installer and
 # CLI capability probe. Historical fixtures and rollback payloads stay pinned.
-VERSION = "v4.4.0-local.1"
+VERSION = "v4.4.0"
 SOL_MODEL = "gpt-6.1-sol"
 LUNA_MODEL = "gpt-6-luna"
 MODEL_BY_FAMILY = {"sol": SOL_MODEL, "luna": LUNA_MODEL}

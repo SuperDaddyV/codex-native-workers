@@ -1,20 +1,20 @@
 # Codex Native Workers
 
-让 Codex 按任务分工：你在 Codex 中选择主脑模型，GPT-6 Sol 处理较难的子任务，GPT-6 Luna 处理清晰、重复的工作。
+让 Codex 按任务分工：你在当前会话选择主脑模型，GPT-6.1 Sol 处理较难的子任务，GPT-6 Luna 处理清晰、重复的工作。
 
 [English](README.en.md) · [安装与排错](INSTALLATION.zh-CN.md) · [更新记录](CHANGELOG.md) · [反馈问题](https://github.com/SuperDaddyV/codex-native-workers/issues/new/choose)
 
 [![Validation](https://github.com/SuperDaddyV/codex-native-workers/actions/workflows/validate.yml/badge.svg?branch=master)](https://github.com/SuperDaddyV/codex-native-workers/actions/workflows/validate.yml)
 [![License](https://img.shields.io/github/license/SuperDaddyV/codex-native-workers)](LICENSE)
 
-> **v4.3.1 · GPT-6** — [正式版](https://github.com/SuperDaddyV/codex-native-workers/releases/tag/v4.3.1) · [历史版本](VERSIONS.md)
+> **v4.4.0 Stable · GPT-6.1 Sol + GPT-6 Luna** — [正式版](https://github.com/SuperDaddyV/codex-native-workers/releases/tag/v4.4.0) · [历史版本](VERSIONS.md)
 
 ## 有什么用
 
 | 分工 | 负责什么 |
 | --- | --- |
-| 主脑模型（Coordinator） | 理解需求、拆分任务、整合结果、最终验收；主模型由你选择，Astra 是一种选择。 |
-| GPT-6 Sol | 范围明确但较难的诊断、实现和跨模块工作。 |
+| 主脑模型（Coordinator） | 理解需求、拆分任务、整合结果、最终验收；由当前会话选择，包括 GPT-6.1 Sol/max；不会改成 Astra，worker 档位按任务独立选择。 |
+| GPT-6.1 Sol | 范围明确但较难的诊断、实现和跨模块工作。 |
 | GPT-6 Luna | 清楚的修改、资料整理、定向检查和重复工作。 |
 
 ```mermaid
@@ -34,6 +34,7 @@ flowchart LR
 
 | 判定 | 规则 |
 | --- | --- |
+| 主脑模型 | 以当前会话选择为准，worker 档位按任务独立选择。 |
 | 是否委派 | 有独立、边界明确且值得拆分的工作才委派；小任务由主脑直接完成。 |
 | 使用谁 | Sol 处理较难任务，Luna 处理清晰、重复任务；Sol 没有固定配额。 |
 | 如何选档 | 已校验的 ModelDial 数据 → 合格缓存 → 基础模式按任务选档；基础模式明确提示「未采用雷达优化」，不固定默认档位。 |
@@ -54,13 +55,13 @@ flowchart LR
 在你准备使用的 Codex 环境中新开本地任务，复制：
 
 ```text
-请为当前 Codex 环境安装或升级 Codex Native Workers v4.3.1。
-先核验 https://api.github.com/repos/SuperDaddyV/codex-native-workers/releases/tags/v4.3.1
+请为当前 Codex 环境安装或升级 Codex Native Workers v4.4.0 Stable。
+先核验 https://api.github.com/repos/SuperDaddyV/codex-native-workers/releases/tags/v4.4.0
 确为已发布正式版，锁定不可变 tag 的精确 commit，读取该 commit 的 NATIVE_WORKERS_SETUP.md 并执行。
 识别 Windows/macOS/Linux、桌面端或 CLI、真实 CODEX_HOME 和用户 Skill 根目录。
 先诊断依赖、网络、权限和现有安装；在安装授权范围内主动修复，复查后继续，不要只列问题。
 新增系统依赖、永久环境修改或需我登录时，说明具体动作及原因；已有授权不要重复确认。
-保留我的主模型、无关文件和旧状态，先 dry-run，再事务安装；不得绕过源码或所有权校验。
+保留当前会话的主脑模型与档位、无关文件和旧状态，先 dry-run，再事务安装；不得绕过源码或所有权校验。
 按已安装 Skills 分别检查安装状态和真实子代理运行。失败时给出已尝试的方法、最小下一步和续接提示词。
 ```
 
@@ -87,7 +88,7 @@ Coordinator/Workers: delegated · sol_high ×1 · luna_high ×1 · parallel
 安装与运行分开看：
 
 1. **安装完整：** 状态显示角色 10/10、Skills 3/3，文件与配置校验通过。
-2. **运行可用：** 在实际任务中，Sol 和 Luna 各完成有用的工作，由主脑检查结果。
+2. **运行可用：** 实际宿主加载 GPT-6.1 Sol 与 GPT-6 Luna 角色；两家族各完成有用工作，由主脑检查结果。
 
 首次出现 `Today Selection not initialized` 表示尚未选档；`Not checked` 表示未运行相应检查。配置健康不等于运行验收通过。雷达不可用时可以进入基础模式；角色不可用或模型不匹配时由主脑接手。若角色未加载，完整退出并重启对应客户端。
 

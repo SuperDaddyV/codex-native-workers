@@ -104,10 +104,10 @@ SETUP_RAW_PATTERN = re.compile(
 )
 STABLE_API_URL = (
     "https://api.github.com/repos/SuperDaddyV/"
-    "codex-native-workers/releases/tags/v4.3.1"
+    "codex-native-workers/releases/tags/v4.4.0"
 )
 STABLE_RELEASE_URL = (
-    "https://github.com/SuperDaddyV/codex-native-workers/releases/tag/v4.3.1"
+    "https://github.com/SuperDaddyV/codex-native-workers/releases/tag/v4.4.0"
 )
 STABLE_PYTHON_CHECK = (
     'python -c "import sys, tomllib; '
@@ -147,7 +147,7 @@ class DocumentationTests(unittest.TestCase):
             self.assertIn('actions/workflows/validate.yml/badge.svg', content)
             self.assertIn('github/license', content)
             self.assertIn('VERSIONS.md', content)
-            self.assertIn('v4.3.1', content)
+            self.assertIn('v4.4.0', content)
             self.assertNotRegex(content, r'\b[0-9a-f]{40}\b')
             self.assertEqual(content.count('```') % 2, 0)
 
@@ -155,10 +155,14 @@ class DocumentationTests(unittest.TestCase):
     def test_readmes_explain_native_worker_routing_parallelism_and_receipts(self):
         for path in (README_EN, README_ZH):
             content = text(path)
-            for token in ('Coordinator','GPT-6 Sol','GPT-6 Luna','0–3','4–6','2 KiB','sol-luna-delegate','sol-luna-status','sol-luna-upgrade','Coordinator/Workers: delegated · sol_high ×1 · luna_high ×1 · parallel'):
+            for token in ('Coordinator','GPT-6.1 Sol','GPT-6 Luna','0–3','4–6','2 KiB','sol-luna-delegate','sol-luna-status','sol-luna-upgrade','Coordinator/Workers: delegated · sol_high ×1 · luna_high ×1 · parallel'):
                 self.assertIn(token, content)
-        self.assertIn('You choose the model', text(README_EN))
-        self.assertIn('主模型由你选择', text(README_ZH))
+        self.assertIn('The current session chooses it, including GPT-6.1 Sol/max', text(README_EN))
+        self.assertIn('由当前会话选择，包括 GPT-6.1 Sol/max', text(README_ZH))
+        self.assertIn('worker effort stays task-based', text(README_EN))
+        self.assertIn('worker effort is selected independently by task', text(README_EN))
+        self.assertIn('worker 档位按任务独立选择', text(README_ZH))
+        self.assertIn('不会改成 Astra', text(README_ZH))
         self.assertIn('no fixed Sol quota', text(README_EN))
         self.assertIn('Sol 没有固定配额', text(README_ZH))
 
@@ -469,9 +473,10 @@ class DocumentationTests(unittest.TestCase):
                 self.assertEqual(len(labels), len(set(labels)))
                 self.assertNotIn("labels:", content)
                 self.assertNotIn("contact_links:", content)
-                self.assertIn("Current Stable (v4.3.1)", content)
-                self.assertIn("Previous Stable (v4.3.0)", content)
-                self.assertIn("Previous Stable (v4.2.0)", content)
+                self.assertIn("Current Stable (v4.4.0)", content)
+                self.assertIn("Previous Stable (v4.3.1)", content)
+                self.assertIn("Earlier Stable (v4.3.0)", content)
+                self.assertIn("Earlier Stable (v4.2.0)", content)
                 self.assertIn("Previous Preview (v4.2.0-rc1)", content)
                 self.assertIn("Legacy Stable (v4.1.4)", content)
                 self.assertIn('"NOT RUN"', content)
@@ -488,7 +493,7 @@ class DocumentationTests(unittest.TestCase):
             "unless specifically requested during later troubleshooting",
         ):
             self.assertIn(phrase, bug)
-        self.assertIn("placeholder: v4.3.1", bug)
+        self.assertIn("placeholder: v4.4.0", bug)
         self.assertNotIn("placeholder: v4.1.1", bug)
         self.assertIn("`Sol/Luna: Sol-only · no independent bounded work`", bug)
         self.assertIn("`Sol/Luna: delegated · luna_max ×2 · parallel`", bug)
@@ -516,7 +521,7 @@ class DocumentationTests(unittest.TestCase):
         self.assertIn("placeholder: sol_max / Unknown", compatibility)
         self.assertIn("Coordinator/Workers: delegated", compatibility)
         self.assertIn("sequential execution is not parallel", compatibility)
-        self.assertIn("placeholder: v4.3.1", compatibility)
+        self.assertIn("placeholder: v4.4.0", compatibility)
         self.assertNotIn("placeholder: v4.1.1", compatibility)
 
         feature = text(ISSUE_TEMPLATE_DIR / "feature-feedback.yml")
@@ -705,7 +710,7 @@ class DocumentationTests(unittest.TestCase):
         self.assertIn(V414_RUNTIME_SOURCE_COMMIT, public_installation)
         self.assertIn("Stable release: `v4.1.4`", text(ASSIST))
         self.assertIn(STABLE_API_URL, text(README_EN) + text(README_ZH))
-        self.assertIn("v4.3.1", text(README_EN) + text(README_ZH))
+        self.assertIn("v4.4.0", text(README_EN) + text(README_ZH))
         self.assertNotIn("releases/tag/v4.1.3", text(README_EN) + text(README_ZH))
         self.assertNotIn("img.shields.io/badge/stable-v4.1.3", public_installation)
         stable_public_claims = "\n".join(
@@ -730,9 +735,9 @@ class DocumentationTests(unittest.TestCase):
         setup = text(STABLE_SETUP)
         readmes = text(README_EN) + "\n" + text(README_ZH)
 
-        self.assertIn("# Codex Native Workers — v4.3.1 Stable installation contract", setup)
+        self.assertIn("# Codex Native Workers — v4.4.0 Stable installation contract", setup)
         for required in (
-            "/repos/SuperDaddyV/codex-native-workers/releases/tags/v4.3.1",
+            "/repos/SuperDaddyV/codex-native-workers/releases/tags/v4.4.0",
             "draft=false",
             "prerelease=false",
             "published_at",
@@ -740,7 +745,7 @@ class DocumentationTests(unittest.TestCase):
             "clean detached checkout",
             "remote tag again",
             "TAG_MOVED",
-            'VERSION == "v4.3.1"',
+            'VERSION == "v4.4.0"',
             "--source-commit",
             "two-root transaction",
             "no file is\n   required to embed its own SHA",
@@ -748,6 +753,17 @@ class DocumentationTests(unittest.TestCase):
             self.assertIn(required, setup)
         self.assertNotRegex(setup, r"\b[0-9a-f]{40}\b")
         self.assertIn("Stable does not mean", setup)
+        for required in (
+            "`gpt-6.1-sol` / `gpt-6-luna`",
+            "`gpt61sol-v1`",
+            "Historical `gpt6-v4`, `gpt6-v3`",
+            "cannot authorize new GPT-6.1 Sol selection",
+            "supported, explicit task-based basic routing",
+        ):
+            self.assertIn(required, setup)
+        for content in (text(README_EN), text(README_ZH), text(INSTALLATION), text(INSTALLATION_ZH)):
+            self.assertIn("GPT-6.1 Sol", content)
+            self.assertIn("GPT-6 Luna", content)
         self.assertIn("Strong recursive isolation is unsupported", setup)
         self.assertIn(
             "Installation can be complete while a native check is NOT RUN",

@@ -1,6 +1,6 @@
 # Sol/Luna 安装协助合同（中文审阅版）
 
-> 以下是 v4.1.4 历史合同，“当前”均指当时版本。v4.2.0 使用
+> 以下是 v4.1.4 历史合同，“当前”均指当时版本。当前 v4.4.0 Stable 使用
 > [Codex Native Workers 正式版合同](NATIVE_WORKERS_SETUP.md)。原有不可变安装锚点保持不变，不混用新旧版本源码。
 
 > [!IMPORTANT]

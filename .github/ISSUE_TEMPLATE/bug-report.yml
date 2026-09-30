@@ -7,7 +7,7 @@ body:
       value: |
         Thank you for helping improve current and previous Codex Native Workers releases.
 
-        Use this form for install, upgrade, selector, Coordinator/Workers delegation, Receipt classification, rollback, uninstall, or another deterministic runtime problem. v4.3.x uses GPT-6 Sol/Luna with live, cached or explicit basic routing; v4.2.0 and its rc1 Preview use the previous model generation; v4.1.4 legacy reports may be Luna-only. Report configuration/status evidence separately from actual native execution; include live/cached/basic routing in the relevant context. Stable does not guarantee host-enforced recursive isolation.
+        Use this form for install, upgrade, selector, Coordinator/Workers delegation, Receipt classification, rollback, uninstall, or another deterministic runtime problem. v4.4.0 uses GPT-6.1 Sol and GPT-6 Luna with live, cached or explicit basic routing; older releases may use prior model generations. Report configuration/status evidence separately from actual native execution; include live/cached/basic routing in the relevant context. Stable does not guarantee host-enforced recursive isolation.
 
         **Privacy warning — read before submitting.** Before submitting, remove or redact secrets and private information, including API keys, access tokens, cookies, passwords, private repository credentials, personal email addresses, unnecessary absolute home-directory information, and proprietary source/code unless you intentionally choose to share it. Include only the minimum relevant logs, with secrets and private information removed or redacted. Do not upload the entire CODEX_HOME (the whole `CODEX_HOME`) unless specifically requested during later troubleshooting; never upload an archive of it or its private files.
 
@@ -61,9 +61,10 @@ body:
       label: Release channel
       description: Which version or candidate did you test?
       options:
-        - "Current Stable (v4.3.1)"
-        - "Previous Stable (v4.3.0)"
-        - "Previous Stable (v4.2.0)"
+        - "Current Stable (v4.4.0)"
+        - "Previous Stable (v4.3.1)"
+        - "Earlier Stable (v4.3.0)"
+        - "Earlier Stable (v4.2.0)"
         - "Previous Preview (v4.2.0-rc1)"
         - "Legacy Stable (v4.1.4)"
         - Other published version
@@ -89,7 +90,7 @@ body:
     attributes:
       label: Project version / tag / commit
       description: Enter the actual release, tag, or exact commit under test. The placeholder is only an example.
-      placeholder: v4.3.1 (or v4.3.0 / v4.2.0 / v4.2.0-rc1 / v4.1.4)
+      placeholder: v4.4.0 (or v4.3.1 / v4.3.0 / v4.2.0 / v4.2.0-rc1 / v4.1.4)
     validations:
       required: true
 

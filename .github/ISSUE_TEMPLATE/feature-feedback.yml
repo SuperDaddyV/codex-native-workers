@@ -17,9 +17,10 @@ body:
       label: Release channel
       description: Which version or candidate does this feedback concern?
       options:
-        - "Current Stable (v4.3.1)"
-        - "Previous Stable (v4.3.0)"
-        - "Previous Stable (v4.2.0)"
+        - "Current Stable (v4.4.0)"
+        - "Previous Stable (v4.3.1)"
+        - "Earlier Stable (v4.3.0)"
+        - "Earlier Stable (v4.2.0)"
         - "Previous Preview (v4.2.0-rc1)"
         - "Legacy Stable (v4.1.4)"
         - Both current and previous targets
@@ -33,7 +34,7 @@ body:
     attributes:
       label: Version under discussion
       description: Optional. Enter the exact version, tag, or commit when this feedback is version-specific.
-      placeholder: v4.3.1 (or v4.3.0 / v4.2.0 / v4.2.0-rc1 / v4.1.4)
+      placeholder: v4.4.0 (or v4.3.1 / v4.3.0 / v4.2.0 / v4.2.0-rc1 / v4.1.4)
 
   - type: dropdown
     id: evidence_status
