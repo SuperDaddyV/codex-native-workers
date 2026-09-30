@@ -7,7 +7,7 @@ from pathlib import Path
 from src import selector
 
 
-FIXTURES = Path(__file__).resolve().parents[1] / "fixtures/modeldial-gpt6"
+FIXTURES = Path(__file__).resolve().parents[1] / "fixtures/modeldial-gpt61"
 
 
 def digest(payload, field, *, sorted_keys=False):

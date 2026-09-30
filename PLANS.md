@@ -1,3 +1,43 @@
+# GPT-6.1 Sol local trial — active implementation scope, 2026-09-30
+
+The user explicitly authorizes migrating the local Sol workers to GPT-6.1 Sol
+for a trial period, with no GitHub synchronization or publication. Prepare an
+exact local candidate v4.4.0-local.1, keep GPT-6 Luna and the user-selected
+Coordinator settings, and install via the existing two-root transaction after
+dry-run. Local source commits may record the exact candidate provenance under
+the continuing repository commit authorization; do not push, create a PR/tag,
+publish a Release, or change public repository settings.
+
+Pin all five Sol roles, the selector model contract and installed Skills to
+gpt-6.1-sol. Isolate new active state under gpt61sol-v1; preserve all previous
+GPT-6/GPT-5.6 state without importing old Sol benchmark data. Preserve strict
+publication, hash, inventory, ownership and rollback checks. Permit historical
+schema-4 contracts only for their exact versioned identities. Keep the Global
+managed block and published v4.3.1 documentation unchanged.
+
+Require focused model/cache/migration regressions, the full standard-library
+suite, fake-home migration/repeat/rollback and real installed preservation.
+Use current live Radar only if the exact new model's publication passes existing
+checks; otherwise disclose task-based basic routing. New-model native execution
+requires the host to advertise matching custom-role bindings. Old loaded roles
+stop native acceptance until reload; no direct overrides as native proof.
+
+The 2026-09-30 isolated live acquisition found no `gpt-6.1-sol` rows in
+ModelDial's current rankings or overall rankings. The exact backend publication
+matched; frontend and reasoning archives were obtained, while the indexed
+overall archive was unavailable or mismatched. All new Sol views therefore used
+explicit task-based basic routing, with no fixed effort and no benchmark claim.
+The installed state was unchanged by this probe. Raw responses, the partial
+acquisition result and local installation evidence stay in ignored `.var/`;
+synthetic GPT-6.1 fixtures are labelled as tests and never imported into runtime.
+
+Source acceptance on Windows: 494/494 standard-library tests passed, including
+the exact v4.3.1 payload upgrade, zero-write repeat and exact fake-home rollback.
+Real installed and native results are recorded separately in local evidence;
+these source checks do not establish Mac, CLI or Desktop execution acceptance.
+
+## Previous documentation baseline
+
 # Compact homepage flow — active documentation scope, 2026-09-26
 
 The user approved a compact five-node homepage flow with collapsed decision rules

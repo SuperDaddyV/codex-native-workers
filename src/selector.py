@@ -31,7 +31,7 @@ else:
 METADATA_SCHEMA_VERSION = 2
 STATUS_SCHEMA_VERSION = 2
 REFERENCE_COST_METRIC = "modeldial_estimated_reference_cost_usd"
-USER_AGENT = "codex-native-workers/4.3.1"
+USER_AGENT = "codex-native-workers/4.4.0-local.1"
 ROLE_BY_EFFORT = {effort: f"luna_{effort}" for effort in EFFORTS}
 BJT = timezone(timedelta(hours=8), name="BJT")
 UTC = timezone.utc

@@ -73,7 +73,7 @@ def make_snapshot(
 def capability_pass():
     return {
         "model": "gpt-6-luna",
-        "sol_model": "gpt-6-sol",
+        "sol_model": "gpt-6.1-sol",
         "all_supported": True,
         "sol_all_supported": True,
         "all_models_supported": True,
@@ -89,7 +89,7 @@ def capability_pass():
         ],
         "sol_results": [
             {
-                "model": "gpt-6-sol",
+                "model": "gpt-6.1-sol",
                 "effort": effort,
                 "supported": True,
                 "response_exact": True,

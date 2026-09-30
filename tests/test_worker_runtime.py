@@ -15,7 +15,7 @@ from scripts.install import install
 from publication_fixtures import publication_bundle
 
 
-FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "modeldial-gpt6"
+FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "modeldial-gpt61"
 
 
 class WorkerRuntimeTests(unittest.TestCase):
@@ -64,7 +64,7 @@ class WorkerRuntimeTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             profile = selector.ensure_worker_profile({"luna_snapshot": self.luna}, state_dir=directory, now=self.now)
             profile["luna"]["selected_role"] = "default"
-            path = Path(directory) / "gpt6-v4" / "worker-profile.json"
+            path = Path(directory) / "gpt61sol-v1" / "worker-profile.json"
             path.write_text(json.dumps(profile), encoding="utf-8")
             repaired = selector.ensure_worker_profile({}, state_dir=directory, now=self.now)
             self.assertEqual(repaired["luna"]["selected_role"], "luna_max")
@@ -128,8 +128,8 @@ class WorkerRuntimeTests(unittest.TestCase):
             self.assertNotIn("native_leaf", status)
             self.assertNotIn("native_runtime", status)
             self.assertEqual(before, {path.name: path.read_bytes() for path in state.iterdir() if path.is_file()})
-            self.assertFalse((state / "gpt6-v4" / "daily-profile.json").exists())
-            (state / "gpt6-v4" / "daily-profile.json").write_text('{broken legacy data', encoding="utf-8")
+            self.assertFalse((state / "gpt61sol-v1" / "daily-profile.json").exists())
+            (state / "gpt61sol-v1" / "daily-profile.json").write_text('{broken legacy data', encoding="utf-8")
             status = selector.read_status(codex_home=target, state_dir=state)
             self.assertEqual(status["health"], "Degraded")
             self.assertNotIn("DAILY_PROFILE_INVALID", status["reason_codes"])

@@ -15,7 +15,7 @@ from test_installer_lifecycle import (
 )
 
 
-FIXTURES = ROOT / "fixtures" / "modeldial-gpt6"
+FIXTURES = ROOT / "fixtures" / "modeldial-gpt61"
 
 
 def api_fixture():
@@ -57,7 +57,7 @@ class GenerationCacheTests(unittest.TestCase):
             first = selector.ensure_worker_profile(publication_bundle(api_fixture()), state_dir=root, now=NOW)
             second = selector.ensure_worker_profile({}, state_dir=root, now=NOW + timedelta(days=1))
             self.assertTrue(second["sol"]["fallback"])
-            self.assertEqual(second["sol"]["model"], "gpt-6-sol")
+            self.assertEqual(second["sol"]["model"], "gpt-6.1-sol")
             before = {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in root.rglob("*") if p.is_file()}
             fetch = Mock(side_effect=AssertionError("repeat must not fetch"))
             again = selector.ensure_worker_profile(state_dir=root, now=NOW + timedelta(days=1), live_fetcher=fetch)

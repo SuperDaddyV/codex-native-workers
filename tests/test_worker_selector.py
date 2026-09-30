@@ -10,7 +10,7 @@ from src.worker_selector import (
 )
 
 
-FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "modeldial-gpt6"
+FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "modeldial-gpt61"
 
 
 def load_fixture(name):
@@ -44,7 +44,7 @@ def test_api_fixture_maps_four_independent_views_and_groups():
 def test_reference_api_identity_is_preserved_through_root_items_and_selection():
     adapted = adapt_sol_api(load_fixture("reference-api-v1.1.json"))
     assert adapted["target"] == {
-        "model": "gpt-6-sol",
+        "model": "gpt-6.1-sol",
         "provider": "cloudflare-reference",
         "route": "custom_endpoint",
     }
