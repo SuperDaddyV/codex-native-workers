@@ -70,7 +70,7 @@ class PublicationBindingTests(unittest.TestCase):
         self.assertTrue(all(v["status"] == "ready" for v in profile["sol"]["views"].values()))
 
     def test_backend_score_mismatch_cannot_downgrade_to_quality_only(self):
-        for model in ("gpt-6-sol", "gpt-6-luna"):
+        for model in ("gpt-6.1-sol", "gpt-6-luna"):
             with self.subTest(model=model):
                 bundle = publication_bundle()
                 row = next(r for r in bundle["api"]["rankings"] if r["model"] == model and r["reasoningEffort"] == "low")
@@ -89,7 +89,7 @@ class PublicationBindingTests(unittest.TestCase):
         for key, value in (("provider", "codex"), ("route", "official_login"), ("id", "other-row"), ("maxScore", 101), ("elapsedMs", 1)):
             with self.subTest(key=key):
                 bundle = publication_bundle()
-                row = next(r for r in bundle["api"]["rankings"] if r["model"] == "gpt-6-sol")
+                row = next(r for r in bundle["api"]["rankings"] if r["model"] == "gpt-6.1-sol")
                 row[key] = value
                 self.assertEqual(select(bundle)["sol"]["views"]["backend"]["status"], "unavailable")
 

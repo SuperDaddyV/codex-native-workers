@@ -124,6 +124,27 @@ class SkillPayloadTests(unittest.TestCase):
         self.assertIn("missing or invalid routing contract never authorizes a basic route", status)
         self.assertNotIn("No valid same-generation data/cache means Coordinator ownership", delegate)
 
+    def test_gpt61_sol_stable_contract_and_historical_state(self):
+        delegate, _ = read_frontmatter(SKILL_PATHS["sol-luna-delegate"])
+        status, _ = read_frontmatter(SKILL_PATHS["sol-luna-status"])
+        upgrade, _ = read_frontmatter(SKILL_PATHS["sol-luna-upgrade"])
+        for content in (delegate, status, upgrade):
+            with self.subTest(skill=content.splitlines()[1]):
+                self.assertIn("gpt-6.1-sol", content)
+                self.assertIn("gpt-6-luna", content)
+                self.assertIn("gpt61sol-v1", content)
+                self.assertIn("gpt6-v4", content)
+                self.assertIn("gpt6-v3", content)
+                self.assertIn("GPT-5.6", content)
+        for content in (delegate, status, upgrade):
+            self.assertIn("cannot authorize new GPT-6.1 Sol selection", content)
+        self.assertIn("published v4.4.0 Stable contract", upgrade)
+        self.assertNotIn("v4.4.0-local.1", upgrade)
+        self.assertNotIn("unpublished local trial", upgrade)
+        self.assertIn("future development-only local candidates", upgrade)
+        self.assertIn("explicit candidate authorization", upgrade)
+        self.assertIn("immutable tag, exact commit", upgrade)
+
     def test_upgrade_requires_immutable_target_and_authorized_apply(self):
         content, _ = read_frontmatter(SKILL_PATHS["sol-luna-upgrade"])
         for invariant in (

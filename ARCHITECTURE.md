@@ -1,4 +1,27 @@
-# GPT-6 v4.3.1 active contract
+# GPT-6.1 Sol v4.4.0 active contract
+
+The Coordinator is the user-selected lead model, including GPT-6.1 Sol/max when
+chosen in the session. Workers independently pin `gpt-6.1-sol` or `gpt-6-luna`
+with five efforts. Lead selection does not set worker effort. The ten-role,
+two-module, three-Skill inventory and <= 2048-byte Global block remain unchanged.
+
+The model-bound `gpt61sol-v1` namespace preserves but never imports old GPT-6
+Sol/GPT-5.6 benchmark state. Manifest schema 4 accepts only exact versioned
+contracts, including the earlier GPT-6 Stable versions and the GPT-6.1 local
+trial for migration. Transactional ownership and rollback prevalidation remain
+strict. The trial-to-Stable transition preserves existing same-contract state.
+
+Verified live Radar, qualified same-contract cache, then explicit task-based
+basic routing apply per family/view. Basic mode never fixes a default effort or
+becomes benchmark evidence. Publisher rows with an unsupported source identity
+or unmatched archive cannot authorize reference optimization. Native role
+execution, recursive isolation and observed capacity remain separate evidence.
+
+The versioned sections below describe their historical contracts and observations.
+
+---
+
+# GPT-6 v4.3.1 historical contract
 
 The active model/effort contract lives in `src/worker_selector.py`: `gpt-6-sol`,
 `gpt-6-luna`, five efforts, four Sol views and one Luna Daily. User-selected

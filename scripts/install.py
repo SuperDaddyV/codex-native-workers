@@ -63,6 +63,43 @@ SCHEMA2_SKILL_FILES = (
 SKILL_FILES = (*SCHEMA2_SKILL_FILES, "sol-luna-delegate")
 MAX_CONCURRENT_THREADS = 6
 
+# Historical schema-4 contracts are accepted only for the exact versions that
+# used them. This permits a verified upgrade without accepting relabelled
+# model data or weakening ownership and inventory validation.
+_GPT6_STABLE_CONTRACT = {
+    "models": {"sol": "gpt-6-sol", "luna": "gpt-6-luna"},
+    "efforts": ["low", "medium", "high", "xhigh", "max"],
+    "sol_axes": {
+        "general": ["overallRankings", "overallScore"],
+        "backend": ["rankings", "score"],
+        "frontend": ["overallRankings", "frontendScore"],
+        "reasoning": ["overallRankings", "knowledgeScore"],
+    },
+    "luna_axis": ["rankings", "score", "backend"],
+    "policy_version": 2,
+    "sol_quality_gap": 2.0,
+}
+_HISTORICAL_SCHEMA4_CONTRACTS = {
+    "v4.3.0": _GPT6_STABLE_CONTRACT,
+    "v4.3.1": _GPT6_STABLE_CONTRACT,
+    "v4.4.0-local.1": {
+        **_GPT6_STABLE_CONTRACT,
+        "models": {"sol": "gpt-6.1-sol", "luna": "gpt-6-luna"},
+    },
+}
+
+
+def _schema4_contract_matches(manifest: dict) -> bool:
+    version = manifest.get("version")
+    if version == VERSION:
+        expected = cache_identity()
+    elif isinstance(version, str):
+        expected = _HISTORICAL_SCHEMA4_CONTRACTS.get(version)
+    else:
+        expected = None
+    return expected is not None and manifest.get("model_contract") == expected
+
+
 FUTURE_ARTIFACTS = (
     *(
         {
@@ -598,7 +635,7 @@ def _load_manifest(target: Path, *, required: bool = False) -> dict | None:
                 raise InstallerError(
                     "MANIFEST_INVALID", "Skill directory ownership is invalid"
                 )
-    if schema_version == 4 and (manifest.get("model_contract") != cache_identity()):
+    if schema_version == 4 and not _schema4_contract_matches(manifest):
         raise InstallerError("MANIFEST_INVALID", "schema 4 model/version contract is invalid")
     cleanup = manifest.get("legacy_cleanup")
     if cleanup is not None and (

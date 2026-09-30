@@ -1,3 +1,38 @@
+# GPT-6.1 Sol v4.4.0 release checkpoint — 2026-09-30
+
+This update promotes the authorized GPT-6.1 Sol trial to Stable. The Coordinator
+remains user-selected; Luna, worker efforts, Global policy and the strict routing
+and installation contracts are unchanged. Historical failures remain below.
+
+- **PASS — focused source and fake-home:** exact v4.3.1 and v4.4.0-local.1
+  migrations, timestamp-observed zero-write repeats, exact rollback and tampered
+  contract rejection passed. Trial-to-Stable preserves same-contract state,
+  historical state, unmanaged content and user-selected main-model settings.
+- **PASS — useful Windows Desktop native work:** one installed Daily selection
+  authorized `sol_high` for bounded migration/installer work and `luna_xhigh` for
+  bounded documentation work. Both completed with observed overlap and their
+  results were reviewed by the Coordinator. Host-advertised exact models/efforts
+  and matching installed TOML hashes support attribution; independent backend
+  model identity and all ten effort profiles were not inspected.
+- **LIMITED — fresh Radar acquisition:** four public requests succeeded. Both
+  ranking lists contained five GPT-6.1 Sol rows under `codex-local` /
+  `custom_endpoint`, which is outside the existing accepted source identities.
+  The full backend snapshot matched; no matching benchmark view archive was
+  obtained for the new Sol reference. Luna used verified live, quality-only
+  reference data; all Sol views used task-based basic routing. New API rows do
+  not establish a verified reference, fixed effort or local quota savings.
+  The isolated acquisition preserved all fourteen installed state files.
+- **NOT RUN — other native clients, six-worker capacity and nested enforcement.**
+  Historical tool-isolation failure remains unchanged. Three-platform source CI
+  does not prove native execution in every Desktop/CLI or account environment.
+
+The [v4.4.0 validation asset](https://github.com/SuperDaddyV/codex-native-workers/releases/download/v4.4.0/native-workers-v4.4.0-validation.json)
+records full-suite results, final exact-source three-platform CI, transactional
+installed integrity/preservation, fresh network scope and native observations
+separately. This document or a tag alone is not Release publication evidence.
+
+---
+
 # GPT-6 v4.3.1 patch acceptance — 2026-09-26
 
 The URL-type repair has source, transaction and useful native evidence. Strict

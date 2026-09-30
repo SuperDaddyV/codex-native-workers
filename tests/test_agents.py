@@ -6,10 +6,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 AGENT_DIR = ROOT / ".codex" / "agents"
 EFFORTS = {"low", "medium", "high", "xhigh", "max"}
-MODELS = {"sol": "gpt-6-sol", "luna": "gpt-6-luna"}
+MODELS = {"sol": "gpt-6.1-sol", "luna": "gpt-6-luna"}
 
 
 class AgentConfigTests(unittest.TestCase):
+    def test_model_contract_is_the_local_gpt61_sol_trial(self):
+        self.assertEqual(MODELS, {"sol": "gpt-6.1-sol", "luna": "gpt-6-luna"})
+
     def test_exactly_five_fixed_effort_profiles_per_family(self):
         configs = {
             path.name: tomllib.loads(path.read_text(encoding="utf-8"))

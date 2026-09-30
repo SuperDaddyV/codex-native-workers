@@ -18,13 +18,13 @@ from typing import Any
 
 # Single active model/effort contract, shared by both selectors, installer and
 # CLI capability probe. Historical fixtures and rollback payloads stay pinned.
-VERSION = "v4.3.1"
-SOL_MODEL = "gpt-6-sol"
+VERSION = "v4.4.0"
+SOL_MODEL = "gpt-6.1-sol"
 LUNA_MODEL = "gpt-6-luna"
 MODEL_BY_FAMILY = {"sol": SOL_MODEL, "luna": LUNA_MODEL}
 WORKER_PROFILE_SCHEMA_VERSION = 3
 REFERENCE_POLICY_VERSION = 2
-CACHE_NAMESPACE = "gpt6-v4"
+CACHE_NAMESPACE = "gpt61sol-v1"
 PUBLICATION_VERIFICATION_VERSION = 1
 SOL_PROVIDER = "codex"
 SOL_ROUTE = "official_login"

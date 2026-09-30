@@ -1,3 +1,18 @@
+# v4.4.0 — GPT-6.1 Sol workers / GPT-6.1 Sol 子代理
+
+- Upgrade all five Sol worker profiles to GPT-6.1 Sol; keep GPT-6 Luna and the
+  user-selected lead model and effort. Choosing Sol/max as lead does not force
+  workers to max.
+- Isolate the exact new model contract under `gpt61sol-v1`; preserve earlier
+  GPT-6/GPT-5.6 state and reject relocated old-model benchmark caches.
+- Support strict transactional upgrades from v4.3.1 and the authorized local
+  trial, with zero-write repeats and fully prevalidated exact rollback.
+- Update the Chinese homepage, English guide, installation prompts, feedback
+  forms and three Skills. Keep the compact flow and lightweight Global rules.
+- Keep live Radar -> qualified cache -> task-based basic routing. New API rows
+  alone do not prove a verified reference; missing matching sources/archives use
+  basic mode without a fixed default effort or savings claim.
+
 # v4.3.1 — Restore complete Radar acquisition
 
 - Fix benchmark archive URLs being passed as parsed objects instead of strings. Sol general, frontend and reasoning can now fetch their exact published archives when available.

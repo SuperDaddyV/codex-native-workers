@@ -125,6 +125,8 @@ def simulate_rc1_managed_policy(target: Path) -> None:
     manifest_path = target / MANIFEST_RELATIVE
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     manifest["version"] = "v4.1.0-rc1"
+    manifest["schema_version"] = 3
+    manifest.pop("model_contract", None)
     manifest["owned_blocks"]["AGENTS.md"]["sha256"] = hashlib.sha256(
         rc1_policy[block_start:block_finish].encode("utf-8")
     ).hexdigest()
@@ -159,6 +161,8 @@ def simulate_rc3_managed_policy(target: Path) -> None:
     manifest_path = target / MANIFEST_RELATIVE
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     manifest["version"] = "v4.1.0-rc3"
+    manifest["schema_version"] = 3
+    manifest.pop("model_contract", None)
     manifest["owned_blocks"]["AGENTS.md"]["sha256"] = hashlib.sha256(
         rc3_policy[block_start:block_finish].encode("utf-8")
     ).hexdigest()
@@ -193,6 +197,8 @@ def simulate_rc4_managed_install(target: Path) -> None:
     manifest_path = target / MANIFEST_RELATIVE
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     manifest["version"] = "v4.1.0-rc4"
+    manifest["schema_version"] = 3
+    manifest.pop("model_contract", None)
     manifest.pop("source_commit", None)
     manifest["owned_files"][selector_relative] = hashlib.sha256(selector).hexdigest()
     manifest["owned_blocks"]["AGENTS.md"]["sha256"] = hashlib.sha256(
@@ -803,7 +809,7 @@ class InstallerLifecycleTests(unittest.TestCase):
                     agent = tomllib.load(handle)
                 self.assertEqual(
                     agent["model"],
-                    "gpt-6-sol" if path.name.startswith("sol-") else "gpt-6-luna",
+                    "gpt-6.1-sol" if path.name.startswith("sol-") else "gpt-6-luna",
                 )
                 self.assertFalse(agent["agents"]["enabled"])
             installed_policy = (target / "AGENTS.md").read_text(encoding="utf-8")
@@ -1049,6 +1055,8 @@ class InstallerLifecycleTests(unittest.TestCase):
             )
             selector_path.write_bytes(v40_selector)
             manifest["version"] = "v4.0.0"
+            manifest["schema_version"] = 3
+            manifest.pop("model_contract", None)
             manifest["owned_files"][selector_relative] = hashlib.sha256(
                 v40_selector
             ).hexdigest()
@@ -1227,6 +1235,8 @@ class InstallerLifecycleTests(unittest.TestCase):
             )
             selector_path.write_bytes(rc5_selector)
             manifest["version"] = "v4.1.0-rc5"
+            manifest["schema_version"] = 3
+            manifest.pop("model_contract", None)
             manifest["owned_files"][selector_relative] = hashlib.sha256(
                 rc5_selector
             ).hexdigest()
@@ -1309,6 +1319,10 @@ class InstallerLifecycleTests(unittest.TestCase):
                 call_install(target)
 
             manifest_path = target / MANIFEST_RELATIVE
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest["schema_version"] = 3
+            manifest.pop("model_contract", None)
+            manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
             rc6_manifest_before = manifest_path.read_bytes()
             before = tree_hash(target)
 
@@ -1679,6 +1693,11 @@ class InstallerLifecycleTests(unittest.TestCase):
             with patch("scripts.install.VERSION", "v4.1.0-rc6"):
                 call_install(target)
 
+            manifest_path = target / MANIFEST_RELATIVE
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest["schema_version"] = 3
+            manifest.pop("model_contract", None)
+            manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
             selector_path = target / "sol-luna-v4" / "selector.py"
             selector_path.write_bytes(selector_path.read_bytes() + b"\n# user change\n")
             before = tree_hash(target)
@@ -1710,6 +1729,8 @@ class InstallerLifecycleTests(unittest.TestCase):
             manifest_path = target / MANIFEST_RELATIVE
             manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
             manifest["version"] = "v4.1.0-rc5"
+            manifest["schema_version"] = 3
+            manifest.pop("model_contract", None)
             manifest_path.write_text(
                 json.dumps(manifest, indent=2, sort_keys=True) + "\n",
                 encoding="utf-8",

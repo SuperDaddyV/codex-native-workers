@@ -414,6 +414,8 @@ class InstallPlanTests(unittest.TestCase):
 
             manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
             manifest["version"] = "v4.1.0-rc4"
+            manifest["schema_version"] = 3
+            manifest.pop("model_contract", None)
             manifest_path.write_text(
                 json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
             )
@@ -466,6 +468,10 @@ class InstallPlanTests(unittest.TestCase):
             manifest_path = target / MANIFEST_RELATIVE
             manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
             manifest["version"] = f"v{int(VERSION[1:].split('.')[0]) + 1}.0.0"
+            # Exercise the semver guard with a supported legacy schema. Unknown
+            # schema-4 version contracts are rejected earlier, without writes.
+            manifest["schema_version"] = 3
+            manifest.pop("model_contract", None)
             manifest_path.write_text(
                 json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
             )
@@ -483,9 +489,11 @@ class InstallPlanTests(unittest.TestCase):
                     )
                     self.assertEqual(tree_hash(target), before)
 
-    def test_v420_stable_and_historical_semver_contract(self):
-        self.assertEqual(VERSION, "v4.3.1")
-        self.assertEqual(USER_AGENT, "codex-native-workers/4.3.1")
+    def test_active_stable_and_historical_semver_contract(self):
+        self.assertEqual(VERSION, "v4.4.0")
+        self.assertEqual(USER_AGENT, "codex-native-workers/4.4.0")
+        self.assertGreater(_compare_project_semver(VERSION, "v4.4.0-local.1"), 0)
+        self.assertGreater(_compare_project_semver(VERSION, "v4.3.1"), 0)
         self.assertGreater(_compare_project_semver(VERSION, "v4.2.0-rc1"), 0)
         self.assertGreater(_compare_project_semver(VERSION, "v4.2.0-local.2"), 0)
         self.assertGreater(_compare_project_semver(VERSION, "v4.1.2"), 0)

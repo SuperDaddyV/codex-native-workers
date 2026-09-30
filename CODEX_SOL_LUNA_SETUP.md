@@ -1,7 +1,7 @@
 # Codex Sol + Luna Worker — v4.1.4 Stable Execution Setup Contract
 
 > Historical version contract: all current/default wording below describes the
-> v4.1.4 release at that time. For current v4.2.0 installation use
+> v4.1.4 release at that time. For current v4.4.0 Stable installation use
 > [Codex Native Workers Stable setup](NATIVE_WORKERS_SETUP.md). Existing immutable
 > v4.1.4 installation anchors remain unchanged; do not apply new source with this contract.
 

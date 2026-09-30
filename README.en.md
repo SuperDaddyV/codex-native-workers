@@ -1,20 +1,20 @@
 # Codex Native Workers
 
-Let Codex share the work: you choose the lead model in Codex, GPT-6 Sol handles demanding subtasks, and GPT-6 Luna handles clear, repeatable work.
+Let Codex share the work: your current session chooses the lead model, GPT-6.1 Sol handles demanding subtasks, and GPT-6 Luna handles clear, repeatable work.
 
 [简体中文](README.md) · [Install & troubleshoot](INSTALLATION.md) · [Changes](CHANGELOG.md) · [Get help](https://github.com/SuperDaddyV/codex-native-workers/issues/new/choose)
 
 [![Validation](https://github.com/SuperDaddyV/codex-native-workers/actions/workflows/validate.yml/badge.svg?branch=master)](https://github.com/SuperDaddyV/codex-native-workers/actions/workflows/validate.yml)
 [![License](https://img.shields.io/github/license/SuperDaddyV/codex-native-workers)](LICENSE)
 
-> **v4.3.1 · GPT-6** — [Release](https://github.com/SuperDaddyV/codex-native-workers/releases/tag/v4.3.1) · [Previous versions](VERSIONS.md)
+> **v4.4.0 Stable · GPT-6.1 Sol + GPT-6 Luna** — [Release](https://github.com/SuperDaddyV/codex-native-workers/releases/tag/v4.4.0) · [Previous versions](VERSIONS.md)
 
 ## What it does
 
 | Role | Responsibility |
 | --- | --- |
-| Lead model (Coordinator) | Understands the request, plans, integrates results and accepts the final work. You choose the model; Astra is one option. |
-| GPT-6 Sol | Difficult but bounded diagnosis, implementation and cross-module work. |
+| Lead model (Coordinator) | Understands the request, plans, integrates results and accepts the final work. The current session chooses it, including GPT-6.1 Sol/max; it does not switch to Astra, and worker effort stays task-based. |
+| GPT-6.1 Sol | Difficult but bounded diagnosis, implementation and cross-module work. |
 | GPT-6 Luna | Clear edits, extraction, focused checks and repetitive work. |
 
 ```mermaid
@@ -34,6 +34,7 @@ flowchart LR
 
 | Decision | Rule |
 | --- | --- |
+| Lead model | The current session decides; worker effort is selected independently by task. |
 | Delegate? | Delegate only worthwhile, independent, bounded work. Small tasks stay with the lead model. |
 | Which family? | Sol handles difficult work; Luna handles clear, repetitive work. There is no fixed Sol quota. |
 | Which effort? | Verified ModelDial data → qualified cache → task-based basic mode. Basic mode explicitly reports that Radar optimization was not used; there is no fixed default effort. |
@@ -54,13 +55,13 @@ For **Codex Desktop and Codex CLI on Windows and macOS**; Linux also has automat
 Open a local task in the Codex environment you intend to use, then paste:
 
 ```text
-Install or upgrade Codex Native Workers v4.3.1 for this Codex environment.
-Verify https://api.github.com/repos/SuperDaddyV/codex-native-workers/releases/tags/v4.3.1
+Install or upgrade Codex Native Workers v4.4.0 Stable for this Codex environment.
+Verify https://api.github.com/repos/SuperDaddyV/codex-native-workers/releases/tags/v4.4.0
 is a published Stable release, resolve its immutable tag to an exact commit, and follow NATIVE_WORKERS_SETUP.md from that commit.
 Identify Windows/macOS/Linux, Desktop or CLI, the actual CODEX_HOME and user Skill root.
 Diagnose dependencies, connectivity, permissions and the existing installation. Fix issues within the installation authorization, recheck and continue; do not merely list problems.
 For new system dependencies, persistent environment changes or a required login, explain the exact action and why it is needed. Do not request authorization already given.
-Preserve my lead model, unrelated files and old state. Run dry-run, then the transactional installer; never bypass source or ownership checks.
+Preserve my current session's lead model and effort, unrelated files and old state. Run dry-run, then the transactional installer; never bypass source or ownership checks.
 Use the installed Skills to verify installation and actual worker use separately. If blocked, report attempts, the smallest next action and a resume prompt.
 ```
 
@@ -87,7 +88,7 @@ Efforts may change daily. `parallel` means execution actually overlapped in that
 Check installation and execution separately:
 
 1. **Installation:** 10/10 agents, 3/3 Skills, and passing file/configuration checks.
-2. **Execution:** Sol and Luna each complete useful work in a real task, and the lead model reviews it.
+2. **Execution:** the host loads GPT-6.1 Sol and GPT-6 Luna roles; each family completes useful work in a real task, and the lead model reviews it.
 
 `Today Selection not initialized` is normal before the first selection. `Not checked` means the corresponding check did not run. Healthy configuration is not runtime acceptance. A Radar outage can use basic mode; unavailable or mismatched native roles stay with the lead model. Fully quit and restart the relevant client if roles have not loaded.
 

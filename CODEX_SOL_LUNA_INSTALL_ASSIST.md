@@ -1,6 +1,6 @@
 # Sol/Luna v4.1.4 Assisted Installation Contract
 
-> Historical v4.1.4 contract. Current v4.2.0 installation uses
+> Historical v4.1.4 contract. Current v4.4.0 Stable installation uses
 > [Codex Native Workers Stable setup](NATIVE_WORKERS_SETUP.md). The pinned original
 > v4.1.4 contract and runtime source remain immutable; do not mix their versions.
 

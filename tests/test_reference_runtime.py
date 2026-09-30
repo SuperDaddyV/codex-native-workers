@@ -11,7 +11,7 @@ from src import selector
 from publication_fixtures import publication_bundle
 
 
-FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "modeldial-gpt6"
+FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "modeldial-gpt61"
 NOW = datetime(2026, 9, 12, 23, tzinfo=selector.BJT)
 
 
@@ -114,7 +114,7 @@ class ReferenceRuntimeTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             first = selector.ensure_worker_profile(publication_bundle(reference_api()), state_dir=directory, now=NOW)
             first.pop("reference_policy_version")
-            path = Path(directory) / "gpt6-v4" / "worker-profile.json"
+            path = Path(directory) / "gpt61sol-v1" / "worker-profile.json"
             path.write_text(json.dumps(first), encoding="utf-8")
             next_profile = selector.ensure_worker_profile({}, state_dir=directory, now=NOW)
             self.assertEqual(next_profile["reference_policy_version"], 2)
@@ -125,7 +125,7 @@ class ReferenceRuntimeTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             first = selector.ensure_worker_profile(publication_bundle(reference_api()), state_dir=directory, now=NOW)
             first["luna"]["benchmark_route"] = "official_login"
-            path = Path(directory) / "gpt6-v4" / "worker-profile.json"
+            path = Path(directory) / "gpt61sol-v1" / "worker-profile.json"
             path.write_text(json.dumps(first), encoding="utf-8")
             repaired = selector.ensure_worker_profile({}, state_dir=directory, now=NOW)
             self.assertEqual(repaired["luna"]["benchmark_route"], "custom_endpoint")
