@@ -17,7 +17,7 @@ HISTORICAL_SOURCES = {
     'v4.3.1': '4236500a7c8ee31c93663b0a99d46f9b6b338143',
     'v4.4.0-local.1': '84502cf6706ff529b1e0f7824de633b939653b7d',
 }
-TRIAL_PAYLOAD_SHA256 = 'e0ff29960a046afe85cfde1a489c2f4b221a2976731500349fbba09820072476'
+TRIAL_PAYLOAD_SHA256 = 'ae2cbca1e3157f2192a0ac670d039be1aef6e6a26fced0defbc4f86485d4a07c'
 
 
 def historical_install(target, version='v4.3.1'):
